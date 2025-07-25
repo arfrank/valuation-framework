@@ -407,16 +407,16 @@ body {
 }
 
 .input-wrapper-with-clear {
-  padding-right: 3rem;
+  padding-left: 2rem;
 }
 
-.input-wrapper-with-clear .unit {
-  margin-right: 1.5rem;
+.input-wrapper-with-clear .currency {
+  margin-left: 1.5rem;
 }
 
 .clear-input-btn {
   position: absolute;
-  right: 0.25rem;
+  left: 0.25rem;
   background: #e2e8f0;
   border: none;
   border-radius: 50%;
