@@ -7,9 +7,10 @@
 
 body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background: #f8f9fa;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
   color: #333;
   line-height: 1.4;
+  min-height: 100vh;
 }
 
 #root {
@@ -47,6 +48,8 @@ body {
 .app-main {
   flex: 1;
   padding: 1.5rem;
+  max-width: 1600px;
+  margin: 0 auto;
   width: 100%;
 }
 
@@ -72,7 +75,7 @@ body {
   border: none;
   border-right: 1px solid #dee2e6;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   color: #495057;
   font-weight: 500;
   font-size: 0.9rem;
@@ -89,12 +92,16 @@ body {
 
 .tab:hover {
   background: #e9ecef;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
 .tab.active {
   background: #ffffff;
   color: #0d6efd;
   font-weight: 600;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(13, 110, 253, 0.15);
 }
 
 .tab-name {
@@ -172,16 +179,20 @@ body {
   padding: 0.75rem 1.5rem;
   font-weight: 500;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   align-items: center;
   gap: 0.5rem;
   font-size: 0.9rem;
   margin-left: 0.5rem;
+  position: relative;
+  overflow: hidden;
 }
 
 .add-company-btn:hover {
   background: #218838;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
 }
 
 .add-icon {
@@ -189,30 +200,40 @@ body {
   font-weight: 300;
 }
 
-/* Content Layout */
-.content-layout {
+/* Top Row Layout */
+.top-row {
   display: grid;
-  grid-template-columns: minmax(300px, 400px) repeat(auto-fit, minmax(280px, 1fr));
-  gap: 1.5rem;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-bottom: 2rem;
   align-items: start;
 }
 
-/* Stack layout for narrow screens */
-@media (max-width: 1000px) {
-  .content-layout {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-  }
+.base-result {
+  display: flex;
+  justify-content: center;
+}
+
+/* Scenarios Rows Layout */
+.scenarios-rows {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
 }
 
 /* Input Form */
 .input-form {
   background: #ffffff;
   border: 1px solid #dee2e6;
-  border-radius: 4px;
+  border-radius: 8px;
   padding: 1.5rem;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  transition: all 0.3s ease;
+}
+
+.input-form:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  transform: translateY(-1px);
 }
 
 .form-header {
@@ -279,7 +300,8 @@ body {
 .input-wrapper:focus-within {
   border-color: #0d6efd;
   outline: 0;
-  box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.25);
+  box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.15);
+  transform: translateY(-1px);
 }
 
 .currency, .unit {
@@ -335,8 +357,13 @@ body {
 
 /* Optimize for ultrawide screens */
 @media (min-width: 1800px) {
-  .content-layout {
+  .scenarios-rows {
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
     gap: 2rem;
+  }
+  
+  .top-row {
+    gap: 3rem;
   }
   
   .app-main {
@@ -345,8 +372,13 @@ body {
 }
 
 @media (min-width: 2400px) {
-  .content-layout {
+  .scenarios-rows {
+    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
     gap: 2.5rem;
+  }
+  
+  .top-row {
+    gap: 4rem;
   }
   
   .app-main {
@@ -358,13 +390,16 @@ body {
 .scenario-card {
   background: #ffffff;
   border: 1px solid #dee2e6;
-  border-radius: 4px;
+  border-radius: 8px;
   padding: 1rem;
-  transition: box-shadow 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
 }
 
 .scenario-card:hover {
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+  transform: translateY(-4px);
 }
 
 .base-scenario {
@@ -509,14 +544,21 @@ body {
     border-bottom: none;
   }
   
+  .top-row {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .scenarios-rows {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
   .form-header {
     flex-direction: column;
     gap: 1rem;
     align-items: flex-start;
-  }
-  
-  .content-layout {
-    gap: 1rem;
   }
 }
 
@@ -541,7 +583,12 @@ body {
     padding: 0.75rem;
   }
   
-  .content-layout {
+  .top-row {
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+  
+  .scenarios-rows {
     gap: 0.75rem;
   }
 }

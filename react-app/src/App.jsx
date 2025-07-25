@@ -79,18 +79,30 @@ function App() {
           onUpdateCompany={updateCompany}
         />
         
-        <div className="content-layout">
+        <div className="top-row">
           <InputForm 
             company={companies[activeCompany]}
             onUpdate={(data) => updateCompany(activeCompany, data)}
           />
           
-          {scenarios.map((scenario, index) => (
+          <div className="base-result">
+            {scenarios.length > 0 && (
+              <ScenarioCard 
+                scenario={scenarios[0]}
+                index={0}
+                isBase={true}
+              />
+            )}
+          </div>
+        </div>
+        
+        <div className="scenarios-rows">
+          {scenarios.slice(1).map((scenario, index) => (
             <ScenarioCard 
-              key={index}
+              key={index + 1}
               scenario={scenario}
-              index={index}
-              isBase={index === 0}
+              index={index + 1}
+              isBase={false}
             />
           ))}
         </div>
