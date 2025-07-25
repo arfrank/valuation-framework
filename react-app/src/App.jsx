@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import './App.css'
 import CompanyTabs from './components/CompanyTabs'
 import InputForm from './components/InputForm'
-import ScenariosGrid from './components/ScenariosGrid'
+import ScenarioCard from './components/ScenarioCard'
 import { useLocalStorage } from './hooks/useLocalStorage'
 import { calculateScenarios } from './utils/calculations'
 
@@ -85,10 +85,14 @@ function App() {
             onUpdate={(data) => updateCompany(activeCompany, data)}
           />
           
-          <ScenariosGrid 
-            scenarios={scenarios}
-            companyName={companies[activeCompany]?.name}
-          />
+          {scenarios.map((scenario, index) => (
+            <ScenarioCard 
+              key={index}
+              scenario={scenario}
+              index={index}
+              isBase={index === 0}
+            />
+          ))}
         </div>
       </main>
     </div>

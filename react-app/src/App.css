@@ -192,9 +192,18 @@ body {
 /* Content Layout */
 .content-layout {
   display: grid;
-  grid-template-columns: minmax(300px, 1fr) 2fr;
+  grid-template-columns: minmax(300px, 400px) repeat(auto-fit, minmax(280px, 1fr));
   gap: 1.5rem;
   align-items: start;
+}
+
+/* Stack layout for narrow screens */
+@media (max-width: 1000px) {
+  .content-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
 }
 
 /* Input Form */
@@ -324,53 +333,8 @@ body {
   font-weight: 500;
 }
 
-/* Scenarios Section */
-.scenarios-section {
-  background: #ffffff;
-  border: 1px solid #dee2e6;
-  border-radius: 4px;
-  padding: 1.5rem;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-}
-
-.scenarios-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid #e9ecef;
-}
-
-.scenarios-header h3 {
-  font-size: 1.1rem;
-  color: #495057;
-  font-weight: 600;
-  margin: 0;
-}
-
-.company-label {
-  background: #0d6efd;
-  color: white;
-  padding: 0.4rem 0.75rem;
-  border-radius: 3px;
-  font-size: 0.8rem;
-  font-weight: 500;
-}
-
-.scenarios-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 1rem;
-}
-
 /* Optimize for ultrawide screens */
 @media (min-width: 1800px) {
-  .scenarios-grid {
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-    gap: 1.5rem;
-  }
-  
   .content-layout {
     gap: 2rem;
   }
@@ -381,11 +345,6 @@ body {
 }
 
 @media (min-width: 2400px) {
-  .scenarios-grid {
-    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
-    gap: 2rem;
-  }
-  
   .content-layout {
     gap: 2.5rem;
   }
@@ -393,14 +352,6 @@ body {
   .app-main {
     padding: 2.5rem;
   }
-}
-
-.no-scenarios {
-  text-align: center;
-  color: #6c757d;
-  font-style: italic;
-  padding: 2rem;
-  font-size: 0.9rem;
 }
 
 /* Scenario Cards */
@@ -539,25 +490,6 @@ body {
 }
 
 /* Responsive Design */
-@media (max-width: 1400px) {
-  .content-layout {
-    grid-template-columns: minmax(280px, 1fr) 1.8fr;
-  }
-}
-
-@media (max-width: 1200px) {
-  .content-layout {
-    grid-template-columns: minmax(280px, 1fr) 1.5fr;
-  }
-}
-
-@media (max-width: 1000px) {
-  .content-layout {
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
-  }
-}
-
 @media (max-width: 768px) {
   .app-main {
     padding: 1rem;
@@ -577,11 +509,7 @@ body {
     border-bottom: none;
   }
   
-  .scenarios-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .form-header, .scenarios-header {
+  .form-header {
     flex-direction: column;
     gap: 1rem;
     align-items: flex-start;
@@ -605,7 +533,7 @@ body {
     padding: 0.75rem;
   }
   
-  .input-form, .scenarios-section {
+  .input-form {
     padding: 1rem;
   }
   
