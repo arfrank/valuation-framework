@@ -88,16 +88,8 @@ function App() {
   // Hidden keyboard shortcut: Shift + Space
   useEffect(() => {
     const handleKeyDown = (e) => {
-      // Debug logging
-      console.log('Key pressed:', e.key, 'Code:', e.code, 'Shift:', e.shiftKey)
-      
-      // Check for Shift + Space (try both key and code)
       if (e.shiftKey && (e.code === 'Space' || e.key === ' ')) {
-        console.log('Toggling background!')
-        setShowGeometricBackground(prev => {
-          console.log('Background was:', prev, 'now:', !prev)
-          return !prev
-        })
+        setShowGeometricBackground(prev => !prev)
         e.preventDefault()
       }
     }
@@ -108,6 +100,15 @@ function App() {
       window.removeEventListener('keydown', handleKeyDown)
     }
   }, [])
+
+  // Add/remove class to body when geometric background is active
+  useEffect(() => {
+    if (showGeometricBackground) {
+      document.body.classList.add('geometric-background-active')
+    } else {
+      document.body.classList.remove('geometric-background-active')
+    }
+  }, [showGeometricBackground])
 
   return (
     <div className="app">

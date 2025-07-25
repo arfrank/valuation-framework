@@ -42,14 +42,15 @@
 .geometric-pulse span {
   font-size: 4rem;
   font-weight: 800;
-  background: linear-gradient(45deg, #635BFF, #00D924, #FF5CAA, #635BFF);
-  background-size: 400% 400%;
+  background: linear-gradient(45deg, #635BFF, #00D924, #FF5CAA, #FFD700, #FF6347, #40E0D0, #DA70D6, #635BFF);
+  background-size: 800% 800%;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
-  animation: geometric-gradient 3s ease infinite;
-  text-shadow: 0 0 40px rgba(99, 91, 255, 0.3);
+  animation: geometric-gradient 2s ease infinite, geometric-pulse-glow 1.5s ease infinite;
+  text-shadow: 0 0 60px rgba(99, 91, 255, 0.8), 0 0 120px rgba(255, 28, 174, 0.4);
   letter-spacing: -2px;
+  filter: hue-rotate(0deg);
 }
 
 .geometric-subtitle {
@@ -60,36 +61,76 @@
   animation: geometric-float 3s ease-in-out infinite;
 }
 
-/* Animations */
+/* Enhanced Animations */
 @keyframes geometric-gradient {
   0% {
     background-position: 0% 50%;
+    filter: hue-rotate(0deg) saturate(100%);
+  }
+  25% {
+    background-position: 50% 100%;
+    filter: hue-rotate(90deg) saturate(150%);
   }
   50% {
     background-position: 100% 50%;
+    filter: hue-rotate(180deg) saturate(120%);
+  }
+  75% {
+    background-position: 50% 0%;
+    filter: hue-rotate(270deg) saturate(180%);
   }
   100% {
     background-position: 0% 50%;
+    filter: hue-rotate(360deg) saturate(100%);
+  }
+}
+
+@keyframes geometric-pulse-glow {
+  0%, 100% {
+    text-shadow: 
+      0 0 40px rgba(99, 91, 255, 0.8), 
+      0 0 80px rgba(255, 28, 174, 0.4),
+      0 0 120px rgba(0, 217, 36, 0.3);
+  }
+  50% {
+    text-shadow: 
+      0 0 60px rgba(255, 28, 174, 1), 
+      0 0 120px rgba(99, 91, 255, 0.6),
+      0 0 180px rgba(255, 215, 0, 0.5);
   }
 }
 
 @keyframes geometric-breathe {
   0%, 100% {
-    opacity: 0.1;
-    transform: scale(1);
+    opacity: 0.08;
+    transform: scale(1) rotate(0deg);
+  }
+  25% {
+    opacity: 0.15;
+    transform: scale(1.02) rotate(1deg);
   }
   50% {
-    opacity: 0.2;
-    transform: scale(1.05);
+    opacity: 0.25;
+    transform: scale(1.08) rotate(-1deg);
+  }
+  75% {
+    opacity: 0.18;
+    transform: scale(1.05) rotate(0.5deg);
   }
 }
 
 @keyframes geometric-float {
   0%, 100% {
-    transform: translateY(0px);
+    transform: translateY(0px) translateX(0px);
+  }
+  25% {
+    transform: translateY(-8px) translateX(3px);
   }
   50% {
-    transform: translateY(-10px);
+    transform: translateY(-15px) translateX(0px);
+  }
+  75% {
+    transform: translateY(-8px) translateX(-3px);
   }
 }
 
