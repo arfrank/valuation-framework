@@ -30,15 +30,15 @@ export const calculateScenario = (inputs) => {
   const proRataAmount = Math.round((roundSize * (proRataPercent || 0) / 100) * 100) / 100
   const newMoneyAmount = Math.round((roundSize - proRataAmount) * 100) / 100
   
-  // Adjust new investor portions based on available new money
-  let adjustedLsvpPortion = lsvpPortion
-  let adjustedOtherPortion = otherPortion
+  // Adjust new investor portions - pro-rata comes from "Other" bucket
+  let adjustedLsvpPortion = lsvpPortion  // US portion stays the same
+  let adjustedOtherPortion = Math.round((otherPortion - proRataAmount) * 100) / 100
   
-  if (proRataAmount > 0 && newMoneyAmount > 0) {
-    // Scale down new investor portions proportionally
-    const scaleFactor = newMoneyAmount / roundSize
-    adjustedLsvpPortion = Math.round((lsvpPortion * scaleFactor) * 100) / 100
-    adjustedOtherPortion = Math.round((otherPortion * scaleFactor) * 100) / 100
+  // Calculate actual pro-rata amount (limited by available "Other" portion)
+  let actualProRataAmount = proRataAmount
+  if (adjustedOtherPortion < 0) {
+    actualProRataAmount = otherPortion  // Can't exceed what's available in "Other"
+    adjustedOtherPortion = 0
   }
   
   // Calculate ownership percentages (post-money basis including SAFEs)
@@ -46,7 +46,7 @@ export const calculateScenario = (inputs) => {
   const roundPercent = Math.round((roundSize / totalValue) * 10000) / 100
   const lsvpPercent = Math.round((adjustedLsvpPortion / totalValue) * 10000) / 100
   const otherPercent = Math.round((adjustedOtherPortion / totalValue) * 10000) / 100
-  const proRataPercent_final = Math.round((proRataAmount / totalValue) * 10000) / 100
+  const proRataPercent_final = Math.round((actualProRataAmount / totalValue) * 10000) / 100
   
   // Calculate total dilution (round + SAFE)
   const totalNewOwnership = roundPercent + safePercent
@@ -75,7 +75,7 @@ export const calculateScenario = (inputs) => {
     // Advanced metrics
     safeAmount: Math.round(safeAmount * 100) / 100,
     safePercent: safePercent,
-    proRataAmount: proRataAmount,
+    proRataAmount: actualProRataAmount,
     proRataPercent: proRataPercent_final,
     preRoundFounderPercent: preRoundFounderPercent,
     postRoundFounderPercent: postRoundFounderPercent,
