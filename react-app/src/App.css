@@ -468,6 +468,8 @@ body {
   outline: none;
   text-align: right;
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  min-width: 0;
+  padding-right: 0.25rem;
 }
 
 .input-wrapper input::-webkit-outer-spin-button,
