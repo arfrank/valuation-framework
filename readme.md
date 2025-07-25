@@ -1,0 +1,3 @@
+The purpose of this project is to build a lightweight frontend application that can show valuation, ownership, dilution, other investor ownerhsip, and other vlaues when offering a term sheet.  
+
+It should support multiple tabs for different companies and keep the data locally.  Also on each tab, it should off an input at the top (see the png for some example design and layout) give a few alternative structures for the round (valuation, round size, lsvp portion)

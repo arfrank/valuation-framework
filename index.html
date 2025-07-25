@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Valuation Framework</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Valuation Framework</h1>
+        </header>
+
+        <div class="tabs">
+            <div class="tab active" data-company="company1">Company 1</div>
+            <div class="tab" data-company="company2">Company 2</div>
+            <div class="tab" data-company="company3">Company 3</div>
+            <button class="add-tab">+ Add Company</button>
+        </div>
+
+        <div class="tab-content active" id="company1">
+            <div class="input-section">
+                <h3>Input Parameters</h3>
+                <div class="input-group">
+                    <label for="pre-money-val">Pre-Money Valuation ($M):</label>
+                    <input type="number" id="pre-money-val" value="10" step="0.1">
+                </div>
+                <div class="input-group">
+                    <label for="round-size">Round Size ($M):</label>
+                    <input type="number" id="round-size" value="3" step="0.1">
+                </div>
+                <div class="input-group">
+                    <label for="lsvp-portion">LSVP Portion ($M):</label>
+                    <input type="number" id="lsvp-portion" value="2.75" step="0.01">
+                </div>
+                <div class="input-group">
+                    <label for="other-portion">Other Portion ($M):</label>
+                    <input type="number" id="other-portion" value="0.75" step="0.01">
+                </div>
+                <button id="calculate" class="calculate-btn">Calculate</button>
+            </div>
+
+            <div class="results-section">
+                <h3>Alternative Scenarios</h3>
+                <div class="scenarios-grid" id="scenarios-grid">
+                    <!-- Scenarios will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-content" id="company2">
+            <div class="input-section">
+                <h3>Input Parameters</h3>
+                <div class="input-group">
+                    <label for="pre-money-val-2">Pre-Money Valuation ($M):</label>
+                    <input type="number" id="pre-money-val-2" value="10" step="0.1">
+                </div>
+                <div class="input-group">
+                    <label for="round-size-2">Round Size ($M):</label>
+                    <input type="number" id="round-size-2" value="3" step="0.1">
+                </div>
+                <div class="input-group">
+                    <label for="lsvp-portion-2">LSVP Portion ($M):</label>
+                    <input type="number" id="lsvp-portion-2" value="2.75" step="0.01">
+                </div>
+                <div class="input-group">
+                    <label for="other-portion-2">Other Portion ($M):</label>
+                    <input type="number" id="other-portion-2" value="0.75" step="0.01">
+                </div>
+                <button id="calculate-2" class="calculate-btn">Calculate</button>
+            </div>
+
+            <div class="results-section">
+                <h3>Alternative Scenarios</h3>
+                <div class="scenarios-grid" id="scenarios-grid-2">
+                    <!-- Scenarios will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-content" id="company3">
+            <div class="input-section">
+                <h3>Input Parameters</h3>
+                <div class="input-group">
+                    <label for="pre-money-val-3">Pre-Money Valuation ($M):</label>
+                    <input type="number" id="pre-money-val-3" value="10" step="0.1">
+                </div>
+                <div class="input-group">
+                    <label for="round-size-3">Round Size ($M):</label>
+                    <input type="number" id="round-size-3" value="3" step="0.1">
+                </div>
+                <div class="input-group">
+                    <label for="lsvp-portion-3">LSVP Portion ($M):</label>
+                    <input type="number" id="lsvp-portion-3" value="2.75" step="0.01">
+                </div>
+                <div class="input-group">
+                    <label for="other-portion-3">Other Portion ($M):</label>
+                    <input type="number" id="other-portion-3" value="0.75" step="0.01">
+                </div>
+                <button id="calculate-3" class="calculate-btn">Calculate</button>
+            </div>
+
+            <div class="results-section">
+                <h3>Alternative Scenarios</h3>
+                <div class="scenarios-grid" id="scenarios-grid-3">
+                    <!-- Scenarios will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
