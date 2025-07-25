@@ -4,6 +4,7 @@ import CompanyTabs from './components/CompanyTabs'
 import InputForm from './components/InputForm'
 import ScenarioCard from './components/ScenarioCard'
 import Logo from './components/Logo'
+import GeometricBackground from './components/GeometricBackground'
 import { useLocalStorage } from './hooks/useLocalStorage'
 import { calculateScenarios } from './utils/calculations'
 
@@ -25,6 +26,7 @@ function App() {
     }
   })
   const [nextCompanyId, setNextCompanyId] = useState(2)
+  const [showGeometricBackground, setShowGeometricBackground] = useState(false)
 
   const [scenarios, setScenarios] = useState([])
 
@@ -83,8 +85,55 @@ function App() {
     }
   }, [companies, activeCompany])
 
+  // Hidden keyboard shortcut: Shift + G + 3 + D
+  useEffect(() => {
+    let keySequence = []
+    const targetSequence = ['G', '3', 'D']
+    
+    const handleKeyDown = (e) => {
+      // Only trigger when Shift is held
+      if (!e.shiftKey) {
+        keySequence = []
+        return
+      }
+      
+      // Add the key to sequence (without shift)
+      const key = e.key.toUpperCase()
+      keySequence.push(key)
+      
+      // Keep only the last 3 keys
+      if (keySequence.length > 3) {
+        keySequence = keySequence.slice(-3)
+      }
+      
+      // Check if sequence matches
+      if (keySequence.length === 3 && 
+          keySequence.join('') === targetSequence.join('')) {
+        setShowGeometricBackground(prev => !prev)
+        keySequence = [] // Reset sequence
+        e.preventDefault()
+      }
+    }
+    
+    const handleKeyUp = (e) => {
+      // Reset sequence when shift is released
+      if (e.key === 'Shift') {
+        keySequence = []
+      }
+    }
+    
+    window.addEventListener('keydown', handleKeyDown)
+    window.addEventListener('keyup', handleKeyUp)
+    
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('keyup', handleKeyUp)
+    }
+  }, [])
+
   return (
     <div className="app">
+      <GeometricBackground isActive={showGeometricBackground} />
       <header className="app-header">
         <Logo size={40} />
       </header>
