@@ -627,16 +627,25 @@ body {
 
 /* Advanced Features Styling */
 .advanced-section .input-grid {
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 1rem;
 }
 
+@media (max-width: 768px) {
+  .advanced-section .input-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+}
+
 /* Pro-rata and SAFE row styling */
-.table-row:has(.label:is([contains="Pro-Rata"], [contains="SAFE"])) {
+.pro-rata-row, .safe-row {
   background-color: #edf2f7;
   border-radius: 3px;
   font-style: italic;
   color: #4a5568;
+  border-left: 3px solid #3182ce;
+  padding-left: 8px;
 }
 
 /* Founder impact row enhanced styling */
@@ -644,16 +653,21 @@ body {
   position: relative;
   background: linear-gradient(135deg, #fdf2f2 0%, #fed7d7 100%);
   border: 1px solid #feb2b2;
+  border-radius: 5px;
   margin: 0.25rem 0;
+  border-left: 4px solid #e53e3e;
 }
 
 .founder-row::before {
   content: "⚠️";
   position: absolute;
-  left: -8px;
+  left: -12px;
   top: 50%;
   transform: translateY(-50%);
   font-size: 0.8rem;
+  background: white;
+  padding: 1px;
+  border-radius: 50%;
 }
 
 .total-row {

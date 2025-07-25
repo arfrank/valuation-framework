@@ -61,7 +61,7 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, investorName =
         </div>
 
         {showAdvanced && scenario.proRataAmount > 0 && (
-          <div className="table-row">
+          <div className="table-row pro-rata-row">
             <div className="label">Pro-Rata</div>
             <div className="amount">{formatDollar(scenario.proRataAmount)}</div>
             <div className="percent">{formatPercent(scenario.proRataPercent)}</div>
@@ -69,7 +69,7 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, investorName =
         )}
 
         {showAdvanced && scenario.safeAmount > 0 && (
-          <div className="table-row">
+          <div className="table-row safe-row">
             <div className="label">SAFE Conv.</div>
             <div className="amount">{formatDollar(scenario.safeAmount)}</div>
             <div className="percent">{formatPercent(scenario.safePercent)}</div>
