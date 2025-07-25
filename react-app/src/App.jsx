@@ -10,27 +10,14 @@ function App() {
   const [activeCompany, setActiveCompany] = useState('company1')
   const [companies, setCompanies] = useLocalStorage('valuationFramework', {
     company1: {
-      name: 'Company 1',
-      postMoneyVal: 13,
-      roundSize: 3,
-      lsvpPortion: 2.75,
-      otherPortion: 0.25
-    },
-    company2: {
-      name: 'Company 2', 
-      postMoneyVal: 13,
-      roundSize: 3,
-      lsvpPortion: 2.75,
-      otherPortion: 0.25
-    },
-    company3: {
-      name: 'Company 3',
+      name: 'Startup Alpha',
       postMoneyVal: 13,
       roundSize: 3,
       lsvpPortion: 2.75,
       otherPortion: 0.25
     }
   })
+  const [nextCompanyId, setNextCompanyId] = useState(2)
 
   const [scenarios, setScenarios] = useState([])
 
@@ -39,6 +26,32 @@ function App() {
       ...prev,
       [companyId]: { ...prev[companyId], ...data }
     }))
+  }
+
+  const addCompany = () => {
+    const newCompanyId = `company${nextCompanyId}`
+    const newCompany = {
+      name: `Startup ${String.fromCharCode(64 + nextCompanyId)}`,
+      postMoneyVal: 13,
+      roundSize: 3,
+      lsvpPortion: 2.75,
+      otherPortion: 0.25
+    }
+    setCompanies(prev => ({ ...prev, [newCompanyId]: newCompany }))
+    setActiveCompany(newCompanyId)
+    setNextCompanyId(prev => prev + 1)
+  }
+
+  const removeCompany = (companyId) => {
+    if (Object.keys(companies).length <= 1) return
+    
+    const newCompanies = { ...companies }
+    delete newCompanies[companyId]
+    setCompanies(newCompanies)
+    
+    if (activeCompany === companyId) {
+      setActiveCompany(Object.keys(newCompanies)[0])
+    }
   }
 
   useEffect(() => {
@@ -61,6 +74,9 @@ function App() {
           companies={companies}
           activeCompany={activeCompany}
           onCompanyChange={setActiveCompany}
+          onAddCompany={addCompany}
+          onRemoveCompany={removeCompany}
+          onUpdateCompany={updateCompany}
         />
         
         <div className="content-layout">
