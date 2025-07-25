@@ -172,7 +172,7 @@ const InputForm = ({ company, onUpdate }) => {
 
             <div className="input-group">
               <label htmlFor="pro-rata">Pro-Rata Participation</label>
-              <div className="input-wrapper">
+              <div className={`input-wrapper ${values.proRataPercent > 0 ? 'input-wrapper-with-clear' : ''}`}>
                 <input
                   id="pro-rata"
                   type="number"
@@ -183,12 +183,22 @@ const InputForm = ({ company, onUpdate }) => {
                   max="100"
                 />
                 <span className="unit">% of round</span>
+                {values.proRataPercent > 0 && (
+                  <button 
+                    type="button"
+                    className="clear-input-btn"
+                    onClick={() => handleChange('proRataPercent', 0)}
+                    title="Clear pro-rata"
+                  >
+                    ×
+                  </button>
+                )}
               </div>
             </div>
 
             <div className="input-group">
               <label htmlFor="safe-amount">SAFE Notes Outstanding</label>
-              <div className="input-wrapper">
+              <div className={`input-wrapper ${values.safeAmount > 0 ? 'input-wrapper-with-clear' : ''}`}>
                 <span className="currency">$</span>
                 <input
                   id="safe-amount"
@@ -199,12 +209,22 @@ const InputForm = ({ company, onUpdate }) => {
                   min="0"
                 />
                 <span className="unit">M</span>
+                {values.safeAmount > 0 && (
+                  <button 
+                    type="button"
+                    className="clear-input-btn"
+                    onClick={() => handleChange('safeAmount', 0)}
+                    title="Clear SAFE amount"
+                  >
+                    ×
+                  </button>
+                )}
               </div>
             </div>
 
             <div className="input-group">
               <label htmlFor="safe-cap">SAFE Valuation Cap</label>
-              <div className="input-wrapper">
+              <div className={`input-wrapper ${values.safeCap > 0 ? 'input-wrapper-with-clear' : ''}`}>
                 <span className="currency">$</span>
                 <input
                   id="safe-cap"
@@ -215,6 +235,16 @@ const InputForm = ({ company, onUpdate }) => {
                   min="0"
                 />
                 <span className="unit">M</span>
+                {values.safeCap > 0 && (
+                  <button 
+                    type="button"
+                    className="clear-input-btn"
+                    onClick={() => handleChange('safeCap', 0)}
+                    title="Clear SAFE cap"
+                  >
+                    ×
+                  </button>
+                )}
               </div>
             </div>
           </div>
