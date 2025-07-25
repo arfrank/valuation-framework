@@ -47,8 +47,6 @@ body {
 .app-main {
   flex: 1;
   padding: 1.5rem;
-  max-width: 1400px;
-  margin: 0 auto;
   width: 100%;
 }
 
@@ -364,6 +362,37 @@ body {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 1rem;
+}
+
+/* Optimize for ultrawide screens */
+@media (min-width: 1800px) {
+  .scenarios-grid {
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 1.5rem;
+  }
+  
+  .content-layout {
+    gap: 2rem;
+  }
+  
+  .app-main {
+    padding: 2rem;
+  }
+}
+
+@media (min-width: 2400px) {
+  .scenarios-grid {
+    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+    gap: 2rem;
+  }
+  
+  .content-layout {
+    gap: 2.5rem;
+  }
+  
+  .app-main {
+    padding: 2.5rem;
+  }
 }
 
 .no-scenarios {
