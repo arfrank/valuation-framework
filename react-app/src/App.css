@@ -194,7 +194,7 @@ body {
 /* Content Layout */
 .content-layout {
   display: grid;
-  grid-template-columns: 350px 1fr;
+  grid-template-columns: minmax(300px, 1fr) 2fr;
   gap: 1.5rem;
   align-items: start;
 }
@@ -510,7 +510,19 @@ body {
 }
 
 /* Responsive Design */
+@media (max-width: 1400px) {
+  .content-layout {
+    grid-template-columns: minmax(280px, 1fr) 1.8fr;
+  }
+}
+
 @media (max-width: 1200px) {
+  .content-layout {
+    grid-template-columns: minmax(280px, 1fr) 1.5fr;
+  }
+}
+
+@media (max-width: 1000px) {
   .content-layout {
     grid-template-columns: 1fr;
     gap: 1.5rem;
@@ -545,11 +557,23 @@ body {
     gap: 1rem;
     align-items: flex-start;
   }
+  
+  .content-layout {
+    gap: 1rem;
+  }
 }
 
 @media (max-width: 480px) {
+  .app-header {
+    padding: 1rem;
+  }
+  
   .app-header h1 {
     font-size: 1.5rem;
+  }
+  
+  .app-main {
+    padding: 0.75rem;
   }
   
   .input-form, .scenarios-section {
@@ -558,5 +582,9 @@ body {
   
   .scenario-card {
     padding: 0.75rem;
+  }
+  
+  .content-layout {
+    gap: 0.75rem;
   }
 }
