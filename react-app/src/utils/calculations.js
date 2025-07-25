@@ -21,8 +21,8 @@ export const calculateScenario = (inputs) => {
   // Calculate SAFE conversion if applicable
   let safePercent = 0
   if (safeAmount > 0 && safeCap > 0) {
-    // Use lower of post-money valuation or safe cap for conversion
-    const conversionVal = Math.min(postMoneyVal, safeCap)
+    // SAFE converts at the lower of: (1) safe cap, or (2) current round pre-money
+    const conversionVal = Math.min(safeCap, preMoneyVal)
     safePercent = Math.round((safeAmount / conversionVal) * 10000) / 100
   }
   
@@ -57,9 +57,9 @@ export const calculateScenario = (inputs) => {
   const postRoundFounderPercent = Math.round((preRoundFounderPercent * (100 - totalNewOwnership) / 100) * 100) / 100
   const founderDilution = Math.round((preRoundFounderPercent - postRoundFounderPercent) * 100) / 100
 
-  // Calculate total including advanced features
-  const totalInvestmentAmount = Math.round((roundSize + (safeAmount || 0)) * 100) / 100
-  const totalInvestmentPercent = Math.round((roundPercent + safePercent) * 100) / 100
+  // Calculate total round investment (just the cash round, SAFE is conversion not new cash)
+  const totalInvestmentAmount = Math.round(roundSize * 100) / 100
+  const totalInvestmentPercent = roundPercent
 
   return {
     roundSize: Math.round(roundSize * 100) / 100,
@@ -75,8 +75,10 @@ export const calculateScenario = (inputs) => {
     // Advanced metrics
     safeAmount: Math.round(safeAmount * 100) / 100,
     safePercent: safePercent,
+    safeCap: Math.round(safeCap * 100) / 100,  // Include input cap for apply scenario
     proRataAmount: actualProRataAmount,
     proRataPercent: proRataPercent_final,
+    proRataPercentInput: proRataPercent,  // Include input percentage for apply scenario
     preRoundFounderPercent: preRoundFounderPercent,
     postRoundFounderPercent: postRoundFounderPercent,
     founderDilution: founderDilution
@@ -144,16 +146,26 @@ export const generateScenarioVariations = (baseInputs) => {
     { postMoneyVal: baseInputs.postMoneyVal + valChange4, title: `+$${valChange4}M Valuation (+40%)` },
     
     // Investor portion variations (2 scenarios) - with proper other portion adjustment
-    { 
-      lsvpPortion: baseInputs.lsvpPortion + lsvpChange1, 
-      otherPortion: Math.round((baseInputs.otherPortion - lsvpChange1) * 100) / 100,
-      title: `+$${lsvpChange1}M ${investorName} (+20%)` 
-    },
-    { 
-      lsvpPortion: baseInputs.lsvpPortion + lsvpChange2, 
-      otherPortion: Math.round((baseInputs.otherPortion - lsvpChange2) * 100) / 100,
-      title: `+$${lsvpChange2}M ${investorName} (+40%)` 
-    },
+    (() => {
+      const newLsvpPortion = baseInputs.lsvpPortion + lsvpChange1
+      const newOtherPortion = Math.max(0, Math.round((baseInputs.otherPortion - lsvpChange1) * 100) / 100)
+      return {
+        lsvpPortion: newLsvpPortion,
+        otherPortion: newOtherPortion,
+        roundSize: Math.round((newLsvpPortion + newOtherPortion) * 100) / 100,
+        title: `+$${lsvpChange1}M ${investorName} (+20%)`
+      }
+    })(),
+    (() => {
+      const newLsvpPortion = baseInputs.lsvpPortion + lsvpChange2
+      const newOtherPortion = Math.max(0, Math.round((baseInputs.otherPortion - lsvpChange2) * 100) / 100)
+      return {
+        lsvpPortion: newLsvpPortion,
+        otherPortion: newOtherPortion,
+        roundSize: Math.round((newLsvpPortion + newOtherPortion) * 100) / 100,
+        title: `+$${lsvpChange2}M ${investorName} (+40%)`
+      }
+    })(),
   ]
 
   return variations.map(variation => {

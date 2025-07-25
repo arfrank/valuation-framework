@@ -13,7 +13,12 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, investorName =
         postMoneyVal: scenario.postMoneyVal,
         roundSize: scenario.roundSize,
         lsvpPortion: scenario.lsvpAmount,
-        otherPortion: scenario.otherAmount
+        otherPortion: scenario.otherAmount,
+        // Include advanced features if available
+        proRataPercent: scenario.proRataPercentInput || 0,
+        safeAmount: scenario.safeAmount || 0,
+        safeCap: scenario.safeCap || 0,
+        preRoundFounderOwnership: scenario.preRoundFounderPercent || 70
       })
     }
   }

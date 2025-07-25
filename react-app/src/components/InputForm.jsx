@@ -43,6 +43,14 @@ const InputForm = ({ company, onUpdate }) => {
       }
     }
     
+    // SAFE validation: cap should be >= amount if both are set
+    if (field === 'safeCap' && numValue > 0 && values.safeAmount > 0 && numValue < values.safeAmount) {
+      newValues.safeCap = values.safeAmount  // Set cap to at least the amount
+    }
+    if (field === 'safeAmount' && numValue > 0 && values.safeCap > 0 && numValue > values.safeCap) {
+      newValues.safeAmount = values.safeCap  // Limit amount to the cap
+    }
+    
     setValues(newValues)
     onUpdate(newValues)
   }
@@ -275,6 +283,11 @@ const InputForm = ({ company, onUpdate }) => {
         {values.postMoneyVal <= 0 && (
           <div className="warning">
             ⚠️ Post-Money Valuation must be greater than 0
+          </div>
+        )}
+        {values.safeAmount > 0 && values.safeCap > 0 && values.safeAmount > values.safeCap && (
+          <div className="warning">
+            ⚠️ SAFE amount cannot exceed valuation cap
           </div>
         )}
       </div>
