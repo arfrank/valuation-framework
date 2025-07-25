@@ -88,9 +88,16 @@ function App() {
   // Hidden keyboard shortcut: Shift + Space
   useEffect(() => {
     const handleKeyDown = (e) => {
-      // Check for Shift + Space
-      if (e.shiftKey && e.code === 'Space') {
-        setShowGeometricBackground(prev => !prev)
+      // Debug logging
+      console.log('Key pressed:', e.key, 'Code:', e.code, 'Shift:', e.shiftKey)
+      
+      // Check for Shift + Space (try both key and code)
+      if (e.shiftKey && (e.code === 'Space' || e.key === ' ')) {
+        console.log('Toggling background!')
+        setShowGeometricBackground(prev => {
+          console.log('Background was:', prev, 'now:', !prev)
+          return !prev
+        })
         e.preventDefault()
       }
     }
@@ -105,6 +112,22 @@ function App() {
   return (
     <div className="app">
       <GeometricBackground isActive={showGeometricBackground} />
+      {/* Debug indicator */}
+      {showGeometricBackground && (
+        <div style={{
+          position: 'fixed',
+          top: '10px',
+          right: '10px',
+          background: 'rgba(99, 91, 255, 0.8)',
+          color: 'white',
+          padding: '5px 10px',
+          borderRadius: '4px',
+          fontSize: '12px',
+          zIndex: 1000
+        }}>
+          3D Mode Active
+        </div>
+      )}
       <header className="app-header">
         <Logo size={40} />
       </header>
