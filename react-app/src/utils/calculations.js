@@ -51,9 +51,10 @@ export const calculateScenario = (inputs) => {
   // Calculate total dilution (round + SAFE)
   const totalNewOwnership = roundPercent + safePercent
   
-  // Calculate founder dilution
+  // Calculate founder dilution (proportional dilution based on new ownership issued)
   const preRoundFounderPercent = preRoundFounderOwnership || 70
-  const postRoundFounderPercent = Math.max(0, Math.round((preRoundFounderPercent - totalNewOwnership) * 100) / 100)
+  // Founders retain their percentage of the remaining ownership after new issuance
+  const postRoundFounderPercent = Math.round((preRoundFounderPercent * (100 - totalNewOwnership) / 100) * 100) / 100
   const founderDilution = Math.round((preRoundFounderPercent - postRoundFounderPercent) * 100) / 100
 
   // Calculate total including advanced features
