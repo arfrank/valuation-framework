@@ -407,17 +407,21 @@ body {
 }
 
 .input-wrapper-with-clear {
-  padding-right: 2.5rem;
+  padding-right: 3rem;
+}
+
+.input-wrapper-with-clear .unit {
+  margin-right: 1.5rem;
 }
 
 .clear-input-btn {
   position: absolute;
-  right: 0.5rem;
+  right: 0.25rem;
   background: #e2e8f0;
   border: none;
   border-radius: 50%;
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -425,6 +429,7 @@ body {
   font-size: 0.7rem;
   color: #718096;
   transition: all 0.2s ease;
+  z-index: 2;
 }
 
 .clear-input-btn:hover {
