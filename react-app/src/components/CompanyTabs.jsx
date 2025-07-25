@@ -16,6 +16,7 @@ const CompanyTabs = ({ companies, activeCompany, onCompanyChange, onAddCompany, 
   }
 
   const saveEdit = (companyId) => {
+    if (editingTab !== companyId) return // Prevent duplicate saves
     if (editName.trim()) {
       onUpdateCompany(companyId, { name: editName.trim() })
     }

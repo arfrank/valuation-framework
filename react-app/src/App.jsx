@@ -3,6 +3,7 @@ import './App.css'
 import CompanyTabs from './components/CompanyTabs'
 import InputForm from './components/InputForm'
 import ScenarioCard from './components/ScenarioCard'
+import Logo from './components/Logo'
 import { useLocalStorage } from './hooks/useLocalStorage'
 import { calculateScenarios } from './utils/calculations'
 
@@ -14,7 +15,13 @@ function App() {
       postMoneyVal: 13,
       roundSize: 3,
       lsvpPortion: 2.75,
-      otherPortion: 0.25
+      otherPortion: 0.25,
+      investorName: 'US',
+      showAdvanced: false,
+      proRataPercent: 15,
+      safeAmount: 0,
+      safeCap: 0,
+      preRoundFounderOwnership: 70
     }
   })
   const [nextCompanyId, setNextCompanyId] = useState(2)
@@ -28,14 +35,26 @@ function App() {
     }))
   }
 
+  const applyScenario = (scenarioData) => {
+    updateCompany(activeCompany, scenarioData)
+  }
+
   const addCompany = () => {
     const newCompanyId = `company${nextCompanyId}`
     const newCompany = {
-      name: `Startup ${String.fromCharCode(64 + nextCompanyId)}`,
+      name: nextCompanyId <= 26 
+        ? `Startup ${String.fromCharCode(64 + nextCompanyId)}`
+        : `Startup ${nextCompanyId}`,
       postMoneyVal: 13,
       roundSize: 3,
       lsvpPortion: 2.75,
-      otherPortion: 0.25
+      otherPortion: 0.25,
+      investorName: 'US',
+      showAdvanced: false,
+      proRataPercent: 15,
+      safeAmount: 0,
+      safeCap: 0,
+      preRoundFounderOwnership: 70
     }
     setCompanies(prev => ({ ...prev, [newCompanyId]: newCompany }))
     setActiveCompany(newCompanyId)
@@ -58,15 +77,16 @@ function App() {
     const currentCompany = companies[activeCompany]
     if (currentCompany) {
       const newScenarios = calculateScenarios(currentCompany)
-      setScenarios(newScenarios)
+      setScenarios(newScenarios || []) // Fallback to empty array if calculation fails
+    } else {
+      setScenarios([]) // Clear scenarios if no valid company
     }
   }, [companies, activeCompany])
 
   return (
     <div className="app">
       <header className="app-header">
-        <h1>Valuation Framework</h1>
-        <p>Dynamic valuation analysis with live calculations</p>
+        <Logo size={40} />
       </header>
 
       <main className="app-main">
@@ -91,6 +111,9 @@ function App() {
                 scenario={scenarios[0]}
                 index={0}
                 isBase={true}
+                onApplyScenario={applyScenario}
+                investorName={companies[activeCompany]?.investorName || 'US'}
+                showAdvanced={companies[activeCompany]?.showAdvanced || false}
               />
             )}
           </div>
@@ -103,6 +126,9 @@ function App() {
               scenario={scenario}
               index={index + 1}
               isBase={false}
+              onApplyScenario={applyScenario}
+              investorName={companies[activeCompany]?.investorName || 'US'}
+              showAdvanced={companies[activeCompany]?.showAdvanced || false}
             />
           ))}
         </div>
