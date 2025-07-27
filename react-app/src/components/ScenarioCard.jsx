@@ -1,4 +1,7 @@
-const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, investorName = 'US', showAdvanced = false }) => {
+import { useState } from 'react'
+
+const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalink, investorName = 'US', showAdvanced = false }) => {
+  const [copyFeedback, setCopyFeedback] = useState('')
   const getCardClass = () => {
     if (isBase) return 'scenario-card base-scenario'
     return `scenario-card scenario-${index % 5}`
@@ -20,6 +23,39 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, investorName =
         safeCap: scenario.safeCap || 0,
         preRoundFounderOwnership: scenario.preRoundFounderPercent || 70
       })
+    }
+  }
+
+  const handleCopyPermalink = async () => {
+    if (!onCopyPermalink) return
+
+    try {
+      const scenarioData = {
+        postMoneyVal: scenario.postMoneyVal,
+        roundSize: scenario.roundSize,
+        lsvpPortion: scenario.lsvpAmount,
+        otherPortion: scenario.otherAmount,
+        investorName: investorName,
+        showAdvanced: showAdvanced,
+        proRataPercent: scenario.proRataPercentInput || 0,
+        safeAmount: scenario.safeAmount || 0,
+        safeCap: scenario.safeCap || 0,
+        preRoundFounderOwnership: scenario.preRoundFounderPercent || 70
+      }
+
+      const result = await onCopyPermalink(scenarioData)
+      
+      if (result.success) {
+        setCopyFeedback('Copied!')
+      } else {
+        setCopyFeedback('Failed to copy')
+      }
+      
+      // Clear feedback after 3 seconds
+      setTimeout(() => setCopyFeedback(''), 3000)
+    } catch (error) {
+      setCopyFeedback('Failed to copy')
+      setTimeout(() => setCopyFeedback(''), 3000)
     }
   }
 
@@ -97,14 +133,27 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, investorName =
       </div>
       
       <div className="valuation-footer">
-        <div className="valuation-item">
-          <span className="label">Pre-Money:</span>
-          <span className="value">{formatDollar(scenario.preMoneyVal)}</span>
+        <div className="valuation-items">
+          <div className="valuation-item">
+            <span className="label">Pre-Money:</span>
+            <span className="value">{formatDollar(scenario.preMoneyVal)}</span>
+          </div>
+          <div className="valuation-item">
+            <span className="label">Post-Money:</span>
+            <span className="value">{formatDollar(scenario.postMoneyVal)}</span>
+          </div>
         </div>
-        <div className="valuation-item">
-          <span className="label">Post-Money:</span>
-          <span className="value">{formatDollar(scenario.postMoneyVal)}</span>
-        </div>
+        
+        {onCopyPermalink && (
+          <button 
+            className="permalink-btn-inline" 
+            onClick={handleCopyPermalink}
+            title="Share permalink for this scenario"
+            disabled={!!copyFeedback}
+          >
+            {copyFeedback || '🔗'}
+          </button>
+        )}
       </div>
     </div>
   )

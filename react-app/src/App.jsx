@@ -5,8 +5,11 @@ import InputForm from './components/InputForm'
 import ScenarioCard from './components/ScenarioCard'
 import Logo from './components/Logo'
 import GeometricBackground from './components/GeometricBackground'
+import NotificationContainer from './components/NotificationContainer'
 import { useLocalStorage } from './hooks/useLocalStorage'
+import { useNotifications } from './hooks/useNotifications'
 import { calculateScenarios } from './utils/calculations'
+import { copyPermalinkToClipboard, loadScenarioFromURL } from './utils/permalink'
 
 function App() {
   const [activeCompany, setActiveCompany] = useState('company1')
@@ -27,8 +30,10 @@ function App() {
   })
   const [nextCompanyId, setNextCompanyId] = useState(2)
   const [showGeometricBackground, setShowGeometricBackground] = useState(false)
+  const [hasLoadedFromURL, setHasLoadedFromURL] = useState(false)
 
   const [scenarios, setScenarios] = useState([])
+  const { notifications, removeNotification, showSuccess, showInfo } = useNotifications()
 
   const updateCompany = (companyId, data) => {
     setCompanies(prev => ({
@@ -39,6 +44,11 @@ function App() {
 
   const applyScenario = (scenarioData) => {
     updateCompany(activeCompany, scenarioData)
+    showSuccess('Scenario applied successfully')
+  }
+
+  const handleCopyPermalink = async (scenarioData) => {
+    return await copyPermalinkToClipboard(scenarioData)
   }
 
   const addCompany = () => {
@@ -74,6 +84,18 @@ function App() {
       setActiveCompany(Object.keys(newCompanies)[0])
     }
   }
+
+  // Load scenario from URL on mount (only once)
+  useEffect(() => {
+    if (!hasLoadedFromURL) {
+      const urlScenario = loadScenarioFromURL()
+      if (urlScenario) {
+        updateCompany(activeCompany, urlScenario)
+        showInfo('Scenario loaded from shared link')
+      }
+      setHasLoadedFromURL(true)
+    }
+  }, [hasLoadedFromURL, activeCompany, showInfo])
 
   useEffect(() => {
     const currentCompany = companies[activeCompany]
@@ -113,6 +135,10 @@ function App() {
   return (
     <div className="app">
       <GeometricBackground isActive={showGeometricBackground} />
+      <NotificationContainer 
+        notifications={notifications} 
+        onRemove={removeNotification} 
+      />
       {/* Debug indicator */}
       {showGeometricBackground && (
         <div style={{
@@ -156,6 +182,7 @@ function App() {
                 index={0}
                 isBase={true}
                 onApplyScenario={applyScenario}
+                onCopyPermalink={handleCopyPermalink}
                 investorName={companies[activeCompany]?.investorName || 'US'}
                 showAdvanced={companies[activeCompany]?.showAdvanced || false}
               />
@@ -171,6 +198,7 @@ function App() {
               index={index + 1}
               isBase={false}
               onApplyScenario={applyScenario}
+              onCopyPermalink={handleCopyPermalink}
               investorName={companies[activeCompany]?.investorName || 'US'}
               showAdvanced={companies[activeCompany]?.showAdvanced || false}
             />
