@@ -25,10 +25,14 @@ const InputForm = ({ company, onUpdate }) => {
   }, [company])
 
   const handleChange = (field, value) => {
-    let numValue = field === 'investorName' || field === 'showAdvanced' ? value : (parseFloat(value) || 0)
+    let numValue = field === 'investorName' || field === 'showAdvanced' ? value : parseFloat(value)
     
     // Input validation for numeric fields
     if (field !== 'investorName' && field !== 'showAdvanced') {
+      // Handle NaN, empty strings, and invalid inputs
+      if (isNaN(numValue) || value === '' || value === null || value === undefined) {
+        numValue = 0
+      }
       // Prevent negative values
       if (numValue < 0) numValue = 0
       // Prevent unreasonably large values (> 1 trillion)
@@ -75,6 +79,7 @@ const InputForm = ({ company, onUpdate }) => {
   }
 
   const preMoneyVal = Math.round((values.postMoneyVal - values.roundSize) * 100) / 100
+  const safePreMoneyVal = isNaN(preMoneyVal) ? 0 : preMoneyVal
   
   const handleToggleInputMode = () => {
     setInputMode(inputMode === 'post-money' ? 'pre-money' : 'post-money')
@@ -97,9 +102,9 @@ const InputForm = ({ company, onUpdate }) => {
           </div>
           <div className="calculated-money-toggle" onClick={handleToggleInputMode}>
             {inputMode === 'post-money' ? (
-              <>Pre-Money: <span className="value">${preMoneyVal.toFixed(1)}M</span></>
+              <>Pre-Money: <span className="value">${safePreMoneyVal.toFixed(1)}M</span></>
             ) : (
-              <>Post-Money: <span className="value">${values.postMoneyVal.toFixed(1)}M</span></>
+              <>Post-Money: <span className="value">${(isNaN(values.postMoneyVal) ? 0 : values.postMoneyVal).toFixed(1)}M</span></>
             )}
             <span className="toggle-hint">⇄</span>
           </div>
@@ -116,7 +121,7 @@ const InputForm = ({ company, onUpdate }) => {
             <input
               id="valuation-input"
               type="number"
-              value={inputMode === 'post-money' ? values.postMoneyVal : preMoneyVal}
+              value={inputMode === 'post-money' ? (isNaN(values.postMoneyVal) ? 0 : values.postMoneyVal) : safePreMoneyVal}
               onChange={(e) => handleChange(inputMode === 'post-money' ? 'postMoneyVal' : 'preMoneyVal', e.target.value)}
               step="0.1"
               min="0"
@@ -300,22 +305,23 @@ const InputForm = ({ company, onUpdate }) => {
       )}
 
       <div className="validation-info">
-        {(values.investorPortion + values.otherPortion).toFixed(2) !== values.roundSize.toFixed(2) && (
+        {!isNaN(values.investorPortion) && !isNaN(values.otherPortion) && !isNaN(values.roundSize) && 
+         (values.investorPortion + values.otherPortion).toFixed(2) !== values.roundSize.toFixed(2) && (
           <div className="warning">
-            ⚠️ {values.investorName} + Other ({(values.investorPortion + values.otherPortion).toFixed(2)}M) doesn't equal Round Size ({values.roundSize.toFixed(2)}M)
+            ⚠️ {values.investorName || 'Investor'} + Other ({(values.investorPortion + values.otherPortion).toFixed(2)}M) doesn't equal Round Size ({values.roundSize.toFixed(2)}M)
           </div>
         )}
-        {values.postMoneyVal <= values.roundSize && values.postMoneyVal > 0 && (
+        {!isNaN(values.postMoneyVal) && !isNaN(values.roundSize) && values.postMoneyVal <= values.roundSize && values.postMoneyVal > 0 && (
           <div className="warning">
             ⚠️ Post-Money Valuation must be greater than Round Size for valid pre-money calculation
           </div>
         )}
-        {values.postMoneyVal <= 0 && (
+        {!isNaN(values.postMoneyVal) && values.postMoneyVal <= 0 && (
           <div className="warning">
             ⚠️ Post-Money Valuation must be greater than 0
           </div>
         )}
-        {values.safeAmount > 0 && values.safeCap > 0 && values.safeAmount > values.safeCap && (
+        {!isNaN(values.safeAmount) && !isNaN(values.safeCap) && values.safeAmount > 0 && values.safeCap > 0 && values.safeAmount > values.safeCap && (
           <div className="warning">
             ⚠️ SAFE amount cannot exceed valuation cap
           </div>
