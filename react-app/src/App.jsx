@@ -10,6 +10,7 @@ import { useLocalStorage } from './hooks/useLocalStorage'
 import { useNotifications } from './hooks/useNotifications'
 import { calculateScenarios } from './utils/calculations'
 import { copyPermalinkToClipboard, loadScenarioFromURL } from './utils/permalink'
+import { initializeSocialSharing, updateSocialSharingMeta, generateShareableText } from './utils/socialSharing'
 
 function App() {
   const [activeCompany, setActiveCompany] = useState('company1')
@@ -49,6 +50,30 @@ function App() {
 
   const handleCopyPermalink = async (scenarioData) => {
     return await copyPermalinkToClipboard(scenarioData)
+  }
+
+  const handleCopyShareableText = async (scenarioData) => {
+    try {
+      if (!navigator.clipboard) {
+        return {
+          success: false,
+          error: 'Clipboard API not available'
+        }
+      }
+
+      const shareableText = generateShareableText(scenarioData)
+      await navigator.clipboard.writeText(shareableText)
+      
+      return {
+        success: true,
+        text: shareableText
+      }
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message
+      }
+    }
   }
 
   const addCompany = () => {
@@ -97,11 +122,19 @@ function App() {
     }
   }, [hasLoadedFromURL, activeCompany, showInfo])
 
+  // Initialize social sharing meta tags
+  useEffect(() => {
+    initializeSocialSharing()
+  }, [])
+
   useEffect(() => {
     const currentCompany = companies[activeCompany]
     if (currentCompany) {
       const newScenarios = calculateScenarios(currentCompany)
       setScenarios(newScenarios || []) // Fallback to empty array if calculation fails
+      
+      // Update social sharing meta tags with current scenario
+      updateSocialSharingMeta()
     } else {
       setScenarios([]) // Clear scenarios if no valid company
     }
@@ -183,6 +216,7 @@ function App() {
                 isBase={true}
                 onApplyScenario={applyScenario}
                 onCopyPermalink={handleCopyPermalink}
+                onCopyShareableText={handleCopyShareableText}
                 investorName={companies[activeCompany]?.investorName || 'US'}
                 showAdvanced={companies[activeCompany]?.showAdvanced || false}
               />
@@ -199,6 +233,7 @@ function App() {
               isBase={false}
               onApplyScenario={applyScenario}
               onCopyPermalink={handleCopyPermalink}
+              onCopyShareableText={handleCopyShareableText}
               investorName={companies[activeCompany]?.investorName || 'US'}
               showAdvanced={companies[activeCompany]?.showAdvanced || false}
             />

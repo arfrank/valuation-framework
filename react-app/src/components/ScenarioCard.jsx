@@ -1,7 +1,8 @@
 import { useState } from 'react'
 
-const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalink, investorName = 'US', showAdvanced = false }) => {
+const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalink, onCopyShareableText, investorName = 'US', showAdvanced = false }) => {
   const [copyFeedback, setCopyFeedback] = useState('')
+  const [textFeedback, setTextFeedback] = useState('')
   const getCardClass = () => {
     if (isBase) return 'scenario-card base-scenario'
     return `scenario-card scenario-${index % 5}`
@@ -64,6 +65,43 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
     } catch (error) {
       setCopyFeedback('Failed to copy')
       setTimeout(() => setCopyFeedback(''), 3000)
+    }
+  }
+
+  const handleCopyShareableText = async () => {
+    if (!onCopyShareableText) return
+
+    try {
+      const scenarioData = {
+        postMoneyVal: scenario.postMoneyVal,
+        roundSize: scenario.roundSize,
+        investorPortion: scenario.investorAmount,
+        otherPortion: scenario.otherAmount,
+        investorName: investorName,
+        showAdvanced: showAdvanced,
+        proRataPercent: scenario.proRataPercentInput || 0,
+        // N SAFEs support
+        safes: scenario.safes || [],
+        // Legacy SAFE fields for backward compatibility
+        safeAmount: scenario.safeAmount || 0,
+        safeCap: scenario.safeCap || 0,
+        safeDiscount: scenario.safeDiscount || 0,
+        preRoundFounderOwnership: scenario.preRoundFounderPercent ?? 0
+      }
+
+      const result = await onCopyShareableText(scenarioData)
+      
+      if (result.success) {
+        setTextFeedback('Copied!')
+      } else {
+        setTextFeedback('Failed to copy')
+      }
+      
+      // Clear feedback after 3 seconds
+      setTimeout(() => setTextFeedback(''), 3000)
+    } catch (error) {
+      setTextFeedback('Failed to copy')
+      setTimeout(() => setTextFeedback(''), 3000)
     }
   }
 
@@ -162,16 +200,28 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
           </div>
         </div>
         
-        {onCopyPermalink && (
-          <button 
-            className="permalink-btn-inline" 
-            onClick={handleCopyPermalink}
-            title="Share permalink for this scenario"
-            disabled={!!copyFeedback}
-          >
-            {copyFeedback || '🔗'}
-          </button>
-        )}
+        <div className="share-buttons">
+          {onCopyPermalink && (
+            <button 
+              className="permalink-btn-inline" 
+              onClick={handleCopyPermalink}
+              title="Share permalink for this scenario"
+              disabled={!!copyFeedback}
+            >
+              {copyFeedback || '🔗'}
+            </button>
+          )}
+          {onCopyShareableText && (
+            <button 
+              className="permalink-btn-inline" 
+              onClick={handleCopyShareableText}
+              title="Copy formatted text summary"
+              disabled={!!textFeedback}
+            >
+              {textFeedback || '📋'}
+            </button>
+          )}
+        </div>
       </div>
     </div>
   )

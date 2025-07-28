@@ -682,6 +682,12 @@ body.geometric-background-active .app {
   cursor: not-allowed;
 }
 
+.share-buttons {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
 .scenario-card:hover {
   box-shadow: 0 4px 6px rgba(0,0,0,0.1);
   transform: translateY(-1px);
