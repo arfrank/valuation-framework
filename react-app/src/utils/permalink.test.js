@@ -11,7 +11,7 @@ describe('Permalink Utilities', () => {
   const mockScenario = {
     postMoneyVal: 13,
     roundSize: 3,
-    lsvpPortion: 2.75,
+    investorPortion: 2.75,
     otherPortion: 0.25,
     investorName: 'US',
     showAdvanced: false,
@@ -39,7 +39,7 @@ describe('Permalink Utilities', () => {
       const encoded = encodeScenarioToURL(mockScenario)
       expect(encoded).toMatch(/pmv=13/)
       expect(encoded).toMatch(/rs=3/)
-      expect(encoded).toMatch(/lp=2\.75/)
+      expect(encoded).toMatch(/ip=2\.75/)
       expect(encoded).toMatch(/op=0\.25/)
       expect(encoded).toMatch(/in=US/)
       expect(encoded).not.toMatch(/sa=/) // SAFE amount should not be included when 0
@@ -69,12 +69,12 @@ describe('Permalink Utilities', () => {
 
   describe('decodeScenarioFromURL', () => {
     it('should decode basic URL parameters to scenario data', () => {
-      const urlParams = 'pmv=13&rs=3&lp=2.75&op=0.25&in=US&pr=15&pf=70'
+      const urlParams = 'pmv=13&rs=3&ip=2.75&op=0.25&in=US&pr=15&pf=70'
       const decoded = decodeScenarioFromURL(urlParams)
       
       expect(decoded.postMoneyVal).toBe(13)
       expect(decoded.roundSize).toBe(3)
-      expect(decoded.lsvpPortion).toBe(2.75)
+      expect(decoded.investorPortion).toBe(2.75)
       expect(decoded.otherPortion).toBe(0.25)
       expect(decoded.investorName).toBe('US')
       expect(decoded.proRataPercent).toBe(15)
@@ -82,7 +82,7 @@ describe('Permalink Utilities', () => {
     })
 
     it('should decode advanced scenario parameters', () => {
-      const urlParams = 'pmv=13&rs=3&lp=2.75&op=0.25&in=US&pr=25&sa=1.5&sc=10&pf=65'
+      const urlParams = 'pmv=13&rs=3&ip=2.75&op=0.25&in=US&pr=25&sa=1.5&sc=10&pf=65'
       const decoded = decodeScenarioFromURL(urlParams)
       
       expect(decoded.safeAmount).toBe(1.5)
@@ -93,7 +93,7 @@ describe('Permalink Utilities', () => {
     })
 
     it('should handle URL encoded special characters', () => {
-      const urlParams = 'pmv=13&rs=3&lp=2.75&op=0.25&in=US+%26+Partners&pr=15&pf=70'
+      const urlParams = 'pmv=13&rs=3&ip=2.75&op=0.25&in=US+%26+Partners&pr=15&pf=70'
       const decoded = decodeScenarioFromURL(urlParams)
       
       expect(decoded.investorName).toBe('US & Partners')
@@ -106,12 +106,12 @@ describe('Permalink Utilities', () => {
     })
 
     it('should return null for missing required parameters', () => {
-      expect(decodeScenarioFromURL('pmv=13&rs=3')).toBe(null) // missing lp, op, in
-      expect(decodeScenarioFromURL('pmv=13&lp=2.75&op=0.25&in=US')).toBe(null) // missing rs
+      expect(decodeScenarioFromURL('pmv=13&rs=3')).toBe(null) // missing ip, op, in
+      expect(decodeScenarioFromURL('pmv=13&ip=2.75&op=0.25&in=US')).toBe(null) // missing rs
     })
 
     it('should use default values for optional parameters', () => {
-      const urlParams = 'pmv=13&rs=3&lp=2.75&op=0.25&in=US'
+      const urlParams = 'pmv=13&rs=3&ip=2.75&op=0.25&in=US'
       const decoded = decodeScenarioFromURL(urlParams)
       
       expect(decoded.proRataPercent).toBe(0)
@@ -139,7 +139,7 @@ describe('Permalink Utilities', () => {
       expect(permalink).toMatch(/^http:\/\/localhost:3000\/\?/)
       expect(permalink).toMatch(/pmv=13/)
       expect(permalink).toMatch(/rs=3/)
-      expect(permalink).toMatch(/lp=2\.75/)
+      expect(permalink).toMatch(/ip=2\.75/)
     })
 
     it('should handle scenarios with advanced features', () => {
@@ -221,7 +221,7 @@ describe('Permalink Utilities', () => {
       
       expect(decoded.postMoneyVal).toBe(mockScenario.postMoneyVal)
       expect(decoded.roundSize).toBe(mockScenario.roundSize)
-      expect(decoded.lsvpPortion).toBe(mockScenario.lsvpPortion)
+      expect(decoded.investorPortion).toBe(mockScenario.investorPortion)
       expect(decoded.otherPortion).toBe(mockScenario.otherPortion)
       expect(decoded.investorName).toBe(mockScenario.investorName)
     })

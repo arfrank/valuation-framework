@@ -8,8 +8,8 @@ describe('ScenarioCard with Permalink', () => {
     title: 'Test Scenario',
     postMoneyVal: 13,
     roundSize: 3,
-    lsvpAmount: 2.75,
-    lsvpPercent: 21.15,
+    investorAmount: 2.75,
+    investorPercent: 21.15,
     otherAmount: 0.25,
     otherPercent: 1.92,
     roundPercent: 23.08,
@@ -86,7 +86,7 @@ describe('ScenarioCard with Permalink', () => {
     expect(mockOnCopyPermalink).toHaveBeenCalledWith(expect.objectContaining({
       postMoneyVal: mockScenario.postMoneyVal,
       roundSize: mockScenario.roundSize,
-      lsvpPortion: mockScenario.lsvpAmount,
+      investorPortion: mockScenario.investorAmount,
       otherPortion: mockScenario.otherAmount,
       investorName: 'US',
       showAdvanced: false

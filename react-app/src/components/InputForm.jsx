@@ -4,7 +4,7 @@ const InputForm = ({ company, onUpdate }) => {
   const [values, setValues] = useState({
     postMoneyVal: 13,
     roundSize: 3,
-    lsvpPortion: 2.75,
+    investorPortion: 2.75,
     otherPortion: 0.25,
     investorName: 'US',
     // Advanced features
@@ -34,11 +34,11 @@ const InputForm = ({ company, onUpdate }) => {
     
     const newValues = { ...values, [field]: numValue }
     
-    // Auto-calculate other portion when round size or LSVP portion changes
-    if (field === 'roundSize' || field === 'lsvpPortion') {
+    // Auto-calculate other portion when round size or investor portion changes
+    if (field === 'roundSize' || field === 'investorPortion') {
       if (field === 'roundSize') {
-        newValues.otherPortion = Math.round(Math.max(0, numValue - values.lsvpPortion) * 100) / 100
-      } else if (field === 'lsvpPortion') {
+        newValues.otherPortion = Math.round(Math.max(0, numValue - values.investorPortion) * 100) / 100
+      } else if (field === 'investorPortion') {
         newValues.otherPortion = Math.round(Math.max(0, values.roundSize - numValue) * 100) / 100
       }
     }
@@ -112,14 +112,14 @@ const InputForm = ({ company, onUpdate }) => {
         </div>
 
         <div className="input-group">
-          <label htmlFor="lsvp-portion">{values.investorName || 'US'} Portion</label>
+          <label htmlFor="investor-portion">{values.investorName || 'US'} Portion</label>
           <div className="input-wrapper">
             <span className="currency">$</span>
             <input
-              id="lsvp-portion"
+              id="investor-portion"
               type="number"
-              value={values.lsvpPortion}
-              onChange={(e) => handleChange('lsvpPortion', e.target.value)}
+              value={values.investorPortion}
+              onChange={(e) => handleChange('investorPortion', e.target.value)}
               step="0.01"
               min="0"
               max={values.roundSize}
@@ -270,9 +270,9 @@ const InputForm = ({ company, onUpdate }) => {
       )}
 
       <div className="validation-info">
-        {(values.lsvpPortion + values.otherPortion).toFixed(2) !== values.roundSize.toFixed(2) && (
+        {(values.investorPortion + values.otherPortion).toFixed(2) !== values.roundSize.toFixed(2) && (
           <div className="warning">
-            ⚠️ LSVP + Other ({(values.lsvpPortion + values.otherPortion).toFixed(2)}M) doesn't equal Round Size ({values.roundSize.toFixed(2)}M)
+            ⚠️ {values.investorName} + Other ({(values.investorPortion + values.otherPortion).toFixed(2)}M) doesn't equal Round Size ({values.roundSize.toFixed(2)}M)
           </div>
         )}
         {values.postMoneyVal <= values.roundSize && values.postMoneyVal > 0 && (

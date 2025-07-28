@@ -2,12 +2,12 @@
  * Permalink utilities for sharing scenario configurations via URL
  */
 
-const REQUIRED_FIELDS = ['postMoneyVal', 'roundSize', 'lsvpPortion', 'otherPortion', 'investorName']
+const REQUIRED_FIELDS = ['postMoneyVal', 'roundSize', 'investorPortion', 'otherPortion', 'investorName']
 
 const URL_PARAM_MAP = {
   postMoneyVal: 'pmv',
   roundSize: 'rs', 
-  lsvpPortion: 'lp',
+  investorPortion: 'ip',
   otherPortion: 'op',
   investorName: 'in',
   proRataPercent: 'pr',

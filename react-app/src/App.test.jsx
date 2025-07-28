@@ -71,10 +71,10 @@ describe('App with Permalink Loading', () => {
     // Mock URL with scenario parameters
     Object.defineProperty(window, 'location', {
       value: {
-        href: 'http://localhost:3000?pmv=15&rs=4&lp=3&op=1&in=Acme%20VC&pr=20&pf=65',
+        href: 'http://localhost:3000?pmv=15&rs=4&ip=3&op=1&in=Acme%20VC&pr=20&pf=65',
         origin: 'http://localhost:3000',
         pathname: '/',
-        search: '?pmv=15&rs=4&lp=3&op=1&in=Acme%20VC&pr=20&pf=65',
+        search: '?pmv=15&rs=4&ip=3&op=1&in=Acme%20VC&pr=20&pf=65',
         hash: '',
       },
       writable: true,
@@ -114,10 +114,10 @@ describe('App with Permalink Loading', () => {
   it('should handle partial URL parameters with defaults', async () => {
     Object.defineProperty(window, 'location', {
       value: {
-        href: 'http://localhost:3000?pmv=20&rs=5&lp=4&op=1&in=Test%20VC',
+        href: 'http://localhost:3000?pmv=20&rs=5&ip=4&op=1&in=Test%20VC',
         origin: 'http://localhost:3000',
         pathname: '/',
-        search: '?pmv=20&rs=5&lp=4&op=1&in=Test%20VC',
+        search: '?pmv=20&rs=5&ip=4&op=1&in=Test%20VC',
         hash: '',
       },
       writable: true,
@@ -140,10 +140,10 @@ describe('App with Permalink Loading', () => {
 
     Object.defineProperty(window, 'location', {
       value: {
-        href: 'http://localhost:3000?pmv=15&rs=4&lp=3&op=1&in=Test&pr=20&pf=65',
+        href: 'http://localhost:3000?pmv=15&rs=4&ip=3&op=1&in=Test&pr=20&pf=65',
         origin: 'http://localhost:3000',
         pathname: '/',
-        search: '?pmv=15&rs=4&lp=3&op=1&in=Test&pr=20&pf=65',
+        search: '?pmv=15&rs=4&ip=3&op=1&in=Test&pr=20&pf=65',
         hash: '',
       },
       writable: true,

@@ -15,7 +15,7 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
       onApplyScenario({
         postMoneyVal: scenario.postMoneyVal,
         roundSize: scenario.roundSize,
-        lsvpPortion: scenario.lsvpAmount,
+        investorPortion: scenario.investorAmount,
         otherPortion: scenario.otherAmount,
         // Include advanced features if available
         proRataPercent: scenario.proRataPercentInput || 0,
@@ -33,7 +33,7 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
       const scenarioData = {
         postMoneyVal: scenario.postMoneyVal,
         roundSize: scenario.roundSize,
-        lsvpPortion: scenario.lsvpAmount,
+        investorPortion: scenario.investorAmount,
         otherPortion: scenario.otherAmount,
         investorName: investorName,
         showAdvanced: showAdvanced,
@@ -91,8 +91,8 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
         
         <div className="table-row investor-row">
           <div className="label">{investorName}</div>
-          <div className="amount">{formatDollar(scenario.lsvpAmount)}</div>
-          <div className="percent">{formatPercent(scenario.lsvpPercent)}</div>
+          <div className="amount">{formatDollar(scenario.investorAmount)}</div>
+          <div className="percent">{formatPercent(scenario.investorPercent)}</div>
         </div>
         
         <div className="table-row">
