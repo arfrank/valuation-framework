@@ -772,6 +772,130 @@ body.geometric-background-active .app {
   gap: 1rem;
 }
 
+/* N SAFEs Section Styling */
+.safes-section {
+  grid-column: 1 / -1;
+  margin-top: 1rem;
+}
+
+.safes-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.safes-header h5 {
+  font-size: 0.9rem;
+  color: #4a5568;
+  font-weight: 600;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.add-safe-btn {
+  background: #48bb78;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.add-safe-btn:hover {
+  background: #38a169;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(72, 187, 120, 0.3);
+}
+
+.no-safes-message {
+  text-align: center;
+  color: #718096;
+  font-style: italic;
+  font-size: 0.85rem;
+  padding: 1.5rem;
+  background: #f7fafc;
+  border: 1px dashed #cbd5e0;
+  border-radius: 4px;
+}
+
+.safe-row {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  transition: all 0.2s ease;
+}
+
+.safe-row:hover {
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  border-color: #cbd5e0;
+}
+
+.safe-row-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #f7fafc;
+}
+
+.safe-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #4a5568;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.remove-safe-btn {
+  background: #e2e8f0;
+  color: #718096;
+  border: none;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.remove-safe-btn:hover {
+  background: #fed7d7;
+  color: #e53e3e;
+  transform: scale(1.1);
+}
+
+.safe-inputs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.safe-conversion-info {
+  margin-top: 0.75rem;
+  padding: 0.65rem;
+  background: #edf2f7;
+  border: 1px solid #cbd5e0;
+  border-radius: 4px;
+  border-left: 3px solid #3182ce;
+}
+
 @media (max-width: 768px) {
   .advanced-section .input-grid {
     grid-template-columns: 1fr;
