@@ -12,6 +12,7 @@ const InputForm = ({ company, onUpdate }) => {
     proRataPercent: 0,
     safeAmount: 0,
     safeCap: 0,
+    safeDiscount: 0,
     preRoundFounderOwnership: 0
   })
   
@@ -300,7 +301,74 @@ const InputForm = ({ company, onUpdate }) => {
                 )}
               </div>
             </div>
+
+            <div className="input-group">
+              <label htmlFor="safe-discount">SAFE Discount</label>
+              <div className={`input-wrapper ${values.safeDiscount > 0 ? 'input-wrapper-with-clear' : ''}`}>
+                <input
+                  id="safe-discount"
+                  type="number"
+                  value={values.safeDiscount}
+                  onChange={(e) => handleChange('safeDiscount', e.target.value)}
+                  step="1"
+                  min="0"
+                  max="100"
+                />
+                <span className="unit">%</span>
+                {values.safeDiscount > 0 && (
+                  <button 
+                    type="button"
+                    className="clear-input-btn"
+                    onClick={() => handleChange('safeDiscount', 0)}
+                    title="Clear SAFE discount"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
+
+          {/* SAFE Conversion Info */}
+          {values.safeAmount > 0 && (values.safeCap > 0 || values.safeDiscount > 0) && (
+            <div className="safe-conversion-info">
+              <div className="conversion-display">
+                <span className="conversion-label">SAFE Conversion Valuation:</span>
+                <span className="conversion-value">
+                  {(() => {
+                    if (values.safeCap > 0 && values.safeDiscount > 0) {
+                      const capPrice = values.safeCap
+                      const discountPrice = safePreMoneyVal * (1 - values.safeDiscount / 100)
+                      return capPrice < discountPrice 
+                        ? `$${capPrice.toFixed(1)}M`
+                        : `$${discountPrice.toFixed(1)}M`
+                    } else if (values.safeCap > 0) {
+                      return `$${Math.min(values.safeCap, safePreMoneyVal).toFixed(1)}M`
+                    } else if (values.safeDiscount > 0) {
+                      return `$${(safePreMoneyVal * (1 - values.safeDiscount / 100)).toFixed(1)}M`
+                    }
+                    return '$0.0M'
+                  })()}
+                </span>
+                <span className="conversion-note">
+                  {(() => {
+                    if (values.safeCap > 0 && values.safeDiscount > 0) {
+                      const capPrice = values.safeCap
+                      const discountPrice = safePreMoneyVal * (1 - values.safeDiscount / 100)
+                      return capPrice < discountPrice 
+                        ? `(Using cap $${capPrice.toFixed(1)}M vs discount $${discountPrice.toFixed(1)}M)`
+                        : `(Using ${values.safeDiscount}% discount vs cap $${capPrice.toFixed(1)}M)`
+                    } else if (values.safeCap > 0) {
+                      return `(Cap: $${values.safeCap.toFixed(1)}M, Pre-money: $${safePreMoneyVal.toFixed(1)}M)`
+                    } else if (values.safeDiscount > 0) {
+                      return `(Pre-money $${safePreMoneyVal.toFixed(1)}M with ${values.safeDiscount}% discount)`
+                    }
+                    return ''
+                  })()}
+                </span>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -324,6 +392,16 @@ const InputForm = ({ company, onUpdate }) => {
         {!isNaN(values.safeAmount) && !isNaN(values.safeCap) && values.safeAmount > 0 && values.safeCap > 0 && values.safeAmount > values.safeCap && (
           <div className="warning">
             ⚠️ SAFE amount cannot exceed valuation cap
+          </div>
+        )}
+        {!isNaN(values.safeDiscount) && values.safeDiscount > 100 && (
+          <div className="warning">
+            ⚠️ SAFE discount cannot exceed 100%
+          </div>
+        )}
+        {!isNaN(values.safeAmount) && !isNaN(values.safeCap) && !isNaN(values.safeDiscount) && values.safeAmount > 0 && values.safeCap === 0 && values.safeDiscount === 0 && (
+          <div className="warning">
+            ⚠️ SAFE must have either a valuation cap or discount (or both)
           </div>
         )}
       </div>
