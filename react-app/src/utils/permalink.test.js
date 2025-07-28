@@ -27,6 +27,7 @@ describe('Permalink Utilities', () => {
     proRataPercent: 25,
     safeAmount: 1.5,
     safeCap: 10,
+    safeDiscount: 20,
     preRoundFounderOwnership: 65
   }
 
@@ -48,8 +49,10 @@ describe('Permalink Utilities', () => {
     it('should encode advanced scenario data when showAdvanced is true', () => {
       const encoded = encodeScenarioToURL(mockAdvancedScenario)
       expect(encoded).toMatch(/pmv=13/)
+      expect(encoded).toMatch(/adv=1/) // showAdvanced parameter
       expect(encoded).toMatch(/sa=1\.5/)
       expect(encoded).toMatch(/sc=10/)
+      expect(encoded).toMatch(/sd=20/) // SAFE discount
       expect(encoded).toMatch(/pr=25/)
       expect(encoded).toMatch(/pf=65/)
     })
@@ -64,12 +67,20 @@ describe('Permalink Utilities', () => {
       const encoded = encodeScenarioToURL(mockScenario)
       expect(encoded).not.toMatch(/sa=0/)
       expect(encoded).not.toMatch(/sc=0/)
+      expect(encoded).not.toMatch(/sd=0/)
+      expect(encoded).not.toMatch(/adv=0/) // Don't include showAdvanced when false
+    })
+
+    it('should include showAdvanced when explicitly true', () => {
+      const scenarioWithAdvanced = { ...mockScenario, showAdvanced: true }
+      const encoded = encodeScenarioToURL(scenarioWithAdvanced)
+      expect(encoded).toMatch(/adv=1/)
     })
   })
 
   describe('decodeScenarioFromURL', () => {
     it('should decode basic URL parameters to scenario data', () => {
-      const urlParams = 'pmv=13&rs=3&ip=2.75&op=0.25&in=US&pr=15&pf=70'
+      const urlParams = 'pmv=13&rs=3&ip=2.75&op=0.25&in=US'
       const decoded = decodeScenarioFromURL(urlParams)
       
       expect(decoded.postMoneyVal).toBe(13)
@@ -77,23 +88,24 @@ describe('Permalink Utilities', () => {
       expect(decoded.investorPortion).toBe(2.75)
       expect(decoded.otherPortion).toBe(0.25)
       expect(decoded.investorName).toBe('US')
-      expect(decoded.proRataPercent).toBe(15)
-      expect(decoded.preRoundFounderOwnership).toBe(70)
+      expect(decoded.proRataPercent).toBe(0)
+      expect(decoded.preRoundFounderOwnership).toBe(0)
     })
 
     it('should decode advanced scenario parameters', () => {
-      const urlParams = 'pmv=13&rs=3&ip=2.75&op=0.25&in=US&pr=25&sa=1.5&sc=10&pf=65'
+      const urlParams = 'pmv=13&rs=3&ip=2.75&op=0.25&in=US&adv=1&pr=25&sa=1.5&sc=10&sd=20&pf=65'
       const decoded = decodeScenarioFromURL(urlParams)
       
+      expect(decoded.showAdvanced).toBe(true)
       expect(decoded.safeAmount).toBe(1.5)
       expect(decoded.safeCap).toBe(10)
+      expect(decoded.safeDiscount).toBe(20)
       expect(decoded.proRataPercent).toBe(25)
       expect(decoded.preRoundFounderOwnership).toBe(65)
-      expect(decoded.showAdvanced).toBe(true)
     })
 
     it('should handle URL encoded special characters', () => {
-      const urlParams = 'pmv=13&rs=3&ip=2.75&op=0.25&in=US+%26+Partners&pr=15&pf=70'
+      const urlParams = 'pmv=13&rs=3&ip=2.75&op=0.25&in=US+%26+Partners'
       const decoded = decodeScenarioFromURL(urlParams)
       
       expect(decoded.investorName).toBe('US & Partners')
@@ -118,7 +130,17 @@ describe('Permalink Utilities', () => {
       expect(decoded.safeAmount).toBe(0)
       expect(decoded.safeCap).toBe(0)
       expect(decoded.preRoundFounderOwnership).toBe(0)
+      expect(decoded.safeDiscount).toBe(0)
       expect(decoded.showAdvanced).toBe(false)
+    })
+
+    it('should respect explicit showAdvanced setting', () => {
+      // When showAdvanced is explicitly set to false, it should remain false even with advanced features
+      const urlParams = 'pmv=13&rs=3&ip=2.75&op=0.25&in=US&adv=0&pr=25'
+      const decoded = decodeScenarioFromURL(urlParams)
+      
+      expect(decoded.showAdvanced).toBe(false)
+      expect(decoded.proRataPercent).toBe(25)
     })
   })
 

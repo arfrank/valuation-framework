@@ -12,6 +12,7 @@ const InputForm = ({ company, onUpdate }) => {
     proRataPercent: 0,
     safeAmount: 0,
     safeCap: 0,
+    safeDiscount: 0,
     preRoundFounderOwnership: 0
   })
   
@@ -300,6 +301,32 @@ const InputForm = ({ company, onUpdate }) => {
                 )}
               </div>
             </div>
+
+            <div className="input-group">
+              <label htmlFor="safe-discount">SAFE Discount</label>
+              <div className={`input-wrapper ${values.safeDiscount > 0 ? 'input-wrapper-with-clear' : ''}`}>
+                <input
+                  id="safe-discount"
+                  type="number"
+                  value={values.safeDiscount}
+                  onChange={(e) => handleChange('safeDiscount', e.target.value)}
+                  step="1"
+                  min="0"
+                  max="100"
+                />
+                <span className="unit">%</span>
+                {values.safeDiscount > 0 && (
+                  <button 
+                    type="button"
+                    className="clear-input-btn"
+                    onClick={() => handleChange('safeDiscount', 0)}
+                    title="Clear SAFE discount"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -324,6 +351,16 @@ const InputForm = ({ company, onUpdate }) => {
         {!isNaN(values.safeAmount) && !isNaN(values.safeCap) && values.safeAmount > 0 && values.safeCap > 0 && values.safeAmount > values.safeCap && (
           <div className="warning">
             ⚠️ SAFE amount cannot exceed valuation cap
+          </div>
+        )}
+        {!isNaN(values.safeDiscount) && values.safeDiscount > 100 && (
+          <div className="warning">
+            ⚠️ SAFE discount cannot exceed 100%
+          </div>
+        )}
+        {!isNaN(values.safeAmount) && !isNaN(values.safeCap) && !isNaN(values.safeDiscount) && values.safeAmount > 0 && values.safeCap === 0 && values.safeDiscount === 0 && (
+          <div className="warning">
+            ⚠️ SAFE must have either a valuation cap or discount (or both)
           </div>
         )}
       </div>

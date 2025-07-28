@@ -10,9 +10,11 @@ const URL_PARAM_MAP = {
   investorPortion: 'ip',
   otherPortion: 'op',
   investorName: 'in',
+  showAdvanced: 'adv',
   proRataPercent: 'pr',
   safeAmount: 'sa',
   safeCap: 'sc',
+  safeDiscount: 'sd',
   preRoundFounderOwnership: 'pf'
 }
 
@@ -69,8 +71,16 @@ export function encodeScenarioToURL(scenarioData) {
     const value = scenarioData[field]
     
     if (value !== undefined && value !== null) {
+      // Handle boolean showAdvanced field
+      if (field === 'showAdvanced') {
+        if (value === true) {
+          params.set(param, '1')
+        }
+        return // Don't include if false (default)
+      }
+      
       // Only include non-zero values for optional fields
-      if (['proRataPercent', 'safeAmount', 'safeCap'].includes(field) && value === 0) {
+      if (['proRataPercent', 'safeAmount', 'safeCap', 'safeDiscount'].includes(field) && value === 0) {
         return
       }
       
@@ -107,6 +117,7 @@ export function decodeScenarioFromURL(urlParams) {
       proRataPercent: 0,
       safeAmount: 0,
       safeCap: 0,
+      safeDiscount: 0,
       preRoundFounderOwnership: 0
     }
 
@@ -117,6 +128,8 @@ export function decodeScenarioFromURL(urlParams) {
       if (value !== null) {
         if (field === 'investorName') {
           scenarioData[field] = decodeURIComponent(value)
+        } else if (field === 'showAdvanced') {
+          scenarioData[field] = value === '1'
         } else {
           const numValue = parseFloat(value)
           if (isNaN(numValue)) {
@@ -127,9 +140,9 @@ export function decodeScenarioFromURL(urlParams) {
       }
     }
 
-    // Set showAdvanced to true if any advanced features are present
-    if (scenarioData.safeAmount > 0 || scenarioData.safeCap > 0 || 
-        scenarioData.proRataPercent > 0 || scenarioData.preRoundFounderOwnership > 0) {
+    // Set showAdvanced to true if any advanced features are present (but don't override explicit setting)
+    if (!params.has('adv') && (scenarioData.safeAmount > 0 || scenarioData.safeCap > 0 || 
+        scenarioData.safeDiscount > 0 || scenarioData.proRataPercent > 0 || scenarioData.preRoundFounderOwnership > 0)) {
       scenarioData.showAdvanced = true
     }
 
