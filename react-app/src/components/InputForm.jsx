@@ -9,10 +9,10 @@ const InputForm = ({ company, onUpdate }) => {
     investorName: 'US',
     // Advanced features
     showAdvanced: false,
-    proRataPercent: 15,
+    proRataPercent: 0,
     safeAmount: 0,
     safeCap: 0,
-    preRoundFounderOwnership: 70
+    preRoundFounderOwnership: 0
   })
   
   // New state for tracking input mode
@@ -199,7 +199,7 @@ const InputForm = ({ company, onUpdate }) => {
           <div className="input-grid">
             <div className="input-group">
               <label htmlFor="founder-ownership">Pre-Round Founder Ownership</label>
-              <div className={`input-wrapper ${values.preRoundFounderOwnership !== 70 ? 'input-wrapper-with-clear' : ''}`}>
+              <div className={`input-wrapper ${values.preRoundFounderOwnership > 0 ? 'input-wrapper-with-clear' : ''}`}>
                 <input
                   id="founder-ownership"
                   type="number"
@@ -210,12 +210,12 @@ const InputForm = ({ company, onUpdate }) => {
                   max="100"
                 />
                 <span className="unit">%</span>
-                {values.preRoundFounderOwnership !== 70 && (
+                {values.preRoundFounderOwnership > 0 && (
                   <button 
                     type="button"
                     className="clear-input-btn"
-                    onClick={() => handleChange('preRoundFounderOwnership', 70)}
-                    title="Reset to default (70%)"
+                    onClick={() => handleChange('preRoundFounderOwnership', 0)}
+                    title="Clear founder ownership"
                   >
                     ×
                   </button>
