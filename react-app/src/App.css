@@ -267,7 +267,7 @@ body.geometric-background-active .app {
   background: #ffffff;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
-  padding: 1.5rem;
+  padding: 1.25rem;
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
   transition: all 0.2s ease;
 }
@@ -277,8 +277,8 @@ body.geometric-background-active .app {
 }
 
 .form-header {
-  margin-bottom: 1.5rem;
-  padding-bottom: 1rem;
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.75rem;
   border-bottom: 1px solid #e9ecef;
 }
 
@@ -290,13 +290,13 @@ body.geometric-background-active .app {
 }
 
 .form-header h3 {
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   color: #2d3748;
   font-weight: 600;
   margin: 0;
 }
 
-.calculated-pre-money {
+.calculated-money-toggle {
   font-size: 0.85rem;
   color: #718096;
   font-weight: 500;
@@ -304,13 +304,34 @@ body.geometric-background-active .app {
   background: #f7fafc;
   border: 1px solid #e2e8f0;
   border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  user-select: none;
 }
 
-.calculated-pre-money .value {
+.calculated-money-toggle:hover {
+  background: #edf2f7;
+  border-color: #cbd5e0;
+}
+
+.calculated-money-toggle .value {
   font-weight: 700;
   color: #3182ce;
   font-size: 0.95rem;
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+}
+
+.toggle-hint {
+  font-size: 0.75rem;
+  color: #a0aec0;
+  font-weight: 400;
+}
+
+.calculated-money-toggle:hover .toggle-hint {
+  color: #718096;
 }
 
 .investor-name-input {
@@ -345,8 +366,8 @@ body.geometric-background-active .app {
 
 /* Advanced Features */
 .advanced-toggle {
-  margin: 1rem 0;
-  padding-top: 1rem;
+  margin: 0.85rem 0;
+  padding-top: 0.85rem;
   border-top: 1px solid #e2e8f0;
 }
 
@@ -354,10 +375,10 @@ body.geometric-background-active .app {
   background: none;
   border: none;
   color: #718096;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
-  padding: 0.5rem 0;
+  padding: 0.4rem 0;
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -372,34 +393,34 @@ body.geometric-background-active .app {
   background: #f7fafc;
   border: 1px solid #e2e8f0;
   border-radius: 6px;
-  padding: 1rem;
+  padding: 0.85rem;
   margin-top: 0.5rem;
 }
 
 .advanced-section h4 {
-  font-size: 0.95rem;
+  font-size: 0.85rem;
   color: #4a5568;
   font-weight: 600;
-  margin: 0 0 1rem 0;
+  margin: 0 0 0.85rem 0;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .input-grid {
   display: grid;
-  gap: 1rem;
+  gap: 0.85rem;
 }
 
 .input-group {
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: 0.35rem;
 }
 
 .input-group label {
   font-weight: 600;
   color: #4a5568;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
 }
 
 .input-wrapper {
@@ -409,7 +430,7 @@ body.geometric-background-active .app {
   background: #ffffff;
   border: 1px solid #cbd5e0;
   border-radius: 4px;
-  padding: 0.5rem 0.75rem;
+  padding: 0.45rem 0.65rem;
   transition: border-color 0.2s ease;
   min-width: 0;
   overflow: hidden;

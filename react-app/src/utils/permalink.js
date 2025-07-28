@@ -74,8 +74,8 @@ export function encodeScenarioToURL(scenarioData) {
         return
       }
       
-      // Set default for preRoundFounderOwnership if not provided
-      if (field === 'preRoundFounderOwnership' && value === 70) {
+      // Don't include default value for preRoundFounderOwnership
+      if (field === 'preRoundFounderOwnership' && value === 0) {
         return // Don't include default value
       }
       
@@ -107,7 +107,7 @@ export function decodeScenarioFromURL(urlParams) {
       proRataPercent: 0,
       safeAmount: 0,
       safeCap: 0,
-      preRoundFounderOwnership: 70
+      preRoundFounderOwnership: 0
     }
 
     // Decode parameters
@@ -129,7 +129,7 @@ export function decodeScenarioFromURL(urlParams) {
 
     // Set showAdvanced to true if any advanced features are present
     if (scenarioData.safeAmount > 0 || scenarioData.safeCap > 0 || 
-        scenarioData.proRataPercent > 0 || scenarioData.preRoundFounderOwnership !== 70) {
+        scenarioData.proRataPercent > 0 || scenarioData.preRoundFounderOwnership > 0) {
       scenarioData.showAdvanced = true
     }
 

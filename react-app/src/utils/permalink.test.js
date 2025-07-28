@@ -15,10 +15,10 @@ describe('Permalink Utilities', () => {
     otherPortion: 0.25,
     investorName: 'US',
     showAdvanced: false,
-    proRataPercent: 15,
+    proRataPercent: 0,
     safeAmount: 0,
     safeCap: 0,
-    preRoundFounderOwnership: 70
+    preRoundFounderOwnership: 0
   }
 
   const mockAdvancedScenario = {
@@ -117,7 +117,7 @@ describe('Permalink Utilities', () => {
       expect(decoded.proRataPercent).toBe(0)
       expect(decoded.safeAmount).toBe(0)
       expect(decoded.safeCap).toBe(0)
-      expect(decoded.preRoundFounderOwnership).toBe(70)
+      expect(decoded.preRoundFounderOwnership).toBe(0)
       expect(decoded.showAdvanced).toBe(false)
     })
   })

@@ -9,11 +9,14 @@ const InputForm = ({ company, onUpdate }) => {
     investorName: 'US',
     // Advanced features
     showAdvanced: false,
-    proRataPercent: 15,
+    proRataPercent: 0,
     safeAmount: 0,
     safeCap: 0,
-    preRoundFounderOwnership: 70
+    preRoundFounderOwnership: 0
   })
+  
+  // New state for tracking input mode
+  const [inputMode, setInputMode] = useState('post-money') // 'post-money' or 'pre-money'
 
   useEffect(() => {
     if (company) {
@@ -22,10 +25,14 @@ const InputForm = ({ company, onUpdate }) => {
   }, [company])
 
   const handleChange = (field, value) => {
-    let numValue = field === 'investorName' || field === 'showAdvanced' ? value : (parseFloat(value) || 0)
+    let numValue = field === 'investorName' || field === 'showAdvanced' ? value : parseFloat(value)
     
     // Input validation for numeric fields
     if (field !== 'investorName' && field !== 'showAdvanced') {
+      // Handle NaN, empty strings, and invalid inputs
+      if (isNaN(numValue) || value === '' || value === null || value === undefined) {
+        numValue = 0
+      }
       // Prevent negative values
       if (numValue < 0) numValue = 0
       // Prevent unreasonably large values (> 1 trillion)
@@ -34,10 +41,26 @@ const InputForm = ({ company, onUpdate }) => {
     
     const newValues = { ...values, [field]: numValue }
     
+    // Handle pre-money input mode
+    if (field === 'preMoneyVal' && inputMode === 'pre-money') {
+      // Calculate post-money when pre-money changes
+      newValues.postMoneyVal = Math.round((numValue + values.roundSize) * 100) / 100
+    }
+    
+    // Handle post-money changes that affect pre-money calculations
+    if ((field === 'postMoneyVal' || field === 'roundSize') && inputMode === 'post-money') {
+      // No additional calculation needed - pre-money is calculated in render
+    }
+    
     // Auto-calculate other portion when round size or investor portion changes
     if (field === 'roundSize' || field === 'investorPortion') {
       if (field === 'roundSize') {
         newValues.otherPortion = Math.round(Math.max(0, numValue - values.investorPortion) * 100) / 100
+        // Update post-money if in pre-money mode
+        if (inputMode === 'pre-money') {
+          const currentPreMoney = values.postMoneyVal - values.roundSize
+          newValues.postMoneyVal = Math.round((currentPreMoney + numValue) * 100) / 100
+        }
       } else if (field === 'investorPortion') {
         newValues.otherPortion = Math.round(Math.max(0, values.roundSize - numValue) * 100) / 100
       }
@@ -56,6 +79,11 @@ const InputForm = ({ company, onUpdate }) => {
   }
 
   const preMoneyVal = Math.round((values.postMoneyVal - values.roundSize) * 100) / 100
+  const safePreMoneyVal = isNaN(preMoneyVal) ? 0 : preMoneyVal
+  
+  const handleToggleInputMode = () => {
+    setInputMode(inputMode === 'post-money' ? 'pre-money' : 'post-money')
+  }
 
   return (
     <div className="input-form">
@@ -72,22 +100,29 @@ const InputForm = ({ company, onUpdate }) => {
               placeholder="US"
             />
           </div>
-          <div className="calculated-pre-money">
-            Pre-Money: <span className="value">${preMoneyVal.toFixed(1)}M</span>
+          <div className="calculated-money-toggle" onClick={handleToggleInputMode}>
+            {inputMode === 'post-money' ? (
+              <>Pre-Money: <span className="value">${safePreMoneyVal.toFixed(1)}M</span></>
+            ) : (
+              <>Post-Money: <span className="value">${(isNaN(values.postMoneyVal) ? 0 : values.postMoneyVal).toFixed(1)}M</span></>
+            )}
+            <span className="toggle-hint">⇄</span>
           </div>
         </div>
       </div>
 
       <div className="input-grid">
         <div className="input-group">
-          <label htmlFor="post-money">Post-Money Valuation</label>
+          <label htmlFor="valuation-input">
+            {inputMode === 'post-money' ? 'Post-Money Valuation' : 'Pre-Money Valuation'}
+          </label>
           <div className="input-wrapper">
             <span className="currency">$</span>
             <input
-              id="post-money"
+              id="valuation-input"
               type="number"
-              value={values.postMoneyVal}
-              onChange={(e) => handleChange('postMoneyVal', e.target.value)}
+              value={inputMode === 'post-money' ? (isNaN(values.postMoneyVal) ? 0 : values.postMoneyVal) : safePreMoneyVal}
+              onChange={(e) => handleChange(inputMode === 'post-money' ? 'postMoneyVal' : 'preMoneyVal', e.target.value)}
               step="0.1"
               min="0"
             />
@@ -164,7 +199,7 @@ const InputForm = ({ company, onUpdate }) => {
           <div className="input-grid">
             <div className="input-group">
               <label htmlFor="founder-ownership">Pre-Round Founder Ownership</label>
-              <div className={`input-wrapper ${values.preRoundFounderOwnership !== 70 ? 'input-wrapper-with-clear' : ''}`}>
+              <div className={`input-wrapper ${values.preRoundFounderOwnership > 0 ? 'input-wrapper-with-clear' : ''}`}>
                 <input
                   id="founder-ownership"
                   type="number"
@@ -175,12 +210,12 @@ const InputForm = ({ company, onUpdate }) => {
                   max="100"
                 />
                 <span className="unit">%</span>
-                {values.preRoundFounderOwnership !== 70 && (
+                {values.preRoundFounderOwnership > 0 && (
                   <button 
                     type="button"
                     className="clear-input-btn"
-                    onClick={() => handleChange('preRoundFounderOwnership', 70)}
-                    title="Reset to default (70%)"
+                    onClick={() => handleChange('preRoundFounderOwnership', 0)}
+                    title="Clear founder ownership"
                   >
                     ×
                   </button>
@@ -270,22 +305,23 @@ const InputForm = ({ company, onUpdate }) => {
       )}
 
       <div className="validation-info">
-        {(values.investorPortion + values.otherPortion).toFixed(2) !== values.roundSize.toFixed(2) && (
+        {!isNaN(values.investorPortion) && !isNaN(values.otherPortion) && !isNaN(values.roundSize) && 
+         (values.investorPortion + values.otherPortion).toFixed(2) !== values.roundSize.toFixed(2) && (
           <div className="warning">
-            ⚠️ {values.investorName} + Other ({(values.investorPortion + values.otherPortion).toFixed(2)}M) doesn't equal Round Size ({values.roundSize.toFixed(2)}M)
+            ⚠️ {values.investorName || 'Investor'} + Other ({(values.investorPortion + values.otherPortion).toFixed(2)}M) doesn't equal Round Size ({values.roundSize.toFixed(2)}M)
           </div>
         )}
-        {values.postMoneyVal <= values.roundSize && values.postMoneyVal > 0 && (
+        {!isNaN(values.postMoneyVal) && !isNaN(values.roundSize) && values.postMoneyVal <= values.roundSize && values.postMoneyVal > 0 && (
           <div className="warning">
             ⚠️ Post-Money Valuation must be greater than Round Size for valid pre-money calculation
           </div>
         )}
-        {values.postMoneyVal <= 0 && (
+        {!isNaN(values.postMoneyVal) && values.postMoneyVal <= 0 && (
           <div className="warning">
             ⚠️ Post-Money Valuation must be greater than 0
           </div>
         )}
-        {values.safeAmount > 0 && values.safeCap > 0 && values.safeAmount > values.safeCap && (
+        {!isNaN(values.safeAmount) && !isNaN(values.safeCap) && values.safeAmount > 0 && values.safeCap > 0 && values.safeAmount > values.safeCap && (
           <div className="warning">
             ⚠️ SAFE amount cannot exceed valuation cap
           </div>
