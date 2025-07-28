@@ -27,7 +27,7 @@ describe('SAFE Calculations', () => {
     expect(result.safeConversionPrice).toBe(8)
   })
 
-  it('should calculate SAFE with discount only', () => {
+  it('should calculate SAFE with discount only (uncapped)', () => {
     const inputs = {
       ...baseInputs,
       safeAmount: 1,
@@ -41,6 +41,22 @@ describe('SAFE Calculations', () => {
     // SAFE percentage = 1M / 8M = 12.5%
     expect(result.safePercent).toBe(12.5)
     expect(result.safeConversionPrice).toBe(8)
+  })
+
+  it('should calculate uncapped SAFE with high discount', () => {
+    const inputs = {
+      ...baseInputs,
+      safeAmount: 2,
+      safeCap: 0,
+      safeDiscount: 50
+    }
+    
+    const result = calculateScenario(inputs)
+    
+    // Pre-money = 10M, discount = 50%, so conversion at 10M * 0.5 = 5M
+    // SAFE percentage = 2M / 5M = 40%
+    expect(result.safePercent).toBe(40)
+    expect(result.safeConversionPrice).toBe(5)
   })
 
   it('should calculate SAFE with both cap and discount (cap is better)', () => {

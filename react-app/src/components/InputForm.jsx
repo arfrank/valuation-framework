@@ -328,6 +328,47 @@ const InputForm = ({ company, onUpdate }) => {
               </div>
             </div>
           </div>
+
+          {/* SAFE Conversion Info */}
+          {values.safeAmount > 0 && (values.safeCap > 0 || values.safeDiscount > 0) && (
+            <div className="safe-conversion-info">
+              <div className="conversion-display">
+                <span className="conversion-label">SAFE Conversion Valuation:</span>
+                <span className="conversion-value">
+                  {(() => {
+                    if (values.safeCap > 0 && values.safeDiscount > 0) {
+                      const capPrice = values.safeCap
+                      const discountPrice = safePreMoneyVal * (1 - values.safeDiscount / 100)
+                      return capPrice < discountPrice 
+                        ? `$${capPrice.toFixed(1)}M`
+                        : `$${discountPrice.toFixed(1)}M`
+                    } else if (values.safeCap > 0) {
+                      return `$${Math.min(values.safeCap, safePreMoneyVal).toFixed(1)}M`
+                    } else if (values.safeDiscount > 0) {
+                      return `$${(safePreMoneyVal * (1 - values.safeDiscount / 100)).toFixed(1)}M`
+                    }
+                    return '$0.0M'
+                  })()}
+                </span>
+                <span className="conversion-note">
+                  {(() => {
+                    if (values.safeCap > 0 && values.safeDiscount > 0) {
+                      const capPrice = values.safeCap
+                      const discountPrice = safePreMoneyVal * (1 - values.safeDiscount / 100)
+                      return capPrice < discountPrice 
+                        ? `(Using cap $${capPrice.toFixed(1)}M vs discount $${discountPrice.toFixed(1)}M)`
+                        : `(Using ${values.safeDiscount}% discount vs cap $${capPrice.toFixed(1)}M)`
+                    } else if (values.safeCap > 0) {
+                      return `(Cap: $${values.safeCap.toFixed(1)}M, Pre-money: $${safePreMoneyVal.toFixed(1)}M)`
+                    } else if (values.safeDiscount > 0) {
+                      return `(Pre-money $${safePreMoneyVal.toFixed(1)}M with ${values.safeDiscount}% discount)`
+                    }
+                    return ''
+                  })()}
+                </span>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

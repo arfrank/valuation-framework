@@ -406,6 +406,40 @@ body.geometric-background-active .app {
   letter-spacing: 0.5px;
 }
 
+/* SAFE Conversion Info */
+.safe-conversion-info {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background: #edf2f7;
+  border: 1px solid #cbd5e0;
+  border-radius: 4px;
+}
+
+.conversion-display {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+}
+
+.conversion-label {
+  font-weight: 600;
+  color: #4a5568;
+}
+
+.conversion-value {
+  font-weight: 700;
+  color: #3182ce;
+  font-size: 0.95rem;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+}
+
+.conversion-note {
+  font-size: 0.75rem;
+  color: #718096;
+  font-style: italic;
+}
+
 .input-grid {
   display: grid;
   gap: 0.85rem;
