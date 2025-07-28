@@ -585,6 +585,48 @@ body.geometric-background-active .app {
   border-color: #a0aec0;
 }
 
+.valuation-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 0.75rem;
+}
+
+.valuation-items {
+  display: flex;
+  gap: 1rem;
+  flex: 1;
+}
+
+.permalink-btn-inline {
+  background: transparent;
+  color: #94a3b8;
+  border: 1px solid #e2e8f0;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 32px;
+  height: 28px;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.permalink-btn-inline:hover:not(:disabled) {
+  background: #f1f5f9;
+  color: #3b82f6;
+  border-color: #cbd5e1;
+}
+
+.permalink-btn-inline:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .scenario-card:hover {
   box-shadow: 0 4px 6px rgba(0,0,0,0.1);
   transform: translateY(-1px);
