@@ -8,7 +8,8 @@ export const calculateScenario = (inputs) => {
     proRataPercent = 0,
     safeAmount = 0,
     safeCap = 0,
-    preRoundFounderOwnership = 70
+    safeDiscount = 0,
+    preRoundFounderOwnership = 0
   } = inputs
   
   // Validate inputs to prevent division by zero and negative pre-money
@@ -20,10 +21,28 @@ export const calculateScenario = (inputs) => {
   
   // Calculate SAFE conversion if applicable
   let safePercent = 0
-  if (safeAmount > 0 && safeCap > 0) {
-    // SAFE converts at the lower of: (1) safe cap, or (2) current round pre-money
-    const conversionVal = Math.min(safeCap, preMoneyVal)
-    safePercent = Math.round((safeAmount / conversionVal) * 10000) / 100
+  let safeConversionPrice = 0
+  
+  if (safeAmount > 0) {
+    if (safeCap > 0 && safeDiscount > 0) {
+      // SAFE with both cap and discount - use the more favorable (lower price)
+      const capPrice = safeCap
+      const discountPrice = preMoneyVal * (1 - safeDiscount / 100)
+      safeConversionPrice = Math.min(capPrice, discountPrice)
+    } else if (safeCap > 0) {
+      // SAFE with cap only
+      safeConversionPrice = Math.min(safeCap, preMoneyVal)
+    } else if (safeDiscount > 0) {
+      // SAFE with discount only
+      safeConversionPrice = preMoneyVal * (1 - safeDiscount / 100)
+    } else {
+      // Invalid SAFE configuration (no cap or discount)
+      safeConversionPrice = 0
+    }
+    
+    if (safeConversionPrice > 0) {
+      safePercent = Math.round((safeAmount / safeConversionPrice) * 10000) / 100
+    }
   }
   
   // Calculate pro-rata portion of round
@@ -76,6 +95,8 @@ export const calculateScenario = (inputs) => {
     safeAmount: Math.round(safeAmount * 100) / 100,
     safePercent: safePercent,
     safeCap: Math.round(safeCap * 100) / 100,  // Include input cap for apply scenario
+    safeDiscount: Math.round(safeDiscount * 100) / 100,  // Include input discount for apply scenario
+    safeConversionPrice: Math.round(safeConversionPrice * 100) / 100,
     proRataAmount: actualProRataAmount,
     proRataPercent: proRataPercent_final,
     proRataPercentInput: proRataPercent,  // Include input percentage for apply scenario
@@ -176,7 +197,8 @@ export const generateScenarioVariations = (baseInputs) => {
       proRataPercent: baseInputs.proRataPercent || 0,
       safeAmount: baseInputs.safeAmount || 0,
       safeCap: baseInputs.safeCap || 0,
-      preRoundFounderOwnership: baseInputs.preRoundFounderOwnership || 70,
+      safeDiscount: baseInputs.safeDiscount || 0,
+      preRoundFounderOwnership: baseInputs.preRoundFounderOwnership || 0,
       showAdvanced: baseInputs.showAdvanced || false
     }
     
