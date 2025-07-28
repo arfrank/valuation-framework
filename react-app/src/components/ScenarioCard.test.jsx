@@ -38,7 +38,7 @@ describe('ScenarioCard with Permalink', () => {
     })
   })
 
-  it('should render permalink button for non-base scenarios', () => {
+  it('should not render permalink button for non-base scenarios', () => {
     render(
       <ScenarioCard 
         scenario={mockScenario}
@@ -49,7 +49,7 @@ describe('ScenarioCard with Permalink', () => {
       />
     )
 
-    expect(screen.getByRole('button', { name: /🔗/ })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /🔗/ })).not.toBeInTheDocument()
   })
 
   it('should render permalink button for base scenario', () => {
@@ -66,14 +66,14 @@ describe('ScenarioCard with Permalink', () => {
     expect(screen.getByRole('button', { name: /🔗/ })).toBeInTheDocument()
   })
 
-  it('should call onCopyPermalink when permalink button is clicked', async () => {
+  it('should call onCopyPermalink when permalink button is clicked on base scenario', async () => {
     const user = userEvent.setup()
     
     render(
       <ScenarioCard 
         scenario={mockScenario}
-        index={1}
-        isBase={false}
+        index={0}
+        isBase={true}
         onApplyScenario={mockOnApplyScenario}
         onCopyPermalink={mockOnCopyPermalink}
       />
@@ -100,8 +100,8 @@ describe('ScenarioCard with Permalink', () => {
     render(
       <ScenarioCard 
         scenario={mockScenario}
-        index={1}
-        isBase={false}
+        index={0}
+        isBase={true}
         onApplyScenario={mockOnApplyScenario}
         onCopyPermalink={mockOnCopyPermalink}
       />
@@ -122,8 +122,8 @@ describe('ScenarioCard with Permalink', () => {
     render(
       <ScenarioCard 
         scenario={mockScenario}
-        index={1}
-        isBase={false}
+        index={0}
+        isBase={true}
         onApplyScenario={mockOnApplyScenario}
         onCopyPermalink={mockOnCopyPermalink}
       />
@@ -141,26 +141,23 @@ describe('ScenarioCard with Permalink', () => {
     // Skip this test for now - timer testing is complex with current setup
   })
 
-  it('should handle permalink button alongside apply button', async () => {
+  it('should handle permalink button on base scenario (no apply button)', async () => {
     mockOnCopyPermalink.mockResolvedValue({ success: true })
     const user = userEvent.setup()
     
     render(
       <ScenarioCard 
         scenario={mockScenario}
-        index={1}
-        isBase={false}
+        index={0}
+        isBase={true}
         onApplyScenario={mockOnApplyScenario}
         onCopyPermalink={mockOnCopyPermalink}
       />
     )
 
-    expect(screen.getByRole('button', { name: /apply/i })).toBeInTheDocument()
+    // Base scenarios don't have Apply button
+    expect(screen.queryByRole('button', { name: /apply/i })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: /🔗/ })).toBeInTheDocument()
-
-    // Test that both buttons work independently
-    await user.click(screen.getByRole('button', { name: /apply/i }))
-    expect(mockOnApplyScenario).toHaveBeenCalledOnce()
 
     await user.click(screen.getByRole('button', { name: /🔗/ }))
     expect(mockOnCopyPermalink).toHaveBeenCalledOnce()

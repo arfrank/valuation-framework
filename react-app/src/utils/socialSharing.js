@@ -1,5 +1,5 @@
 /**
- * Social sharing utilities for generating rich previews
+ * Metadata utilities for permalink functionality
  */
 
 import { decodeScenarioFromURL } from './permalink'
@@ -99,7 +99,7 @@ function generateScenarioDescription(scenarioData) {
 }
 
 /**
- * Updates the page meta tags for social sharing
+ * Updates the page meta tags for permalink functionality
  * @param {string} title - Page title
  * @param {string} description - Page description
  * @param {string} url - Current page URL
@@ -107,23 +107,6 @@ function generateScenarioDescription(scenarioData) {
 function updateMetaTags(title, description, url) {
   // Update title
   document.title = title
-  
-  // Update Open Graph meta tags
-  const ogTitle = document.querySelector('meta[property="og:title"]')
-  if (ogTitle) ogTitle.setAttribute('content', title)
-  
-  const ogDescription = document.querySelector('meta[property="og:description"]')
-  if (ogDescription) ogDescription.setAttribute('content', description)
-  
-  const ogUrl = document.querySelector('meta[property="og:url"]')
-  if (ogUrl) ogUrl.setAttribute('content', url)
-  
-  // Update Twitter Card meta tags
-  const twitterTitle = document.querySelector('meta[name="twitter:title"]')
-  if (twitterTitle) twitterTitle.setAttribute('content', title)
-  
-  const twitterDescription = document.querySelector('meta[name="twitter:description"]')
-  if (twitterDescription) twitterDescription.setAttribute('content', description)
   
   // Update description meta tag
   let descriptionMeta = document.querySelector('meta[name="description"]')
@@ -136,7 +119,7 @@ function updateMetaTags(title, description, url) {
 }
 
 /**
- * Updates social sharing meta tags based on current URL parameters
+ * Updates page metadata based on current URL parameters
  * @param {string} currentUrl - Current page URL (optional, defaults to window.location.href)
  */
 export function updateSocialSharingMeta(currentUrl = window.location.href) {
@@ -170,79 +153,4 @@ export function updateSocialSharingMeta(currentUrl = window.location.href) {
   updateMetaTags(title, description, currentUrl)
 }
 
-/**
- * Generates a formatted text summary for copying/sharing
- * @param {Object} scenarioData - The scenario data
- * @returns {string} - Formatted text summary
- */
-export function generateShareableText(scenarioData) {
-  if (!scenarioData) return 'Investment Scenario Analysis'
 
-  const result = calculateScenario(scenarioData)
-  if (!result) return 'Investment Scenario Analysis'
-
-  const lines = []
-  lines.push('🚀 Investment Scenario Analysis')
-  lines.push('')
-  
-  // Basic metrics
-  lines.push(`💰 Post-Money Valuation: $${scenarioData.postMoneyVal}M`)
-  lines.push(`💰 Pre-Money Valuation: $${result.preMoneyVal}M`)
-  lines.push(`📊 Round Size: $${scenarioData.roundSize}M`)
-  lines.push('')
-  
-  // Investment breakdown
-  const investorName = scenarioData.investorName || 'Lead Investor'
-  lines.push(`👥 ${investorName}: $${scenarioData.investorPortion}M (${result.investorPercent.toFixed(1)}%)`)
-  if (scenarioData.otherPortion > 0) {
-    lines.push(`👥 Other Investors: $${scenarioData.otherPortion}M (${result.otherPercent.toFixed(1)}%)`)
-  }
-  
-  // Advanced features
-  if (scenarioData.showAdvanced) {
-    if (scenarioData.safes && scenarioData.safes.length > 0) {
-      lines.push('')
-      lines.push('🛡️ SAFE Notes:')
-      scenarioData.safes.forEach((safe, index) => {
-        if (safe.amount > 0) {
-          const terms = []
-          if (safe.cap > 0) terms.push(`$${safe.cap}M cap`)
-          if (safe.discount > 0) terms.push(`${safe.discount}% discount`)
-          const termStr = terms.length > 0 ? ` (${terms.join(', ')})` : ''
-          lines.push(`  • SAFE #${index + 1}: $${safe.amount}M${termStr}`)
-        }
-      })
-    }
-    
-    if (scenarioData.preRoundFounderOwnership > 0) {
-      lines.push('')
-      lines.push(`📈 Founder Impact:`)
-      lines.push(`  • Pre-round: ${scenarioData.preRoundFounderOwnership}%`)
-      lines.push(`  • Post-round: ${result.postRoundFounderPercent}%`)
-      lines.push(`  • Dilution: ${result.founderDilution.toFixed(1)}%`)
-    }
-    
-    if (scenarioData.proRataPercent > 0) {
-      lines.push('')
-      lines.push(`🔄 Pro-Rata: ${scenarioData.proRataPercent}% of round ($${result.proRataAmount}M)`)
-    }
-  }
-  
-  lines.push('')
-  lines.push('📊 Built with ValuFrame')
-  
-  return lines.join('\n')
-}
-
-/**
- * Initialize social sharing meta tags on page load
- */
-export function initializeSocialSharing() {
-  // Update meta tags based on current URL
-  updateSocialSharingMeta()
-  
-  // Listen for URL changes (for client-side routing)
-  window.addEventListener('popstate', () => {
-    updateSocialSharingMeta()
-  })
-}
