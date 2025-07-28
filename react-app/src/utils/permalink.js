@@ -12,6 +12,9 @@ const URL_PARAM_MAP = {
   investorName: 'in',
   showAdvanced: 'adv',
   proRataPercent: 'pr',
+  // N SAFEs array will be encoded as 'safes' parameter
+  safes: 'safes',
+  // Legacy single SAFE fields for backward compatibility
   safeAmount: 'sa',
   safeCap: 'sc',
   safeDiscount: 'sd',
@@ -79,6 +82,23 @@ export function encodeScenarioToURL(scenarioData) {
         return // Don't include if false (default)
       }
       
+      // Handle SAFEs array encoding
+      if (field === 'safes') {
+        if (Array.isArray(value) && value.length > 0) {
+          // Encode SAFEs array as JSON string
+          const safesData = value.map(safe => ({
+            a: safe.amount || 0,
+            c: safe.cap || 0,
+            d: safe.discount || 0
+          })).filter(safe => safe.a > 0) // Only include SAFEs with amount > 0
+          
+          if (safesData.length > 0) {
+            params.set(param, JSON.stringify(safesData))
+          }
+        }
+        return
+      }
+      
       // Only include non-zero values for optional fields
       if (['proRataPercent', 'safeAmount', 'safeCap', 'safeDiscount'].includes(field) && value === 0) {
         return
@@ -115,6 +135,7 @@ export function decodeScenarioFromURL(urlParams) {
       // Default values
       showAdvanced: false,
       proRataPercent: 0,
+      safes: [], // N SAFEs array
       safeAmount: 0,
       safeCap: 0,
       safeDiscount: 0,
@@ -130,6 +151,22 @@ export function decodeScenarioFromURL(urlParams) {
           scenarioData[field] = decodeURIComponent(value)
         } else if (field === 'showAdvanced') {
           scenarioData[field] = value === '1'
+        } else if (field === 'safes') {
+          // Decode SAFEs array from JSON
+          try {
+            const safesData = JSON.parse(value)
+            if (Array.isArray(safesData)) {
+              scenarioData[field] = safesData.map((safe, index) => ({
+                id: Date.now() + index, // Generate unique IDs
+                amount: safe.a || 0,
+                cap: safe.c || 0,
+                discount: safe.d || 0
+              }))
+            }
+          } catch (error) {
+            console.warn('Failed to decode SAFEs array from URL:', error)
+            scenarioData[field] = []
+          }
         } else {
           const numValue = parseFloat(value)
           if (isNaN(numValue)) {
@@ -142,7 +179,8 @@ export function decodeScenarioFromURL(urlParams) {
 
     // Set showAdvanced to true if any advanced features are present (but don't override explicit setting)
     if (!params.has('adv') && (scenarioData.safeAmount > 0 || scenarioData.safeCap > 0 || 
-        scenarioData.safeDiscount > 0 || scenarioData.proRataPercent > 0 || scenarioData.preRoundFounderOwnership > 0)) {
+        scenarioData.safeDiscount > 0 || scenarioData.proRataPercent > 0 || scenarioData.preRoundFounderOwnership > 0 ||
+        (scenarioData.safes && scenarioData.safes.length > 0))) {
       scenarioData.showAdvanced = true
     }
 

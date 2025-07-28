@@ -6,6 +6,9 @@ export const calculateScenario = (inputs) => {
     otherPortion,
     // Advanced features
     proRataPercent = 0,
+    // N SAFEs support
+    safes = [],
+    // Legacy single SAFE fields for backward compatibility
     safeAmount = 0,
     safeCap = 0,
     safeDiscount = 0,
@@ -19,31 +22,82 @@ export const calculateScenario = (inputs) => {
   
   const preMoneyVal = Math.round((postMoneyVal - roundSize) * 100) / 100
   
-  // Calculate SAFE conversion if applicable
-  let safePercent = 0
-  let safeConversionPrice = 0
+  // Calculate SAFE conversions - handle both new array and legacy single SAFE
+  let totalSafePercent = 0
+  let totalSafeAmount = 0
+  let safeDetails = []
+  
+  // Process new N SAFEs array
+  if (safes && safes.length > 0) {
+    safes.forEach((safe, index) => {
+      if (safe.amount > 0) {
+        let conversionPrice = 0
+        
+        if (safe.cap > 0 && safe.discount > 0) {
+          // SAFE with both cap and discount - use the more favorable (lower price)
+          const capPrice = safe.cap
+          const discountPrice = preMoneyVal * (1 - safe.discount / 100)
+          conversionPrice = Math.min(capPrice, discountPrice)
+        } else if (safe.cap > 0) {
+          // SAFE with cap only
+          conversionPrice = Math.min(safe.cap, preMoneyVal)
+        } else if (safe.discount > 0) {
+          // SAFE with discount only
+          conversionPrice = preMoneyVal * (1 - safe.discount / 100)
+        }
+        
+        if (conversionPrice > 0) {
+          const safePercent = Math.round((safe.amount / conversionPrice) * 10000) / 100
+          totalSafePercent += safePercent
+          totalSafeAmount += safe.amount
+          
+          safeDetails.push({
+            id: safe.id,
+            index: index + 1,
+            amount: safe.amount,
+            cap: safe.cap,
+            discount: safe.discount,
+            conversionPrice: Math.round(conversionPrice * 100) / 100,
+            percent: safePercent
+          })
+        }
+      }
+    })
+  }
+  
+  // Process legacy single SAFE for backward compatibility
+  let legacySafePercent = 0
+  let legacySafeConversionPrice = 0
   
   if (safeAmount > 0) {
     if (safeCap > 0 && safeDiscount > 0) {
       // SAFE with both cap and discount - use the more favorable (lower price)
       const capPrice = safeCap
       const discountPrice = preMoneyVal * (1 - safeDiscount / 100)
-      safeConversionPrice = Math.min(capPrice, discountPrice)
+      legacySafeConversionPrice = Math.min(capPrice, discountPrice)
     } else if (safeCap > 0) {
       // SAFE with cap only
-      safeConversionPrice = Math.min(safeCap, preMoneyVal)
+      legacySafeConversionPrice = Math.min(safeCap, preMoneyVal)
     } else if (safeDiscount > 0) {
       // SAFE with discount only
-      safeConversionPrice = preMoneyVal * (1 - safeDiscount / 100)
+      legacySafeConversionPrice = preMoneyVal * (1 - safeDiscount / 100)
     } else {
       // Invalid SAFE configuration (no cap or discount)
-      safeConversionPrice = 0
+      legacySafeConversionPrice = 0
     }
     
-    if (safeConversionPrice > 0) {
-      safePercent = Math.round((safeAmount / safeConversionPrice) * 10000) / 100
+    if (legacySafeConversionPrice > 0) {
+      legacySafePercent = Math.round((safeAmount / legacySafeConversionPrice) * 10000) / 100
     }
+    
+    // Add legacy SAFE to totals if it exists
+    totalSafePercent += legacySafePercent
+    totalSafeAmount += safeAmount
   }
+  
+  // Use aggregated values for calculations
+  const safePercent = Math.round(totalSafePercent * 100) / 100
+  const safeConversionPrice = legacySafeConversionPrice // Keep for backward compatibility
   
   // Calculate pro-rata portion of round
   const proRataAmount = Math.round((roundSize * (proRataPercent || 0) / 100) * 100) / 100
@@ -71,7 +125,7 @@ export const calculateScenario = (inputs) => {
   const totalNewOwnership = roundPercent + safePercent
   
   // Calculate founder dilution (proportional dilution based on new ownership issued)
-  const preRoundFounderPercent = preRoundFounderOwnership || 70
+  const preRoundFounderPercent = preRoundFounderOwnership ?? 0  // Use 0 as default instead of 70
   // Founders retain their percentage of the remaining ownership after new issuance
   const postRoundFounderPercent = Math.round((preRoundFounderPercent * (100 - totalNewOwnership) / 100) * 100) / 100
   const founderDilution = Math.round((preRoundFounderPercent - postRoundFounderPercent) * 100) / 100
@@ -91,7 +145,12 @@ export const calculateScenario = (inputs) => {
     totalPercent: totalInvestmentPercent,
     preMoneyVal: preMoneyVal,
     postMoneyVal: Math.round(postMoneyVal * 100) / 100,
-    // Advanced metrics
+    // N SAFEs metrics
+    safes: safes, // Pass through the input SAFEs array
+    safeDetails: safeDetails, // Individual SAFE calculation results
+    totalSafeAmount: Math.round(totalSafeAmount * 100) / 100,
+    totalSafePercent: safePercent,
+    // Legacy SAFE metrics for backward compatibility
     safeAmount: Math.round(safeAmount * 100) / 100,
     safePercent: safePercent,
     safeCap: Math.round(safeCap * 100) / 100,  // Include input cap for apply scenario
@@ -195,6 +254,9 @@ export const generateScenarioVariations = (baseInputs) => {
       ...variation,
       // Ensure advanced features are always passed through
       proRataPercent: baseInputs.proRataPercent || 0,
+      // N SAFEs support
+      safes: baseInputs.safes || [],
+      // Legacy SAFE fields for backward compatibility
       safeAmount: baseInputs.safeAmount || 0,
       safeCap: baseInputs.safeCap || 0,
       safeDiscount: baseInputs.safeDiscount || 0,

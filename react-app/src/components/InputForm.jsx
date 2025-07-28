@@ -10,6 +10,9 @@ const InputForm = ({ company, onUpdate }) => {
     // Advanced features
     showAdvanced: false,
     proRataPercent: 0,
+    // New N SAFEs structure - array of SAFE objects
+    safes: [],
+    // Legacy single SAFE fields for backward compatibility
     safeAmount: 0,
     safeCap: 0,
     safeDiscount: 0,
@@ -21,7 +24,11 @@ const InputForm = ({ company, onUpdate }) => {
 
   useEffect(() => {
     if (company) {
-      setValues(company)
+      setValues({
+        ...company,
+        // Ensure safes array is always present
+        safes: company.safes || []
+      })
     }
   }, [company])
 
@@ -84,6 +91,57 @@ const InputForm = ({ company, onUpdate }) => {
   
   const handleToggleInputMode = () => {
     setInputMode(inputMode === 'post-money' ? 'pre-money' : 'post-money')
+  }
+
+  // SAFE management functions
+  const addSafe = () => {
+    const newSafe = {
+      id: Date.now(), // Simple ID generation
+      amount: 0,
+      cap: 0,
+      discount: 0
+    }
+    const newValues = {
+      ...values,
+      safes: [...(values.safes || []), newSafe]
+    }
+    setValues(newValues)
+    onUpdate(newValues)
+  }
+
+  const removeSafe = (safeId) => {
+    const newValues = {
+      ...values,
+      safes: (values.safes || []).filter(safe => safe.id !== safeId)
+    }
+    setValues(newValues)
+    onUpdate(newValues)
+  }
+
+  const updateSafe = (safeId, field, value) => {
+    let numValue = parseFloat(value)
+    
+    // Handle NaN, empty strings, and invalid inputs
+    if (isNaN(numValue) || value === '' || value === null || value === undefined) {
+      numValue = 0
+    }
+    // Prevent negative values
+    if (numValue < 0) numValue = 0
+    // Prevent unreasonably large values
+    if (numValue > 1000000) numValue = 1000000
+    // Limit discount to 100%
+    if (field === 'discount' && numValue > 100) numValue = 100
+
+    const newValues = {
+      ...values,
+      safes: (values.safes || []).map(safe => 
+        safe.id === safeId 
+          ? { ...safe, [field]: numValue }
+          : safe
+      )
+    }
+    setValues(newValues)
+    onUpdate(newValues)
   }
 
   return (
@@ -250,125 +308,136 @@ const InputForm = ({ company, onUpdate }) => {
               </div>
             </div>
 
-            <div className="input-group">
-              <label htmlFor="safe-amount">SAFE Notes Outstanding</label>
-              <div className={`input-wrapper ${values.safeAmount > 0 ? 'input-wrapper-with-clear' : ''}`}>
-                <span className="currency">$</span>
-                <input
-                  id="safe-amount"
-                  type="number"
-                  value={values.safeAmount}
-                  onChange={(e) => handleChange('safeAmount', e.target.value)}
-                  step="0.1"
-                  min="0"
-                />
-                <span className="unit">M</span>
-                {values.safeAmount > 0 && (
-                  <button 
-                    type="button"
-                    className="clear-input-btn"
-                    onClick={() => handleChange('safeAmount', 0)}
-                    title="Clear SAFE amount"
-                  >
-                    ×
-                  </button>
-                )}
+            {/* N SAFEs Section */}
+            <div className="safes-section">
+              <div className="safes-header">
+                <h5>SAFE Notes</h5>
+                <button 
+                  type="button"
+                  className="add-safe-btn"
+                  onClick={addSafe}
+                  title="Add SAFE"
+                >
+                  + Add SAFE
+                </button>
               </div>
-            </div>
 
-            <div className="input-group">
-              <label htmlFor="safe-cap">SAFE Valuation Cap</label>
-              <div className={`input-wrapper ${values.safeCap > 0 ? 'input-wrapper-with-clear' : ''}`}>
-                <span className="currency">$</span>
-                <input
-                  id="safe-cap"
-                  type="number"
-                  value={values.safeCap}
-                  onChange={(e) => handleChange('safeCap', e.target.value)}
-                  step="0.5"
-                  min="0"
-                />
-                <span className="unit">M</span>
-                {values.safeCap > 0 && (
-                  <button 
-                    type="button"
-                    className="clear-input-btn"
-                    onClick={() => handleChange('safeCap', 0)}
-                    title="Clear SAFE cap"
-                  >
-                    ×
-                  </button>
-                )}
-              </div>
-            </div>
+              {(!values.safes || values.safes.length === 0) && (
+                <div className="no-safes-message">
+                  No SAFE notes added. Click "Add SAFE" to get started.
+                </div>
+              )}
 
-            <div className="input-group">
-              <label htmlFor="safe-discount">SAFE Discount</label>
-              <div className={`input-wrapper ${values.safeDiscount > 0 ? 'input-wrapper-with-clear' : ''}`}>
-                <input
-                  id="safe-discount"
-                  type="number"
-                  value={values.safeDiscount}
-                  onChange={(e) => handleChange('safeDiscount', e.target.value)}
-                  step="1"
-                  min="0"
-                  max="100"
-                />
-                <span className="unit">%</span>
-                {values.safeDiscount > 0 && (
-                  <button 
-                    type="button"
-                    className="clear-input-btn"
-                    onClick={() => handleChange('safeDiscount', 0)}
-                    title="Clear SAFE discount"
-                  >
-                    ×
-                  </button>
-                )}
-              </div>
+              {values.safes && values.safes.map((safe, index) => (
+                <div key={safe.id} className="safe-row">
+                  <div className="safe-row-header">
+                    <span className="safe-label">SAFE #{index + 1}</span>
+                    <button 
+                      type="button"
+                      className="remove-safe-btn"
+                      onClick={() => removeSafe(safe.id)}
+                      title="Remove SAFE"
+                    >
+                      ×
+                    </button>
+                  </div>
+                  
+                  <div className="safe-inputs">
+                    <div className="input-group">
+                      <label htmlFor={`safe-amount-${safe.id}`}>Amount</label>
+                      <div className="input-wrapper">
+                        <span className="currency">$</span>
+                        <input
+                          id={`safe-amount-${safe.id}`}
+                          type="number"
+                          value={safe.amount}
+                          onChange={(e) => updateSafe(safe.id, 'amount', e.target.value)}
+                          step="0.1"
+                          min="0"
+                        />
+                        <span className="unit">M</span>
+                      </div>
+                    </div>
+
+                    <div className="input-group">
+                      <label htmlFor={`safe-cap-${safe.id}`}>Valuation Cap</label>
+                      <div className="input-wrapper">
+                        <span className="currency">$</span>
+                        <input
+                          id={`safe-cap-${safe.id}`}
+                          type="number"
+                          value={safe.cap}
+                          onChange={(e) => updateSafe(safe.id, 'cap', e.target.value)}
+                          step="0.5"
+                          min="0"
+                          placeholder="0 = uncapped"
+                        />
+                        <span className="unit">M</span>
+                      </div>
+                    </div>
+
+                    <div className="input-group">
+                      <label htmlFor={`safe-discount-${safe.id}`}>Discount</label>
+                      <div className="input-wrapper">
+                        <input
+                          id={`safe-discount-${safe.id}`}
+                          type="number"
+                          value={safe.discount}
+                          onChange={(e) => updateSafe(safe.id, 'discount', e.target.value)}
+                          step="1"
+                          min="0"
+                          max="100"
+                        />
+                        <span className="unit">%</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Individual SAFE Conversion Info */}
+                  {safe.amount > 0 && (safe.cap > 0 || safe.discount > 0) && (
+                    <div className="safe-conversion-info">
+                      <div className="conversion-display">
+                        <span className="conversion-label">Conversion Valuation:</span>
+                        <span className="conversion-value">
+                          {(() => {
+                            if (safe.cap > 0 && safe.discount > 0) {
+                              const capPrice = safe.cap
+                              const discountPrice = safePreMoneyVal * (1 - safe.discount / 100)
+                              return capPrice < discountPrice 
+                                ? `$${capPrice.toFixed(1)}M`
+                                : `$${discountPrice.toFixed(1)}M`
+                            } else if (safe.cap > 0) {
+                              return `$${Math.min(safe.cap, safePreMoneyVal).toFixed(1)}M`
+                            } else if (safe.discount > 0) {
+                              return `$${(safePreMoneyVal * (1 - safe.discount / 100)).toFixed(1)}M`
+                            }
+                            return '$0.0M'
+                          })()}
+                        </span>
+                        <span className="conversion-note">
+                          {(() => {
+                            if (safe.cap > 0 && safe.discount > 0) {
+                              const capPrice = safe.cap
+                              const discountPrice = safePreMoneyVal * (1 - safe.discount / 100)
+                              return capPrice < discountPrice 
+                                ? `(Using cap vs ${safe.discount}% discount)`
+                                : `(Using discount vs $${capPrice.toFixed(1)}M cap)`
+                            } else if (safe.cap > 0) {
+                              return `(Cap: $${safe.cap.toFixed(1)}M)`  
+                            } else if (safe.discount > 0) {
+                              return `(${safe.discount}% discount)`
+                            }
+                            return ''
+                          })()}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
 
-          {/* SAFE Conversion Info */}
-          {values.safeAmount > 0 && (values.safeCap > 0 || values.safeDiscount > 0) && (
-            <div className="safe-conversion-info">
-              <div className="conversion-display">
-                <span className="conversion-label">SAFE Conversion Valuation:</span>
-                <span className="conversion-value">
-                  {(() => {
-                    if (values.safeCap > 0 && values.safeDiscount > 0) {
-                      const capPrice = values.safeCap
-                      const discountPrice = safePreMoneyVal * (1 - values.safeDiscount / 100)
-                      return capPrice < discountPrice 
-                        ? `$${capPrice.toFixed(1)}M`
-                        : `$${discountPrice.toFixed(1)}M`
-                    } else if (values.safeCap > 0) {
-                      return `$${Math.min(values.safeCap, safePreMoneyVal).toFixed(1)}M`
-                    } else if (values.safeDiscount > 0) {
-                      return `$${(safePreMoneyVal * (1 - values.safeDiscount / 100)).toFixed(1)}M`
-                    }
-                    return '$0.0M'
-                  })()}
-                </span>
-                <span className="conversion-note">
-                  {(() => {
-                    if (values.safeCap > 0 && values.safeDiscount > 0) {
-                      const capPrice = values.safeCap
-                      const discountPrice = safePreMoneyVal * (1 - values.safeDiscount / 100)
-                      return capPrice < discountPrice 
-                        ? `(Using cap $${capPrice.toFixed(1)}M vs discount $${discountPrice.toFixed(1)}M)`
-                        : `(Using ${values.safeDiscount}% discount vs cap $${capPrice.toFixed(1)}M)`
-                    } else if (values.safeCap > 0) {
-                      return `(Cap: $${values.safeCap.toFixed(1)}M, Pre-money: $${safePreMoneyVal.toFixed(1)}M)`
-                    } else if (values.safeDiscount > 0) {
-                      return `(Pre-money $${safePreMoneyVal.toFixed(1)}M with ${values.safeDiscount}% discount)`
-                    }
-                    return ''
-                  })()}
-                </span>
-              </div>
-            </div>
-          )}
         </div>
       )}
 

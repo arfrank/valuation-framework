@@ -19,9 +19,13 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
         otherPortion: scenario.otherAmount,
         // Include advanced features if available
         proRataPercent: scenario.proRataPercentInput || 0,
+        // N SAFEs support
+        safes: scenario.safes || [],
+        // Legacy SAFE fields for backward compatibility
         safeAmount: scenario.safeAmount || 0,
         safeCap: scenario.safeCap || 0,
-        preRoundFounderOwnership: scenario.preRoundFounderPercent || 70
+        safeDiscount: scenario.safeDiscount || 0,
+        preRoundFounderOwnership: scenario.preRoundFounderPercent ?? 0
       })
     }
   }
@@ -38,9 +42,13 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
         investorName: investorName,
         showAdvanced: showAdvanced,
         proRataPercent: scenario.proRataPercentInput || 0,
+        // N SAFEs support
+        safes: scenario.safes || [],
+        // Legacy SAFE fields for backward compatibility
         safeAmount: scenario.safeAmount || 0,
         safeCap: scenario.safeCap || 0,
-        preRoundFounderOwnership: scenario.preRoundFounderPercent || 70
+        safeDiscount: scenario.safeDiscount || 0,
+        preRoundFounderOwnership: scenario.preRoundFounderPercent ?? 0
       }
 
       const result = await onCopyPermalink(scenarioData)
@@ -109,7 +117,17 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
           </div>
         )}
 
-        {showAdvanced && scenario.safeAmount > 0 && (
+        {showAdvanced && scenario.safeDetails && scenario.safeDetails.length > 0 && 
+          scenario.safeDetails.map((safe, safeIndex) => (
+            <div key={safe.id || safeIndex} className="table-row safe-row">
+              <div className="label">SAFE #{safe.index}</div>
+              <div className="amount">{formatDollar(safe.amount)}</div>
+              <div className="percent">{formatPercent(safe.percent)}</div>
+            </div>
+          ))
+        }
+
+        {showAdvanced && scenario.safeAmount > 0 && (!scenario.safeDetails || scenario.safeDetails.length === 0) && (
           <div className="table-row safe-row">
             <div className="label">SAFE Conv.</div>
             <div className="amount">{formatDollar(scenario.safeAmount)}</div>
@@ -123,7 +141,7 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
           <div className="percent">{formatPercent(scenario.totalPercent)}</div>
         </div>
 
-        {showAdvanced && (
+        {showAdvanced && scenario.preRoundFounderPercent > 0 && (
           <div className="table-row founder-row">
             <div className="label">Founder Impact</div>
             <div className="amount">{scenario.postRoundFounderPercent.toFixed(1)}%</div>
