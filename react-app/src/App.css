@@ -22,6 +22,388 @@ body.geometric-background-active .app {
   background: transparent;
 }
 
+/* Pro-Forma Styles */
+.pro-forma-input {
+  max-width: none;
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+}
+
+.pro-forma-input h3 {
+  color: #2d3748;
+  margin-bottom: 2rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.form-section {
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.form-section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.form-section h4 {
+  color: #4a5568;
+  margin-bottom: 1rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.add-button {
+  background: #667eea;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.add-button:hover {
+  background: #5a67d8;
+}
+
+.investor-row, .founder-row, .safe-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr auto;
+  gap: 1rem;
+  align-items: end;
+  padding: 1rem;
+  background: #f7fafc;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.investor-row .form-group, .founder-row .form-group, .safe-row .form-group {
+  margin-bottom: 0;
+}
+
+.remove-button {
+  background: #e53e3e;
+  color: white;
+  border: none;
+  padding: 0.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  height: fit-content;
+}
+
+.remove-button:hover {
+  background: #c53030;
+}
+
+.calculated-value {
+  background: #edf2f7;
+  padding: 0.75rem;
+  border-radius: 6px;
+  font-weight: 600;
+  color: #4a5568;
+}
+
+.summary {
+  background: #f0fff4;
+  border: 1px solid #9ae6b4;
+  border-radius: 8px;
+  padding: 1.5rem;
+}
+
+.summary h4 {
+  color: #2f855a;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.summary-row.total {
+  border-top: 1px solid #9ae6b4;
+  padding-top: 0.5rem;
+  font-weight: 600;
+  color: #2f855a;
+}
+
+/* Pro-Forma Table Styles */
+.pro-forma-table {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+  margin-top: 2rem;
+}
+
+.table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.table-header h3 {
+  color: #2d3748;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.table-controls {
+  display: flex;
+  gap: 1rem;
+}
+
+.toggle-details, .export-button {
+  background: #667eea;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.toggle-details:hover, .export-button:hover {
+  background: #5a67d8;
+}
+
+.round-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: #f7fafc;
+  border-radius: 8px;
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.summary-item .label {
+  color: #718096;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.summary-item .value {
+  color: #2d3748;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.cap-table {
+  overflow-x: auto;
+  margin-bottom: 2rem;
+}
+
+.cap-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.cap-table th {
+  background: #edf2f7;
+  color: #4a5568;
+  font-weight: 600;
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 2px solid #cbd5e0;
+}
+
+.cap-table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.cap-table .founder-row {
+  background: #f0fff4;
+}
+
+.cap-table .existing-investor-row {
+  background: #ebf8ff;
+}
+
+.cap-table .new-investor-row {
+  background: #fef5e7;
+}
+
+.cap-table .esop-row {
+  background: #faf5ff;
+}
+
+.cap-table .safe-row {
+  background: #f7fafc;
+}
+
+.cap-table .total-row {
+  border-top: 2px solid #cbd5e0;
+  background: #edf2f7;
+  font-weight: 600;
+}
+
+.cap-table .highlight {
+  background: #fed7d7 !important;
+  font-weight: 600;
+}
+
+.ownership-percent {
+  font-weight: 600;
+  color: #2d3748;
+}
+
+.investment-amount {
+  font-weight: 600;
+  color: #38a169;
+}
+
+.dilution {
+  font-weight: 500;
+}
+
+.dilution.negative {
+  color: #e53e3e;
+}
+
+.ownership-summary {
+  margin-bottom: 2rem;
+}
+
+.ownership-summary h4 {
+  color: #2d3748;
+  margin-bottom: 1rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  padding: 1.5rem;
+  background: #f7fafc;
+  border-radius: 8px;
+}
+
+.summary-grid .summary-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.summary-grid .summary-item.highlight {
+  background: #fed7d7;
+  padding: 0.5rem;
+  border-radius: 4px;
+}
+
+.pro-rata-analysis {
+  margin-bottom: 2rem;
+}
+
+.pro-rata-analysis h4 {
+  color: #2d3748;
+  margin-bottom: 1rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.pro-rata-analysis table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.pro-rata-analysis th {
+  background: #edf2f7;
+  color: #4a5568;
+  font-weight: 600;
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 2px solid #cbd5e0;
+}
+
+.pro-rata-analysis td {
+  padding: 0.75rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.validation-errors {
+  background: #fed7d7;
+  border: 1px solid #feb2b2;
+  border-radius: 8px;
+  padding: 1.5rem;
+}
+
+.validation-errors h4 {
+  color: #c53030;
+  margin-bottom: 1rem;
+}
+
+.validation-errors ul {
+  list-style-type: disc;
+  padding-left: 1.5rem;
+}
+
+.validation-errors li {
+  color: #c53030;
+  margin-bottom: 0.5rem;
+}
+
+.error-message {
+  background: #fed7d7;
+  border: 1px solid #feb2b2;
+  border-radius: 8px;
+  padding: 1.5rem;
+  color: #c53030;
+}
+
+.mode-toggle {
+  display: flex;
+  background: #edf2f7;
+  border-radius: 8px;
+  padding: 0.25rem;
+  margin-bottom: 2rem;
+}
+
+.mode-toggle button {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.mode-toggle button.active {
+  background: #667eea;
+  color: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
 #root {
   min-height: 100vh;
   width: 100%;

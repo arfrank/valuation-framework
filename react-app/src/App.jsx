@@ -2,13 +2,16 @@ import { useState, useEffect } from 'react'
 import './App.css'
 import CompanyTabs from './components/CompanyTabs'
 import InputForm from './components/InputForm'
+import ProFormaInputForm from './components/ProFormaInputForm'
 import ScenarioCard from './components/ScenarioCard'
+import ProFormaTable from './components/ProFormaTable'
 import Logo from './components/Logo'
 import GeometricBackground from './components/GeometricBackground'
 import NotificationContainer from './components/NotificationContainer'
 import { useLocalStorage } from './hooks/useLocalStorage'
 import { useNotifications } from './hooks/useNotifications'
 import { calculateScenarios } from './utils/calculations'
+import { calculateProForma, generateProFormaScenarios } from './utils/proFormaCalculations'
 import { copyPermalinkToClipboard, loadScenarioFromURL } from './utils/permalink'
 import { updateSocialSharingMeta } from './utils/socialSharing'
 
@@ -26,7 +29,15 @@ function App() {
       proRataPercent: 15,
       safeAmount: 0,
       safeCap: 0,
-      preRoundFounderOwnership: 70
+      preRoundFounderOwnership: 70,
+      // Pro-forma specific fields
+      isProFormaMode: false,
+      newInvestorAmount: 2.75,
+      newInvestorName: 'Lead Investor',
+      existingInvestors: [],
+      founders: [],
+      esopPoolPreClose: 0,
+      esopPoolInRound: 0
     }
   })
   const [nextCompanyId, setNextCompanyId] = useState(2)
@@ -34,6 +45,7 @@ function App() {
   const [hasLoadedFromURL, setHasLoadedFromURL] = useState(false)
 
   const [scenarios, setScenarios] = useState([])
+  const [proFormaResults, setProFormaResults] = useState(null)
   const { notifications, removeNotification, showSuccess, showInfo } = useNotifications()
 
   const updateCompany = (companyId, data) => {
@@ -46,6 +58,15 @@ function App() {
   const applyScenario = (scenarioData) => {
     updateCompany(activeCompany, scenarioData)
     showSuccess('Scenario applied successfully')
+  }
+
+  const toggleMode = (isProFormaMode) => {
+    updateCompany(activeCompany, { isProFormaMode })
+    if (isProFormaMode) {
+      showInfo('Switched to Pro-Forma mode')
+    } else {
+      showInfo('Switched to Scenario mode')
+    }
   }
 
   const handleCopyPermalink = async (scenarioData) => {
@@ -68,7 +89,15 @@ function App() {
       proRataPercent: 15,
       safeAmount: 0,
       safeCap: 0,
-      preRoundFounderOwnership: 70
+      preRoundFounderOwnership: 70,
+      // Pro-forma specific fields
+      isProFormaMode: false,
+      newInvestorAmount: 2.75,
+      newInvestorName: 'Lead Investor',
+      existingInvestors: [],
+      founders: [],
+      esopPoolPreClose: 0,
+      esopPoolInRound: 0
     }
     setCompanies(prev => ({ ...prev, [newCompanyId]: newCompany }))
     setActiveCompany(newCompanyId)
@@ -103,13 +132,23 @@ function App() {
   useEffect(() => {
     const currentCompany = companies[activeCompany]
     if (currentCompany) {
-      const newScenarios = calculateScenarios(currentCompany)
-      setScenarios(newScenarios || []) // Fallback to empty array if calculation fails
+      if (currentCompany.isProFormaMode) {
+        // Calculate pro-forma results
+        const proFormaData = calculateProForma(currentCompany)
+        setProFormaResults(proFormaData)
+        setScenarios([]) // Clear scenarios in pro-forma mode
+      } else {
+        // Calculate regular scenarios
+        const newScenarios = calculateScenarios(currentCompany)
+        setScenarios(newScenarios || [])
+        setProFormaResults(null) // Clear pro-forma results in scenario mode
+      }
       
       // Update page metadata for permalinks
       updateSocialSharingMeta()
     } else {
-      setScenarios([]) // Clear scenarios if no valid company
+      setScenarios([])
+      setProFormaResults(null)
     }
   }, [companies, activeCompany])
 
@@ -175,40 +214,77 @@ function App() {
           onUpdateCompany={updateCompany}
         />
         
-        <div className="top-row">
-          <InputForm 
-            company={companies[activeCompany]}
-            onUpdate={(data) => updateCompany(activeCompany, data)}
-          />
-          
-          <div className="base-result">
-            {scenarios.length > 0 && (
-              <ScenarioCard 
-                scenario={scenarios[0]}
-                index={0}
-                isBase={true}
-                onApplyScenario={applyScenario}
-                onCopyPermalink={handleCopyPermalink}
-                investorName={companies[activeCompany]?.investorName || 'US'}
-                showAdvanced={companies[activeCompany]?.showAdvanced || false}
+        {/* Mode Toggle */}
+        <div className="mode-toggle">
+          <button 
+            className={!companies[activeCompany]?.isProFormaMode ? 'active' : ''}
+            onClick={() => toggleMode(false)}
+          >
+            Scenario Analysis
+          </button>
+          <button 
+            className={companies[activeCompany]?.isProFormaMode ? 'active' : ''}
+            onClick={() => toggleMode(true)}
+          >
+            Pro-Forma Cap Table
+          </button>
+        </div>
+
+        {companies[activeCompany]?.isProFormaMode ? (
+          /* Pro-Forma Mode */
+          <div className="pro-forma-mode">
+            <div className="top-row">
+              <ProFormaInputForm 
+                company={companies[activeCompany]}
+                onUpdate={(data) => updateCompany(activeCompany, data)}
+              />
+            </div>
+            
+            {proFormaResults && (
+              <ProFormaTable 
+                proFormaResults={proFormaResults}
               />
             )}
           </div>
-        </div>
-        
-        <div className="scenarios-rows">
-          {scenarios.slice(1).map((scenario, index) => (
-            <ScenarioCard 
-              key={index + 1}
-              scenario={scenario}
-              index={index + 1}
-              isBase={false}
-              onApplyScenario={applyScenario}
-              investorName={companies[activeCompany]?.investorName || 'US'}
-              showAdvanced={companies[activeCompany]?.showAdvanced || false}
-            />
-          ))}
-        </div>
+        ) : (
+          /* Scenario Analysis Mode */
+          <div className="scenario-mode">
+            <div className="top-row">
+              <InputForm 
+                company={companies[activeCompany]}
+                onUpdate={(data) => updateCompany(activeCompany, data)}
+              />
+              
+              <div className="base-result">
+                {scenarios.length > 0 && (
+                  <ScenarioCard 
+                    scenario={scenarios[0]}
+                    index={0}
+                    isBase={true}
+                    onApplyScenario={applyScenario}
+                    onCopyPermalink={handleCopyPermalink}
+                    investorName={companies[activeCompany]?.investorName || 'US'}
+                    showAdvanced={companies[activeCompany]?.showAdvanced || false}
+                  />
+                )}
+              </div>
+            </div>
+            
+            <div className="scenarios-rows">
+              {scenarios.slice(1).map((scenario, index) => (
+                <ScenarioCard 
+                  key={index + 1}
+                  scenario={scenario}
+                  index={index + 1}
+                  isBase={false}
+                  onApplyScenario={applyScenario}
+                  investorName={companies[activeCompany]?.investorName || 'US'}
+                  showAdvanced={companies[activeCompany]?.showAdvanced || false}
+                />
+              ))}
+            </div>
+          </div>
+        )}
       </main>
     </div>
   )
