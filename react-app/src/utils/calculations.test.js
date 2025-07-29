@@ -367,4 +367,28 @@ describe('ESOP Calculations', () => {
     console.log('ESOP increase %:', result.esopIncrease)
     console.log('Total dilution impact:', result.roundPercent + result.esopIncrease)
   })
+
+  it('should verify post-close ESOP dilutes new investors too', () => {
+    const inputs = {
+      ...baseInputs,
+      currentEsopPercent: 5,
+      targetEsopPercent: 15, // Large ESOP increase
+      esopTiming: 'post-close'
+    }
+    
+    const result = calculateScenario(inputs)
+    
+    // Post-close ESOP should dilute EVERYONE proportionally
+    // Original round percentage: 23.08%
+    // After 10% post-close ESOP dilution: 23.08% * (100-10%)/100 = 20.77%
+    
+    console.log('Original round %:', 23.08)
+    console.log('ESOP increase %:', result.esopIncrease)
+    console.log('Final round % (should be diluted):', result.roundPercent)
+    console.log('Expected diluted round %:', 23.08 * (100 - result.esopIncrease) / 100)
+    
+    // The round percentage should be diluted by the post-close ESOP
+    const expectedDilutedRound = 23.08 * (100 - result.esopIncrease) / 100
+    expect(result.roundPercent).toBeCloseTo(expectedDilutedRound, 1)
+  })
 })

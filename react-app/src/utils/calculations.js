@@ -164,7 +164,9 @@ export const calculateScenario = (inputs) => {
       esopIncreasePostClose = esopIncrease
       
       // Post-close ESOP dilutes everyone proportionally after the round
+      // This includes new investors - their percentage should be reduced
       const dilutionFactor = (100 - esopIncrease) / 100
+      adjustedRoundPercent = Math.round((roundPercent * dilutionFactor) * 100) / 100
       adjustedPostRoundFounderPercent = Math.round((postRoundFounderPercent * dilutionFactor) * 100) / 100
       adjustedFounderDilution = Math.round((preRoundFounderPercent - adjustedPostRoundFounderPercent) * 100) / 100
     }
@@ -176,13 +178,18 @@ export const calculateScenario = (inputs) => {
   const totalInvestmentAmount = Math.round(roundSize * 100) / 100
   const totalInvestmentPercent = adjustedRoundPercent
 
+  // Recalculate investor and other percentages based on adjusted round percentage
+  // For post-close ESOP, these should be diluted proportionally
+  const adjustedInvestorPercent = Math.round((adjustedInvestorPortion / totalValue) * (adjustedRoundPercent / roundPercent) * 10000) / 100
+  const adjustedOtherPercent = Math.round((adjustedOtherPortion / totalValue) * (adjustedRoundPercent / roundPercent) * 10000) / 100
+
   return {
     roundSize: Math.round(roundSize * 100) / 100,
     roundPercent: adjustedRoundPercent,
     investorAmount: Math.round(adjustedInvestorPortion * 100) / 100,
-    investorPercent: investorPercent,
+    investorPercent: adjustedInvestorPercent,
     otherAmount: Math.round(adjustedOtherPortion * 100) / 100,
-    otherPercent: otherPercent,
+    otherPercent: adjustedOtherPercent,
     totalAmount: totalInvestmentAmount,
     totalPercent: totalInvestmentPercent,
     preMoneyVal: preMoneyVal,
