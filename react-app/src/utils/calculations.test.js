@@ -236,16 +236,15 @@ describe('ESOP Calculations', () => {
     const result = calculateScenario(inputs)
     
     expect(result.finalEsopPercent).toBe(15)
-    // With round dilution of 23.08%, existing 10% ESOP becomes ~7.69%
-    // To reach 15% target, we need to add ~7.31% more
-    expect(result.esopIncrease).toBeCloseTo(7.31, 1)
-    expect(result.esopIncreasePreClose).toBeCloseTo(7.31, 1)
+    // With iterative calculation, round dilution is reduced by pre-close ESOP
+    // ESOP increase is ~7.15% (lower than naive 7.31%)
+    expect(result.esopIncrease).toBeCloseTo(7.15, 1)
+    expect(result.esopIncreasePreClose).toBeCloseTo(7.15, 1)
     expect(result.esopIncreasePostClose).toBe(0)
     
     // Pre-close ESOP should increase founder dilution
-    // Total new ownership: round (23.08%) + ESOP increase (7.31%) = 30.39%
-    // Founder retention: 70% * (100% - 30.39%) / 100% = 48.73%
-    expect(result.postRoundFounderPercent).toBeCloseTo(48.73, 1)
+    // With iterative calculation, total dilution is properly accounted for
+    expect(result.postRoundFounderPercent).toBeCloseTo(49.91, 1)
   })
 
   it('should calculate post-close ESOP increase correctly', () => {
@@ -318,11 +317,11 @@ describe('ESOP Calculations', () => {
     
     // Even though target = current, we should still need to add shares
     // to maintain the same percentage after dilution
-    // Round dilution is 23.08%, so existing 10% ESOP becomes ~7.69%
-    // To get back to 10%, we need to add ~2.31% more
+    // With iterative calculation, the ESOP increase affects round percentage
+    // Result: ~2.26% increase needed (lower than naive 2.31%)
     expect(result.finalEsopPercent).toBe(10)
     expect(result.esopIncrease).toBeGreaterThan(0) // Should need to add shares
-    expect(result.esopIncrease).toBeCloseTo(2.31, 1) // Approximately 2.31% increase needed
+    expect(result.esopIncrease).toBeCloseTo(2.26, 1) // Iterative calculation result
     expect(result.esopIncreasePreClose).toBe(result.esopIncrease)
     expect(result.esopIncreasePostClose).toBe(0)
   })
@@ -343,5 +342,29 @@ describe('ESOP Calculations', () => {
     expect(result.esopIncrease).toBeGreaterThan(0) // Should still need to add shares
     expect(result.esopIncreasePreClose).toBe(0)
     expect(result.esopIncreasePostClose).toBe(result.esopIncrease)
+  })
+
+  it('should demonstrate the iterative dilution calculation approach', () => {
+    const inputs = {
+      ...baseInputs,
+      currentEsopPercent: 10,
+      targetEsopPercent: 10, // Maintain same percentage
+      esopTiming: 'pre-close'
+    }
+    
+    const result = calculateScenario(inputs)
+    
+    // New iterative approach: ESOP increase affects round dilution percentage
+    // When ESOP shares are added pre-close, they increase pre-money shares
+    // This reduces the effective round percentage: $3M / ($13M + esopIncrease)  
+    expect(result.roundPercent).toBeCloseTo(22.57, 1) // Reduced from 23.08%
+    expect(result.esopIncrease).toBeCloseTo(2.26, 1) // Slightly lower than naive 2.31%
+    expect(result.finalEsopPercent).toBe(10)
+    
+    // The iterative calculation properly accounts for the circular dependency
+    // between ESOP increase and round dilution percentage
+    console.log('Iterative round %:', result.roundPercent)
+    console.log('ESOP increase %:', result.esopIncrease)
+    console.log('Total dilution impact:', result.roundPercent + result.esopIncrease)
   })
 })
