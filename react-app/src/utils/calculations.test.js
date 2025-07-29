@@ -209,17 +209,17 @@ describe('ESOP Calculations', () => {
     safes: []
   }
 
-  it('should handle no ESOP changes', () => {
+  it('should handle no ESOP pool (zero target)', () => {
     const inputs = {
       ...baseInputs,
-      currentEsopPercent: 10,
-      targetEsopPercent: 10,
+      currentEsopPercent: 0,
+      targetEsopPercent: 0,
       esopTiming: 'pre-close'
     }
     
     const result = calculateScenario(inputs)
     
-    expect(result.finalEsopPercent).toBe(10)
+    expect(result.finalEsopPercent).toBe(0)
     expect(result.esopIncrease).toBe(0)
     expect(result.esopIncreasePreClose).toBe(0)
     expect(result.esopIncreasePostClose).toBe(0)
@@ -236,14 +236,16 @@ describe('ESOP Calculations', () => {
     const result = calculateScenario(inputs)
     
     expect(result.finalEsopPercent).toBe(15)
-    expect(result.esopIncrease).toBe(5)
-    expect(result.esopIncreasePreClose).toBe(5)
+    // With round dilution of 23.08%, existing 10% ESOP becomes ~7.69%
+    // To reach 15% target, we need to add ~7.31% more
+    expect(result.esopIncrease).toBeCloseTo(7.31, 1)
+    expect(result.esopIncreasePreClose).toBeCloseTo(7.31, 1)
     expect(result.esopIncreasePostClose).toBe(0)
     
     // Pre-close ESOP should increase founder dilution
-    // Total new ownership: round (23.08%) + ESOP increase (5%) = 28.08%
-    // Founder retention: 70% * (100% - 28.08%) / 100% = 50.34%
-    expect(result.postRoundFounderPercent).toBeCloseTo(50.34, 1)
+    // Total new ownership: round (23.08%) + ESOP increase (7.31%) = 30.39%
+    // Founder retention: 70% * (100% - 30.39%) / 100% = 48.73%
+    expect(result.postRoundFounderPercent).toBeCloseTo(48.73, 1)
   })
 
   it('should calculate post-close ESOP increase correctly', () => {
@@ -257,14 +259,16 @@ describe('ESOP Calculations', () => {
     const result = calculateScenario(inputs)
     
     expect(result.finalEsopPercent).toBe(15)
-    expect(result.esopIncrease).toBe(5)
+    // With round dilution, existing 10% ESOP becomes ~7.69% after round
+    // To reach 15% target, we need to add ~7.31% more
+    expect(result.esopIncrease).toBeCloseTo(7.31, 1)
     expect(result.esopIncreasePreClose).toBe(0)
-    expect(result.esopIncreasePostClose).toBe(5)
+    expect(result.esopIncreasePostClose).toBeCloseTo(7.31, 1)
     
     // Post-close ESOP dilutes everyone proportionally
     // Base founder percentage after round: 70% * (100% - 23.08%) / 100% = 53.84%
-    // After post-close ESOP: 53.84% * (100% - 5%) / 100% = 51.15%
-    expect(result.postRoundFounderPercent).toBeCloseTo(51.15, 1)
+    // After post-close ESOP: 53.84% * (100% - 7.31%) / 100% = 49.91%
+    expect(result.postRoundFounderPercent).toBeCloseTo(49.91, 1)
   })
 
   it('should include all ESOP fields in result', () => {
@@ -280,7 +284,9 @@ describe('ESOP Calculations', () => {
     expect(result.currentEsopPercent).toBe(8)
     expect(result.targetEsopPercent).toBe(12)
     expect(result.finalEsopPercent).toBe(12)
-    expect(result.esopIncrease).toBe(4)
+    // With round dilution, existing 8% ESOP becomes ~6.15% after round
+    // To reach 12% target, we need to add ~5.85% more
+    expect(result.esopIncrease).toBeCloseTo(5.85, 1)
     expect(result.esopTiming).toBe('post-close')
   })
 
@@ -294,9 +300,48 @@ describe('ESOP Calculations', () => {
     
     const result = calculateScenario(inputs)
     
-    expect(result.finalEsopPercent).toBe(15) // Should use current, not target
-    expect(result.esopIncrease).toBe(0)
+    expect(result.finalEsopPercent).toBe(10) // Should use target when it's the final result
+    expect(result.esopIncrease).toBe(0) // No increase needed since target < current after dilution
     expect(result.esopIncreasePreClose).toBe(0)
     expect(result.esopIncreasePostClose).toBe(0)
+  })
+
+  it('should handle ESOP pool maintenance (same percentage before and after)', () => {
+    const inputs = {
+      ...baseInputs,
+      currentEsopPercent: 10,
+      targetEsopPercent: 10, // Maintain same percentage
+      esopTiming: 'pre-close'
+    }
+    
+    const result = calculateScenario(inputs)
+    
+    // Even though target = current, we should still need to add shares
+    // to maintain the same percentage after dilution
+    // Round dilution is 23.08%, so existing 10% ESOP becomes ~7.69%
+    // To get back to 10%, we need to add ~2.31% more
+    expect(result.finalEsopPercent).toBe(10)
+    expect(result.esopIncrease).toBeGreaterThan(0) // Should need to add shares
+    expect(result.esopIncrease).toBeCloseTo(2.31, 1) // Approximately 2.31% increase needed
+    expect(result.esopIncreasePreClose).toBe(result.esopIncrease)
+    expect(result.esopIncreasePostClose).toBe(0)
+  })
+
+  it('should handle ESOP pool maintenance with post-close timing', () => {
+    const inputs = {
+      ...baseInputs,
+      currentEsopPercent: 10,
+      targetEsopPercent: 10, // Maintain same percentage
+      esopTiming: 'post-close'
+    }
+    
+    const result = calculateScenario(inputs)
+    
+    // With post-close timing, we still need to account for dilution
+    // but the calculation should be different
+    expect(result.finalEsopPercent).toBe(10)
+    expect(result.esopIncrease).toBeGreaterThan(0) // Should still need to add shares
+    expect(result.esopIncreasePreClose).toBe(0)
+    expect(result.esopIncreasePostClose).toBe(result.esopIncrease)
   })
 })

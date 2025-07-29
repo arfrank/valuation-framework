@@ -108,27 +108,36 @@ export const calculateScenario = (inputs) => {
   let adjustedPostRoundFounderPercent = postRoundFounderPercent
   let adjustedFounderDilution = founderDilution
   
-  if (targetEsopPercent > currentEsopPercent) {
-    esopIncrease = targetEsopPercent - currentEsopPercent
-    
+  if (targetEsopPercent > 0) {
     if (esopTiming === 'pre-close') {
-      // Pre-close: New ESOP dilutes existing shareholders before investment
+      // Pre-close: Calculate how much ESOP needs to be added to achieve target after round dilution
+      // If current ESOP is X% and round dilutes by Y%, we need to add shares to get back to target%
+      // Formula: esopIncrease = target - (current * (100 - roundPercent) / 100)
+      const esopAfterDilution = currentEsopPercent * (100 - roundPercent) / 100
+      esopIncrease = Math.max(0, targetEsopPercent - esopAfterDilution)
       esopIncreasePreClose = esopIncrease
+      
       // This increases the total dilution that existing shareholders face
       const totalExistingDilution = totalNewOwnership + esopIncrease
       adjustedPostRoundFounderPercent = Math.round((preRoundFounderPercent * (100 - totalExistingDilution) / 100) * 100) / 100
       adjustedFounderDilution = Math.round((preRoundFounderPercent - adjustedPostRoundFounderPercent) * 100) / 100
     } else {
-      // Post-close: New ESOP dilutes all shareholders including new investors
+      // Post-close: Calculate ESOP increase needed after everyone is diluted by the round
+      // The existing ESOP and all other ownership gets diluted by the round first
+      // Then we add ESOP shares to reach the target percentage
+      const esopAfterRoundDilution = currentEsopPercent * (100 - roundPercent) / 100
+      const targetEsopAfterRound = targetEsopPercent
+      esopIncrease = Math.max(0, targetEsopAfterRound - esopAfterRoundDilution)
       esopIncreasePostClose = esopIncrease
-      // This reduces everyone's final percentage proportionally
+      
+      // Post-close ESOP dilutes everyone proportionally after the round
       const dilutionFactor = (100 - esopIncrease) / 100
       adjustedPostRoundFounderPercent = Math.round((postRoundFounderPercent * dilutionFactor) * 100) / 100
       adjustedFounderDilution = Math.round((preRoundFounderPercent - adjustedPostRoundFounderPercent) * 100) / 100
     }
   }
   
-  const finalEsopPercent = currentEsopPercent + esopIncrease
+  const finalEsopPercent = targetEsopPercent > 0 ? targetEsopPercent : currentEsopPercent
 
   // Calculate total round investment (just the cash round, SAFE is conversion not new cash)
   const totalInvestmentAmount = Math.round(roundSize * 100) / 100
