@@ -17,9 +17,6 @@ describe('Social Sharing Utilities', () => {
     showAdvanced: false,
     proRataPercent: 0,
     safes: [],
-    safeAmount: 0,
-    safeCap: 0,
-    safeDiscount: 0,
     preRoundFounderOwnership: 0
   }
 

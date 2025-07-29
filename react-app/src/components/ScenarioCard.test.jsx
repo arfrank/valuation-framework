@@ -18,8 +18,8 @@ describe('ScenarioCard with Permalink', () => {
     preMoneyVal: 10,
     proRataAmount: 0,
     proRataPercent: 0,
-    safeAmount: 0,
-    safePercent: 0,
+    safes: [],
+    totalSafePercent: 0,
     postRoundFounderPercent: 76.9,
     founderDilution: 23.1
   }

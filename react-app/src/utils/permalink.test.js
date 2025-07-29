@@ -16,8 +16,7 @@ describe('Permalink Utilities', () => {
     investorName: 'US',
     showAdvanced: false,
     proRataPercent: 0,
-    safeAmount: 0,
-    safeCap: 0,
+    safes: [],
     preRoundFounderOwnership: 0
   }
 
@@ -25,9 +24,14 @@ describe('Permalink Utilities', () => {
     ...mockScenario,
     showAdvanced: true,
     proRataPercent: 25,
-    safeAmount: 1.5,
-    safeCap: 10,
-    safeDiscount: 20,
+    safes: [
+      {
+        id: 1,
+        amount: 1.5,
+        cap: 10,
+        discount: 20
+      }
+    ],
     preRoundFounderOwnership: 65
   }
 
@@ -43,18 +47,36 @@ describe('Permalink Utilities', () => {
       expect(encoded).toMatch(/ip=2\.75/)
       expect(encoded).toMatch(/op=0\.25/)
       expect(encoded).toMatch(/in=US/)
-      expect(encoded).not.toMatch(/sa=/) // SAFE amount should not be included when 0
+      expect(encoded).not.toMatch(/safes=/) // No SAFEs should not be included
     })
 
     it('should encode advanced scenario data when showAdvanced is true', () => {
       const encoded = encodeScenarioToURL(mockAdvancedScenario)
       expect(encoded).toMatch(/pmv=13/)
       expect(encoded).toMatch(/adv=1/) // showAdvanced parameter
-      expect(encoded).toMatch(/sa=1\.5/)
-      expect(encoded).toMatch(/sc=10/)
-      expect(encoded).toMatch(/sd=20/) // SAFE discount
+      expect(encoded).toMatch(/safes=/) // SAFEs array should be included
       expect(encoded).toMatch(/pr=25/)
       expect(encoded).toMatch(/pf=65/)
+    })
+
+    it('should encode N SAFEs array correctly', () => {
+      const scenarioWithMultipleSafes = {
+        ...mockScenario,
+        safes: [
+          { id: 1, amount: 1, cap: 8, discount: 0 },
+          { id: 2, amount: 0.5, cap: 0, discount: 20 }
+        ]
+      }
+      const encoded = encodeScenarioToURL(scenarioWithMultipleSafes)
+      expect(encoded).toMatch(/safes=/)
+      
+      // Decode the safes parameter to verify structure
+      const params = new URLSearchParams(encoded)
+      const safesParam = params.get('safes')
+      const safesData = JSON.parse(safesParam)
+      expect(safesData).toHaveLength(2)
+      expect(safesData[0]).toEqual({ a: 1, c: 8, d: 0 })
+      expect(safesData[1]).toEqual({ a: 0.5, c: 0, d: 20 })
     })
 
     it('should handle special characters in investor name', () => {
@@ -65,16 +87,32 @@ describe('Permalink Utilities', () => {
 
     it('should omit zero values for optional fields', () => {
       const encoded = encodeScenarioToURL(mockScenario)
-      expect(encoded).not.toMatch(/sa=0/)
-      expect(encoded).not.toMatch(/sc=0/)
-      expect(encoded).not.toMatch(/sd=0/)
+      expect(encoded).not.toMatch(/pr=0/)
+      expect(encoded).not.toMatch(/pf=0/)
       expect(encoded).not.toMatch(/adv=0/) // Don't include showAdvanced when false
+      expect(encoded).not.toMatch(/safes=/) // Don't include empty safes array
     })
 
     it('should include showAdvanced when explicitly true', () => {
       const scenarioWithAdvanced = { ...mockScenario, showAdvanced: true }
       const encoded = encodeScenarioToURL(scenarioWithAdvanced)
       expect(encoded).toMatch(/adv=1/)
+    })
+
+    it('should filter out SAFEs with zero amount', () => {
+      const scenarioWithZeroSafe = {
+        ...mockScenario,
+        safes: [
+          { id: 1, amount: 1, cap: 8, discount: 0 },
+          { id: 2, amount: 0, cap: 10, discount: 20 } // This should be filtered out
+        ]
+      }
+      const encoded = encodeScenarioToURL(scenarioWithZeroSafe)
+      const params = new URLSearchParams(encoded)
+      const safesParam = params.get('safes')
+      const safesData = JSON.parse(safesParam)
+      expect(safesData).toHaveLength(1) // Only the non-zero SAFE should remain
+      expect(safesData[0]).toEqual({ a: 1, c: 8, d: 0 })
     })
   })
 
@@ -90,18 +128,39 @@ describe('Permalink Utilities', () => {
       expect(decoded.investorName).toBe('US')
       expect(decoded.proRataPercent).toBe(0)
       expect(decoded.preRoundFounderOwnership).toBe(0)
+      expect(decoded.safes).toEqual([])
     })
 
     it('should decode advanced scenario parameters', () => {
-      const urlParams = 'pmv=13&rs=3&ip=2.75&op=0.25&in=US&adv=1&pr=25&sa=1.5&sc=10&sd=20&pf=65'
+      const safesJson = JSON.stringify([{ a: 1.5, c: 10, d: 20 }])
+      const urlParams = `pmv=13&rs=3&ip=2.75&op=0.25&in=US&adv=1&pr=25&safes=${encodeURIComponent(safesJson)}&pf=65`
       const decoded = decodeScenarioFromURL(urlParams)
       
       expect(decoded.showAdvanced).toBe(true)
-      expect(decoded.safeAmount).toBe(1.5)
-      expect(decoded.safeCap).toBe(10)
-      expect(decoded.safeDiscount).toBe(20)
       expect(decoded.proRataPercent).toBe(25)
       expect(decoded.preRoundFounderOwnership).toBe(65)
+      expect(decoded.safes).toHaveLength(1)
+      expect(decoded.safes[0].amount).toBe(1.5)
+      expect(decoded.safes[0].cap).toBe(10)
+      expect(decoded.safes[0].discount).toBe(20)
+      expect(decoded.safes[0].id).toBeDefined()
+    })
+
+    it('should decode multiple SAFEs correctly', () => {
+      const safesJson = JSON.stringify([
+        { a: 1, c: 8, d: 0 },
+        { a: 0.5, c: 0, d: 20 }
+      ])
+      const urlParams = `pmv=13&rs=3&ip=2.75&op=0.25&in=US&safes=${encodeURIComponent(safesJson)}`
+      const decoded = decodeScenarioFromURL(urlParams)
+      
+      expect(decoded.safes).toHaveLength(2)
+      expect(decoded.safes[0].amount).toBe(1)
+      expect(decoded.safes[0].cap).toBe(8)
+      expect(decoded.safes[0].discount).toBe(0)
+      expect(decoded.safes[1].amount).toBe(0.5)
+      expect(decoded.safes[1].cap).toBe(0)
+      expect(decoded.safes[1].discount).toBe(20)
     })
 
     it('should handle URL encoded special characters', () => {
@@ -127,11 +186,25 @@ describe('Permalink Utilities', () => {
       const decoded = decodeScenarioFromURL(urlParams)
       
       expect(decoded.proRataPercent).toBe(0)
-      expect(decoded.safeAmount).toBe(0)
-      expect(decoded.safeCap).toBe(0)
+      expect(decoded.safes).toEqual([])
       expect(decoded.preRoundFounderOwnership).toBe(0)
-      expect(decoded.safeDiscount).toBe(0)
       expect(decoded.showAdvanced).toBe(false)
+    })
+
+    it('should handle malformed SAFEs JSON gracefully', () => {
+      const urlParams = 'pmv=13&rs=3&ip=2.75&op=0.25&in=US&safes=invalid-json'
+      const decoded = decodeScenarioFromURL(urlParams)
+      
+      expect(decoded.safes).toEqual([])
+      expect(decoded.showAdvanced).toBe(false) // Should not auto-enable advanced mode for malformed SAFEs
+    })
+
+    it('should auto-enable advanced mode when SAFEs are present', () => {
+      const safesJson = JSON.stringify([{ a: 1, c: 8, d: 0 }])
+      const urlParams = `pmv=13&rs=3&ip=2.75&op=0.25&in=US&safes=${encodeURIComponent(safesJson)}`
+      const decoded = decodeScenarioFromURL(urlParams)
+      
+      expect(decoded.showAdvanced).toBe(true) // Should auto-enable when SAFEs present
     })
 
     it('should respect explicit showAdvanced setting', () => {
@@ -166,8 +239,7 @@ describe('Permalink Utilities', () => {
 
     it('should handle scenarios with advanced features', () => {
       const permalink = generatePermalink(mockAdvancedScenario)
-      expect(permalink).toMatch(/sa=1\.5/)
-      expect(permalink).toMatch(/sc=10/)
+      expect(permalink).toMatch(/safes=/)
       expect(permalink).toMatch(/pr=25/)
     })
   })
@@ -252,11 +324,34 @@ describe('Permalink Utilities', () => {
       const encoded = encodeScenarioToURL(mockAdvancedScenario)
       const decoded = decodeScenarioFromURL(encoded)
       
-      expect(decoded.safeAmount).toBe(mockAdvancedScenario.safeAmount)
-      expect(decoded.safeCap).toBe(mockAdvancedScenario.safeCap)
+      expect(decoded.safes).toHaveLength(1)
+      expect(decoded.safes[0].amount).toBe(mockAdvancedScenario.safes[0].amount)
+      expect(decoded.safes[0].cap).toBe(mockAdvancedScenario.safes[0].cap)
+      expect(decoded.safes[0].discount).toBe(mockAdvancedScenario.safes[0].discount)
       expect(decoded.proRataPercent).toBe(mockAdvancedScenario.proRataPercent)
       expect(decoded.preRoundFounderOwnership).toBe(mockAdvancedScenario.preRoundFounderOwnership)
       expect(decoded.showAdvanced).toBe(true)
+    })
+
+    it('should maintain multiple SAFEs through roundtrip', () => {
+      const scenarioWithMultipleSafes = {
+        ...mockScenario,
+        safes: [
+          { id: 1, amount: 1, cap: 8, discount: 0 },
+          { id: 2, amount: 0.5, cap: 0, discount: 20 }
+        ]
+      }
+      
+      const encoded = encodeScenarioToURL(scenarioWithMultipleSafes)
+      const decoded = decodeScenarioFromURL(encoded)
+      
+      expect(decoded.safes).toHaveLength(2)
+      expect(decoded.safes[0].amount).toBe(1)
+      expect(decoded.safes[0].cap).toBe(8)
+      expect(decoded.safes[0].discount).toBe(0)
+      expect(decoded.safes[1].amount).toBe(0.5)
+      expect(decoded.safes[1].cap).toBe(0)
+      expect(decoded.safes[1].discount).toBe(20)
     })
   })
 })

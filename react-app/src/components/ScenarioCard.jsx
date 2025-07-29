@@ -21,10 +21,6 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
         proRataPercent: scenario.proRataPercentInput || 0,
         // N SAFEs support
         safes: scenario.safes || [],
-        // Legacy SAFE fields for backward compatibility
-        safeAmount: scenario.safeAmount || 0,
-        safeCap: scenario.safeCap || 0,
-        safeDiscount: scenario.safeDiscount || 0,
         preRoundFounderOwnership: scenario.preRoundFounderPercent ?? 0
       })
     }
@@ -44,10 +40,6 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
         proRataPercent: scenario.proRataPercentInput || 0,
         // N SAFEs support
         safes: scenario.safes || [],
-        // Legacy SAFE fields for backward compatibility
-        safeAmount: scenario.safeAmount || 0,
-        safeCap: scenario.safeCap || 0,
-        safeDiscount: scenario.safeDiscount || 0,
         preRoundFounderOwnership: scenario.preRoundFounderPercent ?? 0
       }
 
@@ -128,13 +120,6 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
           ))
         }
 
-        {showAdvanced && scenario.safeAmount > 0 && (!scenario.safeDetails || scenario.safeDetails.length === 0) && (
-          <div className="table-row safe-row">
-            <div className="label">SAFE Conv.</div>
-            <div className="amount">{formatDollar(scenario.safeAmount)}</div>
-            <div className="percent">{formatPercent(scenario.safePercent)}</div>
-          </div>
-        )}
         
         <div className="table-row total-row">
           <div className="label">Total</div>

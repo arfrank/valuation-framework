@@ -24,8 +24,7 @@ function App() {
       investorName: 'US',
       showAdvanced: false,
       proRataPercent: 15,
-      safeAmount: 0,
-      safeCap: 0,
+      safes: [],
       preRoundFounderOwnership: 70
     }
   })
@@ -66,8 +65,7 @@ function App() {
       investorName: 'US',
       showAdvanced: false,
       proRataPercent: 15,
-      safeAmount: 0,
-      safeCap: 0,
+      safes: [],
       preRoundFounderOwnership: 70
     }
     setCompanies(prev => ({ ...prev, [newCompanyId]: newCompany }))

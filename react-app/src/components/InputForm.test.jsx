@@ -13,8 +13,7 @@ describe('InputForm with Pre-Money Toggle', () => {
     investorName: 'US',
     showAdvanced: false,
     proRataPercent: 0,
-    safeAmount: 0,
-    safeCap: 0,
+    safes: [],
     preRoundFounderOwnership: 0
   }
 

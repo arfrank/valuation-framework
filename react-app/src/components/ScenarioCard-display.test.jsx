@@ -18,13 +18,9 @@ describe('ScenarioCard Display Logic', () => {
     proRataAmount: 0,
     proRataPercent: 0,
     proRataPercentInput: 0,
-    safeAmount: 0,
-    safePercent: 0,
-    safeCap: 0,
-    safeDiscount: 0,
-    safeConversionPrice: 0,
     totalSafeAmount: 0,
     totalSafePercent: 0,
+    safes: [],
     safeDetails: []
   }
 
@@ -123,27 +119,6 @@ describe('ScenarioCard Display Logic', () => {
       expect(getByText('$0.50M')).toBeTruthy() // SAFE 2 amount
     })
 
-    it('should show legacy SAFE when no safeDetails but safeAmount > 0', () => {
-      const scenarioWithLegacySafe = {
-        ...baseScenario,
-        safeAmount: 1,
-        safePercent: 12.5,
-        safeDetails: []
-      }
-
-      const { getByText } = render(
-        <ScenarioCard 
-          scenario={scenarioWithLegacySafe} 
-          index={1} 
-          isBase={false}
-          showAdvanced={true}
-          investorName="US"
-        />
-      )
-
-      expect(getByText('SAFE Conv.')).toBeTruthy()
-      expect(getByText('12.50%')).toBeTruthy()
-    })
 
     it('should not show any SAFE rows when no SAFEs present', () => {
       const { queryByText } = render(

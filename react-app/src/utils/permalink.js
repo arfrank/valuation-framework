@@ -14,10 +14,6 @@ const URL_PARAM_MAP = {
   proRataPercent: 'pr',
   // N SAFEs array will be encoded as 'safes' parameter
   safes: 'safes',
-  // Legacy single SAFE fields for backward compatibility
-  safeAmount: 'sa',
-  safeCap: 'sc',
-  safeDiscount: 'sd',
   preRoundFounderOwnership: 'pf'
 }
 
@@ -100,7 +96,7 @@ export function encodeScenarioToURL(scenarioData) {
       }
       
       // Only include non-zero values for optional fields
-      if (['proRataPercent', 'safeAmount', 'safeCap', 'safeDiscount'].includes(field) && value === 0) {
+      if (['proRataPercent'].includes(field) && value === 0) {
         return
       }
       
@@ -136,9 +132,6 @@ export function decodeScenarioFromURL(urlParams) {
       showAdvanced: false,
       proRataPercent: 0,
       safes: [], // N SAFEs array
-      safeAmount: 0,
-      safeCap: 0,
-      safeDiscount: 0,
       preRoundFounderOwnership: 0
     }
 
@@ -178,8 +171,7 @@ export function decodeScenarioFromURL(urlParams) {
     }
 
     // Set showAdvanced to true if any advanced features are present (but don't override explicit setting)
-    if (!params.has('adv') && (scenarioData.safeAmount > 0 || scenarioData.safeCap > 0 || 
-        scenarioData.safeDiscount > 0 || scenarioData.proRataPercent > 0 || scenarioData.preRoundFounderOwnership > 0 ||
+    if (!params.has('adv') && (scenarioData.proRataPercent > 0 || scenarioData.preRoundFounderOwnership > 0 ||
         (scenarioData.safes && scenarioData.safes.length > 0))) {
       scenarioData.showAdvanced = true
     }

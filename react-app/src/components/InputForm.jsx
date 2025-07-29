@@ -10,12 +10,8 @@ const InputForm = ({ company, onUpdate }) => {
     // Advanced features
     showAdvanced: false,
     proRataPercent: 0,
-    // New N SAFEs structure - array of SAFE objects
+    // N SAFEs structure - array of SAFE objects
     safes: [],
-    // Legacy single SAFE fields for backward compatibility
-    safeAmount: 0,
-    safeCap: 0,
-    safeDiscount: 0,
     preRoundFounderOwnership: 0
   })
   
@@ -74,13 +70,6 @@ const InputForm = ({ company, onUpdate }) => {
       }
     }
     
-    // SAFE validation: cap should be >= amount if both are set
-    if (field === 'safeCap' && numValue > 0 && values.safeAmount > 0 && numValue < values.safeAmount) {
-      newValues.safeCap = values.safeAmount  // Set cap to at least the amount
-    }
-    if (field === 'safeAmount' && numValue > 0 && values.safeCap > 0 && numValue > values.safeCap) {
-      newValues.safeAmount = values.safeCap  // Limit amount to the cap
-    }
     
     setValues(newValues)
     onUpdate(newValues)
@@ -456,21 +445,6 @@ const InputForm = ({ company, onUpdate }) => {
         {!isNaN(values.postMoneyVal) && values.postMoneyVal <= 0 && (
           <div className="warning">
             ⚠️ Post-Money Valuation must be greater than 0
-          </div>
-        )}
-        {!isNaN(values.safeAmount) && !isNaN(values.safeCap) && values.safeAmount > 0 && values.safeCap > 0 && values.safeAmount > values.safeCap && (
-          <div className="warning">
-            ⚠️ SAFE amount cannot exceed valuation cap
-          </div>
-        )}
-        {!isNaN(values.safeDiscount) && values.safeDiscount > 100 && (
-          <div className="warning">
-            ⚠️ SAFE discount cannot exceed 100%
-          </div>
-        )}
-        {!isNaN(values.safeAmount) && !isNaN(values.safeCap) && !isNaN(values.safeDiscount) && values.safeAmount > 0 && values.safeCap === 0 && values.safeDiscount === 0 && (
-          <div className="warning">
-            ⚠️ SAFE must have either a valuation cap or discount (or both)
           </div>
         )}
       </div>
