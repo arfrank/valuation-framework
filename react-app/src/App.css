@@ -772,6 +772,20 @@ body.geometric-background-active .app {
   color: #e53e3e;
 }
 
+.esop-row {
+  font-weight: 600;
+  background-color: #f0f8ff;
+  border-radius: 5px;
+  padding: 5px 5px;
+}
+
+.esop-row .label,
+.esop-row .amount,
+.esop-row .percent {
+  font-weight: 700;
+  color: #2b6cb0;
+}
+
 /* Advanced Features Styling */
 .advanced-section .input-grid {
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -900,6 +914,86 @@ body.geometric-background-active .app {
   border: 1px solid #cbd5e0;
   border-radius: 4px;
   border-left: 3px solid #3182ce;
+}
+
+/* ESOP Section Styles */
+.esop-section {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.esop-section h5 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #2d3748;
+  margin-bottom: 1rem;
+}
+
+.esop-timing-section {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: #f7fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+}
+
+.section-label {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #2d3748;
+  margin-bottom: 0.75rem;
+}
+
+.esop-timing-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.radio-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.radio-option:hover {
+  background: #edf2f7;
+}
+
+.radio-option input[type="radio"] {
+  margin-top: 0.15rem;
+  cursor: pointer;
+}
+
+.radio-label {
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.radio-label strong {
+  color: #2d3748;
+}
+
+.esop-timing-info {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  background: #e3f2fd;
+  border: 1px solid #bbdefb;
+  border-radius: 4px;
+  border-left: 3px solid #2196f3;
+}
+
+.timing-explanation {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #1565c0;
+  line-height: 1.4;
 }
 
 @media (max-width: 768px) {

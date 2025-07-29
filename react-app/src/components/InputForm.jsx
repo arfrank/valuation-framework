@@ -12,7 +12,11 @@ const InputForm = ({ company, onUpdate }) => {
     proRataPercent: 0,
     // N SAFEs structure - array of SAFE objects
     safes: [],
-    preRoundFounderOwnership: 0
+    preRoundFounderOwnership: 0,
+    // ESOP (Employee Stock Option Pool) modeling
+    currentEsopPercent: 0,
+    targetEsopPercent: 0,
+    esopTiming: 'pre-close' // 'pre-close' or 'post-close'
   })
   
   // New state for tracking input mode
@@ -29,10 +33,10 @@ const InputForm = ({ company, onUpdate }) => {
   }, [company])
 
   const handleChange = (field, value) => {
-    let numValue = field === 'investorName' || field === 'showAdvanced' ? value : parseFloat(value)
+    let numValue = field === 'investorName' || field === 'showAdvanced' || field === 'esopTiming' ? value : parseFloat(value)
     
     // Input validation for numeric fields
-    if (field !== 'investorName' && field !== 'showAdvanced') {
+    if (field !== 'investorName' && field !== 'showAdvanced' && field !== 'esopTiming') {
       // Handle NaN, empty strings, and invalid inputs
       if (isNaN(numValue) || value === '' || value === null || value === undefined) {
         numValue = 0
@@ -425,6 +429,113 @@ const InputForm = ({ company, onUpdate }) => {
                 </div>
               ))}
             </div>
+          </div>
+
+          {/* ESOP Section */}
+          <div className="esop-section">
+            <h5>Employee Stock Option Pool (ESOP)</h5>
+            
+            <div className="input-grid">
+              <div className="input-group">
+                <label htmlFor="current-esop">Current ESOP Available</label>
+                <div className={`input-wrapper ${values.currentEsopPercent > 0 ? 'input-wrapper-with-clear' : ''}`}>
+                  <input
+                    id="current-esop"
+                    type="number"
+                    value={values.currentEsopPercent}
+                    onChange={(e) => handleChange('currentEsopPercent', e.target.value)}
+                    step="1"
+                    min="0"
+                    max="100"
+                  />
+                  <span className="unit">%</span>
+                  {values.currentEsopPercent > 0 && (
+                    <button 
+                      type="button"
+                      className="clear-input-btn"
+                      onClick={() => handleChange('currentEsopPercent', 0)}
+                      title="Clear current ESOP"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="input-group">
+                <label htmlFor="target-esop">Target Post-Round ESOP</label>
+                <div className={`input-wrapper ${values.targetEsopPercent > 0 ? 'input-wrapper-with-clear' : ''}`}>
+                  <input
+                    id="target-esop"
+                    type="number"
+                    value={values.targetEsopPercent}
+                    onChange={(e) => handleChange('targetEsopPercent', e.target.value)}
+                    step="1"
+                    min="0"
+                    max="100"
+                  />
+                  <span className="unit">%</span>
+                  {values.targetEsopPercent > 0 && (
+                    <button 
+                      type="button"
+                      className="clear-input-btn"
+                      onClick={() => handleChange('targetEsopPercent', 0)}
+                      title="Clear target ESOP"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* ESOP Timing Selection */}
+            {values.targetEsopPercent > values.currentEsopPercent && (
+              <div className="esop-timing-section">
+                <label className="section-label">New ESOP Allocation Timing</label>
+                <div className="esop-timing-options">
+                  <label className="radio-option">
+                    <input
+                      type="radio"
+                      name="esop-timing"
+                      value="pre-close"
+                      checked={values.esopTiming === 'pre-close'}
+                      onChange={(e) => handleChange('esopTiming', e.target.value)}
+                    />
+                    <span className="radio-label">
+                      <strong>Pre-Close</strong> - Dilutes existing shareholders only
+                    </span>
+                  </label>
+                  <label className="radio-option">
+                    <input
+                      type="radio"
+                      name="esop-timing"
+                      value="post-close"
+                      checked={values.esopTiming === 'post-close'}
+                      onChange={(e) => handleChange('esopTiming', e.target.value)}
+                    />
+                    <span className="radio-label">
+                      <strong>Post-Close</strong> - Dilutes all shareholders including new investors
+                    </span>
+                  </label>
+                </div>
+                
+                {/* Info about the difference */}
+                <div className="esop-timing-info">
+                  {values.esopTiming === 'pre-close' ? (
+                    <p className="timing-explanation">
+                      💡 New ESOP shares are created before the investment, so only existing shareholders 
+                      (founders, employees, previous investors) are diluted by the expanded option pool.
+                    </p>
+                  ) : (
+                    <p className="timing-explanation">
+                      💡 New ESOP shares are created after the investment, so all shareholders including 
+                      the new investors share the dilution from the expanded option pool.
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
         </div>

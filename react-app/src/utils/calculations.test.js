@@ -197,3 +197,106 @@ describe('SAFE Calculations', () => {
     expect(result.safeDetails).toHaveLength(0)
   })
 })
+
+describe('ESOP Calculations', () => {
+  const baseInputs = {
+    postMoneyVal: 13,
+    roundSize: 3,
+    investorPortion: 2.75,
+    otherPortion: 0.25,
+    proRataPercent: 0,
+    preRoundFounderOwnership: 70,
+    safes: []
+  }
+
+  it('should handle no ESOP changes', () => {
+    const inputs = {
+      ...baseInputs,
+      currentEsopPercent: 10,
+      targetEsopPercent: 10,
+      esopTiming: 'pre-close'
+    }
+    
+    const result = calculateScenario(inputs)
+    
+    expect(result.finalEsopPercent).toBe(10)
+    expect(result.esopIncrease).toBe(0)
+    expect(result.esopIncreasePreClose).toBe(0)
+    expect(result.esopIncreasePostClose).toBe(0)
+  })
+
+  it('should calculate pre-close ESOP increase correctly', () => {
+    const inputs = {
+      ...baseInputs,
+      currentEsopPercent: 10,
+      targetEsopPercent: 15,
+      esopTiming: 'pre-close'
+    }
+    
+    const result = calculateScenario(inputs)
+    
+    expect(result.finalEsopPercent).toBe(15)
+    expect(result.esopIncrease).toBe(5)
+    expect(result.esopIncreasePreClose).toBe(5)
+    expect(result.esopIncreasePostClose).toBe(0)
+    
+    // Pre-close ESOP should increase founder dilution
+    // Total new ownership: round (23.08%) + ESOP increase (5%) = 28.08%
+    // Founder retention: 70% * (100% - 28.08%) / 100% = 50.34%
+    expect(result.postRoundFounderPercent).toBeCloseTo(50.34, 1)
+  })
+
+  it('should calculate post-close ESOP increase correctly', () => {
+    const inputs = {
+      ...baseInputs,
+      currentEsopPercent: 10,
+      targetEsopPercent: 15,
+      esopTiming: 'post-close'
+    }
+    
+    const result = calculateScenario(inputs)
+    
+    expect(result.finalEsopPercent).toBe(15)
+    expect(result.esopIncrease).toBe(5)
+    expect(result.esopIncreasePreClose).toBe(0)
+    expect(result.esopIncreasePostClose).toBe(5)
+    
+    // Post-close ESOP dilutes everyone proportionally
+    // Base founder percentage after round: 70% * (100% - 23.08%) / 100% = 53.84%
+    // After post-close ESOP: 53.84% * (100% - 5%) / 100% = 51.15%
+    expect(result.postRoundFounderPercent).toBeCloseTo(51.15, 1)
+  })
+
+  it('should include all ESOP fields in result', () => {
+    const inputs = {
+      ...baseInputs,
+      currentEsopPercent: 8,
+      targetEsopPercent: 12,
+      esopTiming: 'post-close'
+    }
+    
+    const result = calculateScenario(inputs)
+    
+    expect(result.currentEsopPercent).toBe(8)
+    expect(result.targetEsopPercent).toBe(12)
+    expect(result.finalEsopPercent).toBe(12)
+    expect(result.esopIncrease).toBe(4)
+    expect(result.esopTiming).toBe('post-close')
+  })
+
+  it('should handle target ESOP less than current (no increase)', () => {
+    const inputs = {
+      ...baseInputs,
+      currentEsopPercent: 15,
+      targetEsopPercent: 10,
+      esopTiming: 'pre-close'
+    }
+    
+    const result = calculateScenario(inputs)
+    
+    expect(result.finalEsopPercent).toBe(15) // Should use current, not target
+    expect(result.esopIncrease).toBe(0)
+    expect(result.esopIncreasePreClose).toBe(0)
+    expect(result.esopIncreasePostClose).toBe(0)
+  })
+})

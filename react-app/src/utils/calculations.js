@@ -8,7 +8,11 @@ export const calculateScenario = (inputs) => {
     proRataPercent = 0,
     // N SAFEs support
     safes = [],
-    preRoundFounderOwnership = 0
+    preRoundFounderOwnership = 0,
+    // ESOP modeling
+    currentEsopPercent = 0,
+    targetEsopPercent = 0,
+    esopTiming = 'pre-close'
   } = inputs
   
   // Validate inputs to prevent division by zero and negative pre-money
@@ -96,6 +100,36 @@ export const calculateScenario = (inputs) => {
   const postRoundFounderPercent = Math.round((preRoundFounderPercent * (100 - totalNewOwnership) / 100) * 100) / 100
   const founderDilution = Math.round((preRoundFounderPercent - postRoundFounderPercent) * 100) / 100
 
+  // Calculate ESOP modeling
+  let esopIncrease = 0
+  let esopIncreasePreClose = 0
+  let esopIncreasePostClose = 0
+  let adjustedTotalNewOwnership = totalNewOwnership
+  let adjustedPostRoundFounderPercent = postRoundFounderPercent
+  let adjustedFounderDilution = founderDilution
+  
+  if (targetEsopPercent > currentEsopPercent) {
+    esopIncrease = targetEsopPercent - currentEsopPercent
+    
+    if (esopTiming === 'pre-close') {
+      // Pre-close: New ESOP dilutes existing shareholders before investment
+      esopIncreasePreClose = esopIncrease
+      // This increases the total dilution that existing shareholders face
+      const totalExistingDilution = totalNewOwnership + esopIncrease
+      adjustedPostRoundFounderPercent = Math.round((preRoundFounderPercent * (100 - totalExistingDilution) / 100) * 100) / 100
+      adjustedFounderDilution = Math.round((preRoundFounderPercent - adjustedPostRoundFounderPercent) * 100) / 100
+    } else {
+      // Post-close: New ESOP dilutes all shareholders including new investors
+      esopIncreasePostClose = esopIncrease
+      // This reduces everyone's final percentage proportionally
+      const dilutionFactor = (100 - esopIncrease) / 100
+      adjustedPostRoundFounderPercent = Math.round((postRoundFounderPercent * dilutionFactor) * 100) / 100
+      adjustedFounderDilution = Math.round((preRoundFounderPercent - adjustedPostRoundFounderPercent) * 100) / 100
+    }
+  }
+  
+  const finalEsopPercent = currentEsopPercent + esopIncrease
+
   // Calculate total round investment (just the cash round, SAFE is conversion not new cash)
   const totalInvestmentAmount = Math.round(roundSize * 100) / 100
   const totalInvestmentPercent = roundPercent
@@ -120,8 +154,16 @@ export const calculateScenario = (inputs) => {
     proRataPercent: proRataPercent_final,
     proRataPercentInput: proRataPercent,  // Include input percentage for apply scenario
     preRoundFounderPercent: preRoundFounderPercent,
-    postRoundFounderPercent: postRoundFounderPercent,
-    founderDilution: founderDilution
+    postRoundFounderPercent: adjustedPostRoundFounderPercent,
+    founderDilution: adjustedFounderDilution,
+    // ESOP modeling results
+    currentEsopPercent: currentEsopPercent,
+    targetEsopPercent: targetEsopPercent,
+    finalEsopPercent: finalEsopPercent,
+    esopIncrease: esopIncrease,
+    esopIncreasePreClose: esopIncreasePreClose,
+    esopIncreasePostClose: esopIncreasePostClose,
+    esopTiming: esopTiming
   }
 }
 
@@ -217,6 +259,10 @@ export const generateScenarioVariations = (baseInputs) => {
       // N SAFEs support
       safes: baseInputs.safes || [],
       preRoundFounderOwnership: baseInputs.preRoundFounderOwnership || 0,
+      // ESOP modeling
+      currentEsopPercent: baseInputs.currentEsopPercent || 0,
+      targetEsopPercent: baseInputs.targetEsopPercent || 0,
+      esopTiming: baseInputs.esopTiming || 'pre-close',
       showAdvanced: baseInputs.showAdvanced || false
     }
     
