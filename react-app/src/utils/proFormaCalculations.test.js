@@ -9,8 +9,7 @@ describe('Pro-Forma Calculations', () => {
     newInvestorName: 'Lead VC',
     existingInvestors: [],
     founders: [],
-    esopPoolPreClose: 0,
-    esopPoolInRound: 0,
+    esopPool: 0,
     safes: [],
     proRataPercent: 0,
     preRoundFounderOwnership: 0
@@ -88,16 +87,13 @@ describe('Pro-Forma Calculations', () => {
     it('should calculate with ESOP pool', () => {
       const inputsWithEsop = {
         ...basicInputs,
-        esopPoolPreClose: 10,
-        esopPoolInRound: 0.2
+        esopPool: 15
       }
       
       const result = calculateProForma(inputsWithEsop)
       
       expect(result).toBeTruthy()
       expect(result.isValid).toBe(true)
-      expect(result.esopDetail.preCloseShares).toBeGreaterThan(0)
-      expect(result.esopDetail.inRoundShares).toBeGreaterThan(0)
       expect(result.totalEsopOwnership).toBeGreaterThan(0)
     })
 
@@ -138,8 +134,7 @@ describe('Pro-Forma Calculations', () => {
           { id: 2, name: 'Founder 2', ownershipPercent: 20 }
         ],
         preRoundFounderOwnership: 80,
-        esopPoolPreClose: 5,
-        esopPoolInRound: 0.3,
+        esopPool: 15,
         safes: [
           { id: 1, amount: 1, cap: 12, discount: 0 }
         ]
@@ -255,8 +250,7 @@ describe('Pro-Forma Calculations', () => {
           { id: 1, name: 'CEO & Founder', ownershipPercent: 50 }
         ],
         preRoundFounderOwnership: 60,
-        esopPoolPreClose: 10,
-        esopPoolInRound: 0.3,
+        esopPool: 15,
         safes: [
           { id: 1, amount: 0.7, cap: 10, discount: 20 }
         ]

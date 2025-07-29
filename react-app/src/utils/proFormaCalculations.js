@@ -22,8 +22,7 @@ export const calculateProForma = (inputs) => {
     founders = [],
     
     // ESOP parameters
-    esopPoolPreClose = 0,  // ESOP shares issued before closing
-    esopPoolInRound = 0,   // ESOP shares included in round funding
+    esopPool = 0,  // ESOP pool as % of post-round company
     
     // Advanced features from existing system
     safes = [],
@@ -163,18 +162,13 @@ export const calculateProForma = (inputs) => {
       }
     })
 
-    // Step 4: Calculate ESOP allocations
-    let esopPreCloseShares = 0
-    let esopInRoundShares = 0
+    // Step 4: Calculate ESOP allocation (post-round percentage)
+    let esopShares = 0
     
-    if (esopPoolPreClose > 0) {
-      esopPreCloseShares = Math.round((esopPoolPreClose / 100) * preRoundShares)
-    }
-    
-    if (esopPoolInRound > 0) {
-      // ESOP in round is calculated on post-money basis
-      const postRoundShares = preRoundShares + totalSafeShares + esopPreCloseShares
-      esopInRoundShares = Math.round((esopPoolInRound / 100) * postRoundShares)
+    if (esopPool > 0) {
+      // ESOP is calculated as percentage of final post-round company
+      // We'll calculate exact shares after determining total post-round shares
+      esopShares = 0 // Will be calculated below
     }
 
     // Step 5: Calculate new investment and shares
@@ -182,7 +176,7 @@ export const calculateProForma = (inputs) => {
       (sum, inv) => sum + (inv.proRataInvestment || 0), 0
     )
     
-    const remainingForNewInvestor = roundSize - totalProRataInvestment - totalSafeAmount - esopPoolInRound
+    const remainingForNewInvestor = roundSize - totalProRataInvestment - totalSafeAmount
     
     if (remainingForNewInvestor < 0) {
       results.errors.push('Total commitments exceed round size')
@@ -190,21 +184,36 @@ export const calculateProForma = (inputs) => {
     }
 
     // Calculate share price based on post-money valuation
-    const totalPostRoundShares = preRoundShares + totalSafeShares + esopPreCloseShares + esopInRoundShares
-    const additionalSharesForRound = Math.round((roundSize / postMoneyVal) * totalPostRoundShares)
-    const finalTotalShares = totalPostRoundShares + additionalSharesForRound
+    // For pro-forma, we work backwards from post-money valuation
+    const baseShares = 1000000 // 1M base shares
+    const roundOwnershipPercent = (roundSize / postMoneyVal) * 100
+    const roundShares = Math.round((roundOwnershipPercent / (100 - roundOwnershipPercent)) * baseShares)
+    let finalTotalShares = baseShares + roundShares + totalSafeShares
     
-    results.sharePrice = Math.round((postMoneyVal / finalTotalShares) * 100) / 100
+    // Calculate ESOP shares as percentage of final company
+    if (esopPool > 0 && esopPool < 100) {
+      // ESOP pool is a percentage of post-round company
+      // If we want esopPool% of the final company, we need to solve:
+      // esopShares / (finalTotalShares + esopShares) = esopPool / 100
+      esopShares = Math.round((esopPool / (100 - esopPool)) * finalTotalShares)
+      if (!isNaN(esopShares) && esopShares > 0) {
+        finalTotalShares += esopShares
+      } else {
+        esopShares = 0
+      }
+    }
+    
+    results.sharePrice = finalTotalShares > 0 ? (postMoneyVal / finalTotalShares) : 0.01
 
     // Step 6: Calculate final ownership percentages
-    const newInvestorShares = Math.round(remainingForNewInvestor / results.sharePrice)
-    const proRataShares = Math.round(totalProRataInvestment / results.sharePrice)
+    const newInvestorShares = results.sharePrice > 0 ? Math.round(remainingForNewInvestor / results.sharePrice) : 0
+    const proRataShares = results.sharePrice > 0 ? Math.round(totalProRataInvestment / results.sharePrice) : 0
 
     results.newInvestor = {
       name: newInvestorName,
       investment: remainingForNewInvestor,
       shares: newInvestorShares,
-      percent: (newInvestorShares / finalTotalShares) * 100
+      percent: finalTotalShares > 0 ? (newInvestorShares / finalTotalShares) * 100 : 0
     }
 
     // Update existing investors with their new shares
@@ -231,11 +240,10 @@ export const calculateProForma = (inputs) => {
 
     // ESOP details
     results.esopDetail = {
-      preCloseShares: esopPreCloseShares,
-      inRoundShares: esopInRoundShares,
-      totalShares: esopPreCloseShares + esopInRoundShares,
-      totalPercent: ((esopPreCloseShares + esopInRoundShares) / finalTotalShares) * 100,
-      poolValue: ((esopPreCloseShares + esopInRoundShares) * results.sharePrice)
+      postRoundShares: esopShares,
+      totalShares: esopShares,
+      totalPercent: esopPool,
+      poolValue: (esopShares * results.sharePrice)
     }
 
     // Calculate summary totals
@@ -246,7 +254,7 @@ export const calculateProForma = (inputs) => {
     results.totalFounderOwnership = results.foundersDetail.reduce(
       (sum, founder) => sum + founder.postRoundPercent, 0
     )
-    results.totalEsopOwnership = results.esopDetail.totalPercent
+    results.totalEsopOwnership = esopPool
     results.totalSafeOwnership = results.safesDetail.reduce(
       (sum, safe) => sum + safe.percent, 0
     )
@@ -258,9 +266,19 @@ export const calculateProForma = (inputs) => {
                            results.totalSafeOwnership
 
     // Validation
-    if (Math.abs(results.totalOwnership - 100) > 0.1) {
+    const hasExistingStakeholders = results.foundersDetail.length > 0 || results.existingInvestorsDetail.length > 0 || results.safesDetail.length > 0 || esopPool > 0
+    
+    if (hasExistingStakeholders && Math.abs(results.totalOwnership - 100) > 0.1) {
       results.errors.push(`Ownership percentages don't sum to 100% (actual: ${results.totalOwnership.toFixed(2)}%)`)
       results.isValid = false
+    } else if (!hasExistingStakeholders && results.newInvestor.percent > 0) {
+      // When there are no existing stakeholders, the calculation is valid if new investor has ownership
+      results.isValid = true
+      // Add a note about the remaining ownership
+      const remainingPercent = 100 - results.newInvestor.percent
+      if (remainingPercent > 0.1) {
+        results.notes = [`${remainingPercent.toFixed(2)}% ownership remains with existing company (not specified in pro-forma)`]
+      }
     }
 
     totalSharesOutstanding = finalTotalShares
@@ -292,14 +310,14 @@ export const generateProFormaScenarios = (baseInputs) => {
   }
 
   // Scenario with different ESOP allocations
-  if (baseInputs.esopPoolPreClose === 0 && baseInputs.esopPoolInRound === 0) {
+  if (baseInputs.esopPool === 0) {
     const esopScenario = calculateProForma({
       ...baseInputs,
-      esopPoolPreClose: 10, // 10% ESOP pool
+      esopPool: 15 // 15% ESOP pool
     })
     if (esopScenario) {
       scenarios.push({
-        title: 'With 10% ESOP Pool',
+        title: 'With 15% ESOP Pool',
         ...esopScenario
       })
     }

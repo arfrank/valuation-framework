@@ -8,11 +8,11 @@ export const calculateScenario = (inputs) => {
     proRataPercent = 0,
     // N SAFEs support
     safes = [],
-    // Legacy single SAFE fields for backward compatibility
-    safeAmount = 0,
-    safeCap = 0,
-    safeDiscount = 0,
-    preRoundFounderOwnership = 0
+    preRoundFounderOwnership = 0,
+    // ESOP fields
+    currentEsopPool = 0,
+    targetEsopPool = 0,
+    esopTiming = 'pre-close'
   } = inputs
   
   // Validate inputs to prevent division by zero and negative pre-money
@@ -65,39 +65,11 @@ export const calculateScenario = (inputs) => {
     })
   }
   
-  // Process legacy single SAFE for backward compatibility
-  let legacySafePercent = 0
-  let legacySafeConversionPrice = 0
-  
-  if (safeAmount > 0) {
-    if (safeCap > 0 && safeDiscount > 0) {
-      // SAFE with both cap and discount - use the more favorable (lower price)
-      const capPrice = safeCap
-      const discountPrice = preMoneyVal * (1 - safeDiscount / 100)
-      legacySafeConversionPrice = Math.min(capPrice, discountPrice)
-    } else if (safeCap > 0) {
-      // SAFE with cap only
-      legacySafeConversionPrice = Math.min(safeCap, preMoneyVal)
-    } else if (safeDiscount > 0) {
-      // SAFE with discount only
-      legacySafeConversionPrice = preMoneyVal * (1 - safeDiscount / 100)
-    } else {
-      // Invalid SAFE configuration (no cap or discount)
-      legacySafeConversionPrice = 0
-    }
-    
-    if (legacySafeConversionPrice > 0) {
-      legacySafePercent = Math.round((safeAmount / legacySafeConversionPrice) * 10000) / 100
-    }
-    
-    // Add legacy SAFE to totals if it exists
-    totalSafePercent += legacySafePercent
-    totalSafeAmount += safeAmount
-  }
+  // Legacy SAFE support removed - using only N SAFEs array
   
   // Use aggregated values for calculations
   const safePercent = Math.round(totalSafePercent * 100) / 100
-  const safeConversionPrice = legacySafeConversionPrice // Keep for backward compatibility
+  // Legacy variables removed
   
   // Calculate pro-rata portion of round
   const proRataAmount = Math.round((roundSize * (proRataPercent || 0) / 100) * 100) / 100
@@ -121,14 +93,43 @@ export const calculateScenario = (inputs) => {
   const otherPercent = Math.round((adjustedOtherPortion / totalValue) * 10000) / 100
   const proRataPercent_final = Math.round((actualProRataAmount / totalValue) * 10000) / 100
   
-  // Calculate total dilution (round + SAFE)
-  const totalNewOwnership = roundPercent + safePercent
+  // Calculate ESOP dilution based on timing
+  let esopPercent = 0
+  if (targetEsopPool > currentEsopPool) {
+    const esopIncrease = targetEsopPool - currentEsopPool
+    if (esopTiming === 'in-round') {
+      // ESOP expansion dilutes all investors including new ones
+      esopPercent = esopIncrease
+    } else {
+      // ESOP expansion happens pre-close, only dilutes existing investors
+      // This affects the effective dilution calculation
+      esopPercent = 0 // Will handle in founder dilution calculation
+    }
+  }
+  
+  // Calculate total dilution (round + SAFE + ESOP if in-round)
+  const totalNewOwnership = roundPercent + safePercent + esopPercent
   
   // Calculate founder dilution (proportional dilution based on new ownership issued)
-  const preRoundFounderPercent = preRoundFounderOwnership ?? 0  // Use 0 as default instead of 70
-  // Founders retain their percentage of the remaining ownership after new issuance
-  const postRoundFounderPercent = Math.round((preRoundFounderPercent * (100 - totalNewOwnership) / 100) * 100) / 100
-  const founderDilution = Math.round((preRoundFounderPercent - postRoundFounderPercent) * 100) / 100
+  const preRoundFounderPercent = preRoundFounderOwnership ?? 0  // Use 0 as default
+  
+  let postRoundFounderPercent = preRoundFounderPercent
+  let founderDilution = 0
+  
+  if (esopTiming === 'pre-close' && targetEsopPool > currentEsopPool) {
+    // ESOP expansion dilutes existing ownership before the round
+    const esopIncrease = targetEsopPool - currentEsopPool
+    const preRoundDilution = (100 - esopIncrease) / 100
+    postRoundFounderPercent = preRoundFounderPercent * preRoundDilution
+    
+    // Then dilute further by the round
+    postRoundFounderPercent = Math.round((postRoundFounderPercent * (100 - totalNewOwnership) / 100) * 100) / 100
+  } else {
+    // Standard dilution calculation
+    postRoundFounderPercent = Math.round((preRoundFounderPercent * (100 - totalNewOwnership) / 100) * 100) / 100
+  }
+  
+  founderDilution = Math.round((preRoundFounderPercent - postRoundFounderPercent) * 100) / 100
 
   // Calculate total round investment (just the cash round, SAFE is conversion not new cash)
   const totalInvestmentAmount = Math.round(roundSize * 100) / 100
@@ -150,18 +151,19 @@ export const calculateScenario = (inputs) => {
     safeDetails: safeDetails, // Individual SAFE calculation results
     totalSafeAmount: Math.round(totalSafeAmount * 100) / 100,
     totalSafePercent: safePercent,
-    // Legacy SAFE metrics for backward compatibility
-    safeAmount: Math.round(safeAmount * 100) / 100,
-    safePercent: safePercent,
-    safeCap: Math.round(safeCap * 100) / 100,  // Include input cap for apply scenario
-    safeDiscount: Math.round(safeDiscount * 100) / 100,  // Include input discount for apply scenario
-    safeConversionPrice: Math.round(safeConversionPrice * 100) / 100,
+    // No legacy SAFE fields - using only N SAFEs array
     proRataAmount: actualProRataAmount,
     proRataPercent: proRataPercent_final,
     proRataPercentInput: proRataPercent,  // Include input percentage for apply scenario
     preRoundFounderPercent: preRoundFounderPercent,
     postRoundFounderPercent: postRoundFounderPercent,
-    founderDilution: founderDilution
+    founderDilution: founderDilution,
+    // ESOP metrics
+    currentEsopPool: currentEsopPool,
+    targetEsopPool: targetEsopPool,
+    esopTiming: esopTiming,
+    esopPercent: esopPercent,
+    esopIncrease: Math.max(0, targetEsopPool - currentEsopPool)
   }
 }
 

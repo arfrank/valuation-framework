@@ -27,17 +27,16 @@ function App() {
       investorName: 'US',
       showAdvanced: false,
       proRataPercent: 15,
-      safeAmount: 0,
-      safeCap: 0,
       preRoundFounderOwnership: 70,
+      currentEsopPool: 0,
+      targetEsopPool: 0,
+      esopTiming: 'pre-close',
       // Pro-forma specific fields
       isProFormaMode: false,
       newInvestorAmount: 2.75,
       newInvestorName: 'Lead Investor',
       existingInvestors: [],
-      founders: [],
-      esopPoolPreClose: 0,
-      esopPoolInRound: 0
+      founders: []
     }
   })
   const [nextCompanyId, setNextCompanyId] = useState(2)
@@ -87,8 +86,6 @@ function App() {
       investorName: 'US',
       showAdvanced: false,
       proRataPercent: 15,
-      safeAmount: 0,
-      safeCap: 0,
       preRoundFounderOwnership: 70,
       // Pro-forma specific fields
       isProFormaMode: false,
@@ -96,8 +93,9 @@ function App() {
       newInvestorName: 'Lead Investor',
       existingInvestors: [],
       founders: [],
-      esopPoolPreClose: 0,
-      esopPoolInRound: 0
+      currentEsopPool: 0,
+      targetEsopPool: 0,
+      esopTiming: 'pre-close'
     }
     setCompanies(prev => ({ ...prev, [newCompanyId]: newCompany }))
     setActiveCompany(newCompanyId)

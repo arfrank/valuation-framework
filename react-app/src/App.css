@@ -1164,6 +1164,11 @@ body.geometric-background-active .app {
 .safes-section {
   grid-column: 1 / -1;
   margin-top: 1rem;
+  padding: 1rem;
+  background: linear-gradient(135deg, #f0fff4 0%, #e6fffa 100%);
+  border: 1px solid #81e6d9;
+  border-radius: 8px;
+  border-left: 4px solid #38b2ac;
 }
 
 .safes-header {
@@ -1177,15 +1182,15 @@ body.geometric-background-active .app {
 
 .safes-header h5 {
   font-size: 0.9rem;
-  color: #4a5568;
-  font-weight: 600;
+  color: #2d5a55;
+  font-weight: 700;
   margin: 0;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .add-safe-btn {
-  background: #48bb78;
+  background: #38b2ac;
   color: white;
   border: none;
   border-radius: 4px;
@@ -1199,19 +1204,19 @@ body.geometric-background-active .app {
 }
 
 .add-safe-btn:hover {
-  background: #38a169;
+  background: #319795;
   transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(72, 187, 120, 0.3);
+  box-shadow: 0 2px 4px rgba(56, 178, 172, 0.3);
 }
 
 .no-safes-message {
   text-align: center;
-  color: #718096;
+  color: #4a5568;
   font-style: italic;
   font-size: 0.85rem;
   padding: 1.5rem;
-  background: #f7fafc;
-  border: 1px dashed #cbd5e0;
+  background: #e6fffa;
+  border: 1px dashed #81e6d9;
   border-radius: 4px;
 }
 
@@ -1270,9 +1275,26 @@ body.geometric-background-active .app {
 
 .safe-inputs {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 0.75rem;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
   margin-bottom: 0.75rem;
+}
+
+.safe-inputs .input-group:nth-child(3) {
+  grid-column: 1 / -1;
+  max-width: 50%;
+}
+
+@media (max-width: 500px) {
+  .safe-inputs {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+  
+  .safe-inputs .input-group:nth-child(3) {
+    grid-column: auto;
+    max-width: none;
+  }
 }
 
 .safe-conversion-info {
@@ -1284,6 +1306,80 @@ body.geometric-background-active .app {
   border-left: 3px solid #3182ce;
 }
 
+/* ESOP Section Styling */
+.esop-section {
+  grid-column: 1 / -1;
+  margin-top: 1rem;
+  padding: 1rem;
+  background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+  border: 1px solid #cbd5e0;
+  border-radius: 8px;
+  border-left: 4px solid #805ad5;
+}
+
+.esop-section h5 {
+  margin: 0 0 1rem 0;
+  color: #553c9a;
+  font-size: 1rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.esop-section h5::before {
+  content: '👥';
+  font-size: 1.1rem;
+}
+
+.esop-timing {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #cbd5e0;
+}
+
+.esop-timing > label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #4a5568;
+  font-size: 0.9rem;
+}
+
+.radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.radio-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.radio-option:hover {
+  background: rgba(128, 90, 213, 0.05);
+}
+
+.radio-option input[type="radio"] {
+  margin: 0;
+  width: 16px;
+  height: 16px;
+  accent-color: #805ad5;
+  cursor: pointer;
+}
+
+.radio-option span {
+  font-size: 0.9rem;
+  color: #4a5568;
+  cursor: pointer;
+}
+
 @media (max-width: 768px) {
   .advanced-section .input-grid {
     grid-template-columns: 1fr;
@@ -1292,13 +1388,43 @@ body.geometric-background-active .app {
 }
 
 /* Pro-rata and SAFE row styling */
-.pro-rata-row, .safe-row {
+.pro-rata-row {
   background-color: #edf2f7;
   border-radius: 3px;
   font-style: italic;
   color: #4a5568;
   border-left: 3px solid #3182ce;
   padding-left: 8px;
+}
+
+/* Enhanced SAFE row styling for scenario cards */
+.scenario-card .safe-row {
+  position: relative;
+  background: linear-gradient(135deg, #f0fff4 0%, #e6fffa 100%);
+  border: 1px solid #81e6d9;
+  border-radius: 4px;
+  border-left: 4px solid #38b2ac;
+  padding: 0.4rem 0.6rem 0.4rem 1.2rem;
+  margin: 0.2rem 0;
+  font-style: normal;
+  color: #2d3748;
+  transition: all 0.2s ease;
+}
+
+.scenario-card .safe-row::before {
+  content: "💰";
+  position: absolute;
+  left: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.7rem;
+  z-index: 1;
+}
+
+.scenario-card .safe-row:hover {
+  background: linear-gradient(135deg, #e6fffa 0%, #b2f5ea 100%);
+  border-color: #4fd1c7;
+  transform: translateX(2px);
 }
 
 /* Founder impact row enhanced styling */

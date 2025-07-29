@@ -14,11 +14,10 @@ const ProFormaInputForm = ({ company, onUpdate }) => {
     // Multiple founders
     founders: [],
     
-    // ESOP parameters
-    esopPoolPreClose: 0,
-    esopPoolInRound: 0,
+    // ESOP parameters (inherited from scenario mode)
+    esopPool: 0,
     
-    // Advanced features from existing system
+    // Advanced features from existing system (inherited)
     safes: [],
     proRataPercent: 0,
     preRoundFounderOwnership: 0,
@@ -195,282 +194,282 @@ const ProFormaInputForm = ({ company, onUpdate }) => {
   const totalSafeAmount = values.safes.reduce((sum, safe) => sum + (safe.amount || 0), 0)
 
   return (
-    <div className="input-form pro-forma-input">
-      <h3>Pro-Forma Cap Table Modeling</h3>
-      
-      {/* Basic Round Parameters */}
-      <div className="form-section">
-        <h4>Round Parameters</h4>
-        <div className="form-group">
-          <label htmlFor="postMoneyVal">Post-Money Valuation ($M)</label>
-          <input
-            id="postMoneyVal"
-            type="number"
-            step="0.1"
-            value={values.postMoneyVal}
-            onChange={(e) => handleChange('postMoneyVal', e.target.value)}
-          />
-        </div>
-        
-        <div className="form-group">
-          <label htmlFor="roundSize">Round Size ($M)</label>
-          <input
-            id="roundSize"
-            type="number"
-            step="0.1"
-            value={values.roundSize}
-            onChange={(e) => handleChange('roundSize', e.target.value)}
-          />
-        </div>
-        
-        <div className="form-group">
-          <label>Pre-Money Valuation</label>
-          <div className="calculated-value">${preMoneyVal}M</div>
+    <div className="input-form">
+      <div className="form-header">
+        <h3>Pro-Forma Cap Table Modeling</h3>
+        <div className="header-controls">
+          <div className="investor-name-input">
+            <label htmlFor="pro-forma-investor-name">Lead Investor:</label>
+            <input
+              id="pro-forma-investor-name"
+              type="text"
+              value={values.newInvestorName || 'Lead Investor'}
+              onChange={(e) => handleChange('newInvestorName', e.target.value)}
+              placeholder="Lead Investor"
+            />
+          </div>
+          <div className="calculated-money-toggle">
+            Pre-Money: <span className="value">${preMoneyVal.toFixed(1)}M</span>
+          </div>
         </div>
       </div>
 
-      {/* New Investor */}
-      <div className="form-section">
-        <h4>New Lead Investor</h4>
-        <div className="form-group">
-          <label htmlFor="newInvestorName">Investor Name</label>
-          <input
-            id="newInvestorName"
-            type="text"
-            value={values.newInvestorName}
-            onChange={(e) => handleChange('newInvestorName', e.target.value)}
-            placeholder="Enter investor name"
-          />
+      <div className="input-grid">
+        <div className="input-group">
+          <label htmlFor="pro-forma-post-money">Post-Money Valuation</label>
+          <div className="input-wrapper">
+            <span className="currency">$</span>
+            <input
+              id="pro-forma-post-money"
+              type="number"
+              value={values.postMoneyVal}
+              onChange={(e) => handleChange('postMoneyVal', e.target.value)}
+              step="0.1"
+              min="0"
+            />
+            <span className="unit">M</span>
+          </div>
         </div>
-        
-        <div className="form-group">
-          <label htmlFor="newInvestorAmount">Investment Amount ($M)</label>
-          <input
-            id="newInvestorAmount"
-            type="number"
-            step="0.1"
-            value={values.newInvestorAmount}
-            onChange={(e) => handleChange('newInvestorAmount', e.target.value)}
-          />
+
+        <div className="input-group">
+          <label htmlFor="pro-forma-round-size">Round Size</label>
+          <div className="input-wrapper">
+            <span className="currency">$</span>
+            <input
+              id="pro-forma-round-size"
+              type="number"
+              value={values.roundSize}
+              onChange={(e) => handleChange('roundSize', e.target.value)}
+              step="0.1"
+              min="0"
+            />
+            <span className="unit">M</span>
+          </div>
+        </div>
+
+        <div className="input-group">
+          <label htmlFor="pro-forma-new-investor">Lead Investment</label>
+          <div className="input-wrapper">
+            <span className="currency">$</span>
+            <input
+              id="pro-forma-new-investor"
+              type="number"
+              value={values.newInvestorAmount}
+              onChange={(e) => handleChange('newInvestorAmount', e.target.value)}
+              step="0.1"
+              min="0"
+            />
+            <span className="unit">M</span>
+          </div>
         </div>
       </div>
 
-      {/* Existing Investors */}
-      <div className="form-section">
-        <div className="section-header">
-          <h4>Existing Investors</h4>
-          <button type="button" onClick={addExistingInvestor} className="add-button">
-            + Add Investor
-          </button>
-        </div>
-        
-        {values.existingInvestors.map((investor, index) => (
-          <div key={investor.id} className="investor-row">
-            <div className="form-group">
-              <label>Name</label>
-              <input
-                type="text"
-                value={investor.name}
-                onChange={(e) => updateExistingInvestor(investor.id, 'name', e.target.value)}
-                placeholder={`Investor ${index + 1}`}
-              />
+      {/* Pro-Forma Advanced Features Toggle */}
+      <div className="advanced-toggle">
+        <button 
+          type="button"
+          className="toggle-advanced-btn"
+          onClick={() => handleChange('showAdvanced', !values.showAdvanced)}
+        >
+          {values.showAdvanced ? '▼' : '▶'} Pro-Forma Details
+        </button>
+      </div>
+
+      {/* Pro-Forma Advanced Features Section */}
+      {values.showAdvanced && (
+        <div className="advanced-section">
+          <h4>Detailed Cap Table Modeling</h4>
+          
+          {/* Existing Investors Section */}
+          <div className="stakeholders-section">
+            <div className="stakeholders-header">
+              <h5>Existing Investors</h5>
+              <button 
+                type="button"
+                className="add-safe-btn"
+                onClick={addExistingInvestor}
+                title="Add Existing Investor"
+              >
+                + Add Investor
+              </button>
             </div>
-            
-            <div className="form-group">
-              <label>Current Ownership (%)</label>
-              <input
-                type="number"
-                step="0.1"
-                value={investor.ownershipPercent}
-                onChange={(e) => updateExistingInvestor(investor.id, 'ownershipPercent', e.target.value)}
-              />
-            </div>
-            
-            <div className="form-group">
-              <label>
-                <input
-                  type="checkbox"
-                  checked={investor.hasProRata}
-                  onChange={(e) => updateExistingInvestor(investor.id, 'hasProRata', e.target.checked)}
-                />
-                Has Pro-Rata Rights
-              </label>
-            </div>
-            
-            {investor.hasProRata && (
-              <div className="form-group">
-                <label htmlFor={`proRataCommitment-${investor.id}`}>Pro-Rata Commitment ($M)</label>
-                <input
-                  id={`proRataCommitment-${investor.id}`}
-                  type="number"
-                  step="0.1"
-                  value={investor.proRataCommitment || 0}
-                  onChange={(e) => updateExistingInvestor(investor.id, 'proRataCommitment', e.target.value)}
-                />
+
+            {(!values.existingInvestors || values.existingInvestors.length === 0) && (
+              <div className="no-safes-message">
+                No existing investors added. Click "Add Investor" to model current cap table.
               </div>
             )}
-            
-            <button
-              type="button"
-              onClick={() => removeExistingInvestor(investor.id)}
-              className="remove-button"
-            >
-              Remove
-            </button>
+
+            {values.existingInvestors && values.existingInvestors.map((investor, index) => (
+              <div key={investor.id} className="safe-row">
+                <div className="safe-row-header">
+                  <span className="safe-label">Investor #{index + 1}</span>
+                  <button 
+                    type="button"
+                    className="remove-safe-btn"
+                    onClick={() => removeExistingInvestor(investor.id)}
+                    title="Remove Investor"
+                  >
+                    ×
+                  </button>
+                </div>
+                
+                <div className="safe-inputs">
+                  <div className="input-group">
+                    <label htmlFor={`investor-name-${investor.id}`}>Name</label>
+                    <div className="input-wrapper">
+                      <input
+                        id={`investor-name-${investor.id}`}
+                        type="text"
+                        value={investor.name}
+                        onChange={(e) => updateExistingInvestor(investor.id, 'name', e.target.value)}
+                        placeholder={`Investor ${index + 1}`}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="input-group">
+                    <label htmlFor={`investor-ownership-${investor.id}`}>Current Ownership</label>
+                    <div className="input-wrapper">
+                      <input
+                        id={`investor-ownership-${investor.id}`}
+                        type="number"
+                        value={investor.ownershipPercent}
+                        onChange={(e) => updateExistingInvestor(investor.id, 'ownershipPercent', e.target.value)}
+                        step="0.1"
+                        min="0"
+                        max="100"
+                      />
+                      <span className="unit">%</span>
+                    </div>
+                  </div>
+
+                  <div className="input-group">
+                    <label htmlFor={`investor-prorata-${investor.id}`}>Pro-Rata Commitment</label>
+                    <div className="input-wrapper">
+                      <span className="currency">$</span>
+                      <input
+                        id={`investor-prorata-${investor.id}`}
+                        type="number"
+                        value={investor.proRataCommitment || 0}
+                        onChange={(e) => updateExistingInvestor(investor.id, 'proRataCommitment', e.target.value)}
+                        step="0.1"
+                        min="0"
+                        placeholder="0 = no participation"
+                      />
+                      <span className="unit">M</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
 
-      {/* Founders */}
-      <div className="form-section">
-        <div className="section-header">
-          <h4>Founders</h4>
-          <button type="button" onClick={addFounder} className="add-button">
-            + Add Founder
-          </button>
-        </div>
-        
-        {values.founders.map((founder, index) => (
-          <div key={founder.id} className="founder-row">
-            <div className="form-group">
-              <label>Name</label>
-              <input
-                type="text"
-                value={founder.name}
-                onChange={(e) => updateFounder(founder.id, 'name', e.target.value)}
-                placeholder={`Founder ${index + 1}`}
-              />
+          {/* Founders Section */}
+          <div className="stakeholders-section">
+            <div className="stakeholders-header">
+              <h5>Founders</h5>
+              <button 
+                type="button"
+                className="add-safe-btn"
+                onClick={addFounder}
+                title="Add Founder"
+              >
+                + Add Founder
+              </button>
             </div>
-            
-            <div className="form-group">
-              <label>Ownership (%)</label>
-              <input
-                type="number"
-                step="0.1"
-                value={founder.ownershipPercent}
-                onChange={(e) => updateFounder(founder.id, 'ownershipPercent', e.target.value)}
-              />
-            </div>
-            
-            <button
-              type="button"
-              onClick={() => removeFounder(founder.id)}
-              className="remove-button"
-            >
-              Remove
-            </button>
+
+            {(!values.founders || values.founders.length === 0) && (
+              <div className="no-safes-message">
+                No founders added. Click "Add Founder" to model founder ownership.
+              </div>
+            )}
+
+            {values.founders && values.founders.map((founder, index) => (
+              <div key={founder.id} className="safe-row">
+                <div className="safe-row-header">
+                  <span className="safe-label">Founder #{index + 1}</span>
+                  <button 
+                    type="button"
+                    className="remove-safe-btn"
+                    onClick={() => removeFounder(founder.id)}
+                    title="Remove Founder"
+                  >
+                    ×
+                  </button>
+                </div>
+                
+                <div className="safe-inputs">
+                  <div className="input-group">
+                    <label htmlFor={`founder-name-${founder.id}`}>Name</label>
+                    <div className="input-wrapper">
+                      <input
+                        id={`founder-name-${founder.id}`}
+                        type="text"
+                        value={founder.name}
+                        onChange={(e) => updateFounder(founder.id, 'name', e.target.value)}
+                        placeholder={`Founder ${index + 1}`}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="input-group">
+                    <label htmlFor={`founder-ownership-${founder.id}`}>Ownership</label>
+                    <div className="input-wrapper">
+                      <input
+                        id={`founder-ownership-${founder.id}`}
+                        type="number"
+                        value={founder.ownershipPercent}
+                        onChange={(e) => updateFounder(founder.id, 'ownershipPercent', e.target.value)}
+                        step="0.1"
+                        min="0"
+                        max="100"
+                      />
+                      <span className="unit">%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
 
-      {/* ESOP */}
-      <div className="form-section">
-        <h4>Employee Stock Option Pool (ESOP)</h4>
-        <div className="form-group">
-          <label htmlFor="esopPoolPreClose">Pre-Close ESOP Pool (%)</label>
-          <input
-            id="esopPoolPreClose"
-            type="number"
-            step="0.1"
-            value={values.esopPoolPreClose}
-            onChange={(e) => handleChange('esopPoolPreClose', e.target.value)}
-          />
-          <small>Percentage of shares allocated before the round</small>
-        </div>
-        
-        <div className="form-group">
-          <label htmlFor="esopPoolInRound">ESOP Pool in Round ($M)</label>
-          <input
-            id="esopPoolInRound"
-            type="number"
-            step="0.1"
-            value={values.esopPoolInRound}
-            onChange={(e) => handleChange('esopPoolInRound', e.target.value)}
-          />
-          <small>Dollar amount allocated as part of the round</small>
-        </div>
-      </div>
-
-      {/* SAFEs */}
-      <div className="form-section">
-        <div className="section-header">
-          <h4>SAFE Notes</h4>
-          <button type="button" onClick={addSafe} className="add-button">
-            + Add SAFE
-          </button>
-        </div>
-        
-        {values.safes.map((safe, index) => (
-          <div key={safe.id} className="safe-row">
-            <div className="form-group">
-              <label>Amount ($M)</label>
-              <input
-                type="number"
-                step="0.1"
-                value={safe.amount}
-                onChange={(e) => updateSafe(safe.id, 'amount', e.target.value)}
-              />
+          {/* ESOP inherited from scenario mode - show current value */}
+          <div className="input-grid">
+            <div className="input-group">
+              <label>ESOP Pool (from scenario)</label>
+              <div className="calculated-value">
+                {values.esopPool > 0 ? `${values.esopPool}% post-round` : 'None set'}
+              </div>
+              <small>Set in Scenario Analysis advanced features</small>
             </div>
-            
-            <div className="form-group">
-              <label>Valuation Cap ($M)</label>
-              <input
-                type="number"
-                step="0.1"
-                value={safe.cap}
-                onChange={(e) => updateSafe(safe.id, 'cap', e.target.value)}
-              />
-            </div>
-            
-            <div className="form-group">
-              <label>Discount (%)</label>
-              <input
-                type="number"
-                step="1"
-                value={safe.discount}
-                onChange={(e) => updateSafe(safe.id, 'discount', e.target.value)}
-              />
-            </div>
-            
-            <button
-              type="button"
-              onClick={() => removeSafe(safe.id)}
-              className="remove-button"
-            >
-              Remove
-            </button>
           </div>
-        ))}
-      </div>
 
-      {/* Summary */}
-      <div className="form-section summary">
-        <h4>Round Summary</h4>
-        <div className="summary-row">
-          <span>Total Existing Commitments:</span>
-          <span>${totalExistingCommitments.toFixed(2)}M</span>
+          {/* SAFEs inherited from scenario mode */}
+          <div className="stakeholders-section">
+            <div className="stakeholders-header">
+              <h5>SAFE Notes (from scenario)</h5>
+              <span className="inherited-note">Managed in Scenario Analysis</span>
+            </div>
+
+            {(!values.safes || values.safes.length === 0) && (
+              <div className="no-safes-message">
+                No SAFE notes set. Configure in Scenario Analysis advanced features.
+              </div>
+            )}
+
+            {values.safes && values.safes.map((safe, index) => (
+              <div key={safe.id} className="safe-display">
+                <span className="safe-label">SAFE #{index + 1}:</span>
+                <span className="safe-details">
+                  ${safe.amount}M
+                  {safe.cap > 0 && ` (${safe.cap}M cap)`}
+                  {safe.discount > 0 && ` (${safe.discount}% discount)`}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
-        <div className="summary-row">
-          <span>Total SAFE Amount:</span>
-          <span>${totalSafeAmount.toFixed(2)}M</span>
-        </div>
-        <div className="summary-row">
-          <span>ESOP in Round:</span>
-          <span>${values.esopPoolInRound.toFixed(2)}M</span>
-        </div>
-        <div className="summary-row">
-          <span>New Investor Amount:</span>
-          <span>${values.newInvestorAmount.toFixed(2)}M</span>
-        </div>
-        <div className="summary-row total">
-          <span>Total Round:</span>
-          <span>${(totalExistingCommitments + totalSafeAmount + values.esopPoolInRound + values.newInvestorAmount).toFixed(2)}M</span>
-        </div>
-        <div className="summary-row">
-          <span>Target Round Size:</span>
-          <span>${values.roundSize.toFixed(2)}M</span>
-        </div>
-      </div>
+      )}
     </div>
   )
 }

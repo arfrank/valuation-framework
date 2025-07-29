@@ -10,13 +10,13 @@ const InputForm = ({ company, onUpdate }) => {
     // Advanced features
     showAdvanced: false,
     proRataPercent: 0,
-    // New N SAFEs structure - array of SAFE objects
+    // N SAFEs structure - array of SAFE objects
     safes: [],
-    // Legacy single SAFE fields for backward compatibility
-    safeAmount: 0,
-    safeCap: 0,
-    safeDiscount: 0,
-    preRoundFounderOwnership: 0
+    preRoundFounderOwnership: 0,
+    // ESOP fields
+    currentEsopPool: 0,
+    targetEsopPool: 0,
+    esopTiming: 'pre-close' // 'pre-close' or 'in-round'
   })
   
   // New state for tracking input mode
@@ -306,6 +306,93 @@ const InputForm = ({ company, onUpdate }) => {
                   </button>
                 )}
               </div>
+            </div>
+
+            {/* ESOP Section */}
+            <div className="esop-section">
+              <h5>Employee Stock Option Pool (ESOP)</h5>
+              
+              <div className="input-grid">
+                <div className="input-group">
+                  <label htmlFor="current-esop">Current ESOP</label>
+                  <div className={`input-wrapper ${values.currentEsopPool > 0 ? 'input-wrapper-with-clear' : ''}`}>
+                    <input
+                      id="current-esop"
+                      type="number"
+                      value={values.currentEsopPool}
+                      onChange={(e) => handleChange('currentEsopPool', e.target.value)}
+                      step="1"
+                      min="0"
+                      max="50"
+                    />
+                    <span className="unit">% of company</span>
+                    {values.currentEsopPool > 0 && (
+                      <button 
+                        type="button"
+                        className="clear-input-btn"
+                        onClick={() => handleChange('currentEsopPool', 0)}
+                        title="Clear current ESOP"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="input-group">
+                  <label htmlFor="target-esop">Target Post-Round ESOP</label>
+                  <div className={`input-wrapper ${values.targetEsopPool > 0 ? 'input-wrapper-with-clear' : ''}`}>
+                    <input
+                      id="target-esop"
+                      type="number"
+                      value={values.targetEsopPool}
+                      onChange={(e) => handleChange('targetEsopPool', e.target.value)}
+                      step="1"
+                      min="0"
+                      max="50"
+                    />
+                    <span className="unit">% post-round</span>
+                    {values.targetEsopPool > 0 && (
+                      <button 
+                        type="button"
+                        className="clear-input-btn"
+                        onClick={() => handleChange('targetEsopPool', 0)}
+                        title="Clear target ESOP"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {values.targetEsopPool > 0 && (
+                <div className="esop-timing">
+                  <label>ESOP Expansion Timing</label>
+                  <div className="radio-group">
+                    <label className="radio-option">
+                      <input
+                        type="radio"
+                        name="esop-timing"
+                        value="pre-close"
+                        checked={values.esopTiming === 'pre-close'}
+                        onChange={(e) => handleChange('esopTiming', e.target.value)}
+                      />
+                      <span>Pre-close (dilutes existing investors only)</span>
+                    </label>
+                    <label className="radio-option">
+                      <input
+                        type="radio"
+                        name="esop-timing"
+                        value="in-round"
+                        checked={values.esopTiming === 'in-round'}
+                        onChange={(e) => handleChange('esopTiming', e.target.value)}
+                      />
+                      <span>Part of round (dilutes all investors)</span>
+                    </label>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* N SAFEs Section */}

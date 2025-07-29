@@ -13,8 +13,7 @@ describe('ProFormaInputForm', () => {
     existingInvestors: [],
     founders: [],
     safes: [],
-    esopPoolPreClose: 0,
-    esopPoolInRound: 0,
+    esopPool: 0,
     isProFormaMode: true
   }
 
@@ -30,13 +29,13 @@ describe('ProFormaInputForm', () => {
     expect(screen.getByText('Pro-Forma Cap Table Modeling')).toBeInTheDocument()
     expect(screen.getByLabelText(/Post-Money Valuation/)).toBeInTheDocument()
     expect(screen.getByLabelText(/Round Size/)).toBeInTheDocument()
-    expect(screen.getByLabelText(/Investor Name/)).toBeInTheDocument()
+    expect(screen.getByLabelText(/Lead Investor:/)).toBeInTheDocument()
   })
 
   it('should display calculated pre-money valuation', () => {
     render(<ProFormaInputForm company={mockCompany} onUpdate={mockOnUpdate} />)
     
-    expect(screen.getByText('$10M')).toBeInTheDocument() // 13 - 3 = 10
+    expect(screen.getByText('$10.0M')).toBeInTheDocument() // 13 - 3 = 10
   })
 
   it('should handle basic input changes', async () => {
@@ -58,7 +57,7 @@ describe('ProFormaInputForm', () => {
     const user = userEvent.setup()
     render(<ProFormaInputForm company={mockCompany} onUpdate={mockOnUpdate} />)
     
-    const investorNameInput = screen.getByLabelText(/Investor Name/)
+    const investorNameInput = screen.getByLabelText(/Lead Investor:/)
     await user.clear(investorNameInput)
     await user.type(investorNameInput, 'New Lead VC')
     
@@ -130,19 +129,16 @@ describe('ProFormaInputForm', () => {
     )
   })
 
-  it('should handle ESOP inputs', async () => {
-    const user = userEvent.setup()
-    render(<ProFormaInputForm company={mockCompany} onUpdate={mockOnUpdate} />)
+  it('should display inherited ESOP from scenario mode', () => {
+    const companyWithEsop = {
+      ...mockCompany,
+      esopPool: 15
+    }
     
-    const esopPreCloseInput = screen.getByLabelText(/Pre-Close ESOP Pool/)
-    await user.clear(esopPreCloseInput)
-    await user.type(esopPreCloseInput, '10')
+    render(<ProFormaInputForm company={companyWithEsop} onUpdate={mockOnUpdate} />)
     
-    expect(mockOnUpdate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        esopPoolPreClose: 10
-      })
-    )
+    // ESOP should be displayed as inherited, not editable in pro-forma mode
+    expect(screen.getByText('15% post-round')).toBeInTheDocument()
   })
 
   it('should display round summary', () => {
@@ -160,15 +156,13 @@ describe('ProFormaInputForm', () => {
       safes: [
         { id: 1, amount: 0.5, cap: 8, discount: 0 }
       ],
-      esopPoolInRound: 0.2
+      esopPool: 15
     }
     
     render(<ProFormaInputForm company={companyWithData} onUpdate={mockOnUpdate} />)
     
-    expect(screen.getByText('Round Summary')).toBeInTheDocument()
-    expect(screen.getByText('$0.30M')).toBeInTheDocument() // Existing commitments
-    expect(screen.getByText('$0.50M')).toBeInTheDocument() // SAFE amount
-    expect(screen.getByText('$0.20M')).toBeInTheDocument() // ESOP in round
+    // Should show advanced section button
+    expect(screen.getByText('Pro-Forma Details')).toBeInTheDocument()
   })
 
   it('should handle removing existing investors', async () => {
