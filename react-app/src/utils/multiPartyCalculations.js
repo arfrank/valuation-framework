@@ -166,6 +166,7 @@ export function calculateEnhancedScenario(inputs) {
     investorPortion, 
     otherPortion,
     investorName = 'US',
+    showAdvanced = false,
     // New multi-party structures
     priorInvestors = [],
     founders = [],
@@ -176,18 +177,25 @@ export function calculateEnhancedScenario(inputs) {
     esopTiming = 'pre-close'
   } = migratedInputs
   
+  // When showAdvanced is false, ignore all advanced inputs
+  const effectivePriorInvestors = showAdvanced ? priorInvestors : []
+  const effectiveFounders = showAdvanced ? founders : []
+  const effectiveSafes = showAdvanced ? safes : []
+  const effectiveCurrentEsopPercent = showAdvanced ? currentEsopPercent : 0
+  const effectiveTargetEsopPercent = showAdvanced ? targetEsopPercent : 0
+  
   // Check if pre-round ownership exceeds 100% and return error if so
-  const totalPreRoundOwnership = (priorInvestors.reduce((sum, inv) => sum + (inv.ownershipPercent || 0), 0)) +
-                                  (founders.reduce((sum, f) => sum + (f.ownershipPercent || 0), 0))
+  const totalPreRoundOwnership = (effectivePriorInvestors.reduce((sum, inv) => sum + (inv.ownershipPercent || 0), 0)) +
+                                  (effectiveFounders.reduce((sum, f) => sum + (f.ownershipPercent || 0), 0))
   
   if (totalPreRoundOwnership > 100) {
     console.error(`Pre-round ownership totals ${totalPreRoundOwnership.toFixed(1)}% which exceeds 100%. Cannot calculate scenario.`)
     return null
   }
   
-  // Use original values since no scaling needed
-  const scaledPriorInvestors = priorInvestors
-  const scaledFounders = founders
+  // Use effective values (will be empty arrays when showAdvanced is false)
+  const scaledPriorInvestors = effectivePriorInvestors
+  const scaledFounders = effectiveFounders
   
   // Validate basic inputs
   if (postMoneyVal <= 0 || roundSize <= 0 || postMoneyVal <= roundSize) {
@@ -199,24 +207,24 @@ export function calculateEnhancedScenario(inputs) {
   // Calculate pro-rata allocations for prior investors (using scaled values)
   const proRataCalc = calculateProRataAllocations(scaledPriorInvestors, roundSize)
   
-  // Calculate new money amount (round size minus pro-rata)
-  const newMoneyAmount = Math.round((roundSize - proRataCalc.totalProRataAmount) * 100) / 100
+  // Pro-rata comes from the "Other" portion, not from round size
+  // If Other portion is insufficient, pro-rata is capped at Other amount
+  const actualProRataAmount = Math.min(proRataCalc.totalProRataAmount, otherPortion)
   
-  // Adjust investor portions based on available new money
-  const adjustedInvestorPortion = Math.min(investorPortion, newMoneyAmount)
-  const adjustedOtherPortion = Math.round((newMoneyAmount - adjustedInvestorPortion) * 100) / 100
+  // Adjust investor portions - investor stays the same, other is reduced by pro-rata
+  const adjustedInvestorPortion = investorPortion
+  const adjustedOtherPortion = Math.round((otherPortion - actualProRataAmount) * 100) / 100
   
   // Calculate SAFE conversions
-  const safeCalc = calculateSafeConversions(safes, preMoneyVal)
+  const safeCalc = calculateSafeConversions(effectiveSafes, preMoneyVal)
   
   // Calculate ownership percentages on post-money basis
   const roundPercent = Math.round((roundSize / postMoneyVal) * 10000) / 100
-  const adjustedRoundPercent = Math.round(((newMoneyAmount) / postMoneyVal) * 10000) / 100
   const investorPercent = Math.round((adjustedInvestorPortion / postMoneyVal) * 10000) / 100
   const otherPercent = Math.round((adjustedOtherPortion / postMoneyVal) * 10000) / 100
   
   // Calculate ESOP effects
-  const esopCalc = calculateEsopEffects(currentEsopPercent, targetEsopPercent, esopTiming, roundPercent)
+  const esopCalc = calculateEsopEffects(effectiveCurrentEsopPercent, effectiveTargetEsopPercent, esopTiming, roundPercent)
   
   // Adjust round percentage for post-close ESOP dilution
   let finalRoundPercent = roundPercent
@@ -269,45 +277,13 @@ export function calculateEnhancedScenario(inputs) {
     }
   })
   
-  // Calculate total ownership for verification (should be 100%)
+  // Calculate total ownership for verification
   const totalPriorInvestorOwnership = postRoundPriorInvestors.reduce((sum, inv) => sum + inv.postRoundPercent, 0)
   const totalFounderOwnership = postRoundFounders.reduce((sum, founder) => sum + founder.postRoundPercent, 0)
-  const totalOwnership = finalRoundPercent + safeCalc.totalSafePercent + totalPriorInvestorOwnership + totalFounderOwnership + esopCalc.finalEsopPercent
+  const totalAccountedOwnership = finalRoundPercent + safeCalc.totalSafePercent + totalPriorInvestorOwnership + totalFounderOwnership + esopCalc.finalEsopPercent
   
-  // Ensure exactly 100% total with fair proportional adjustment
-  const ownershipAdjustment = 100 - totalOwnership
-  if (Math.abs(ownershipAdjustment) > 0.01) {
-    // Instead of unfairly penalizing only the first founder,
-    // distribute the adjustment proportionally across all stakeholders
-    
-    const totalAdjustableOwnership = totalPriorInvestorOwnership + totalFounderOwnership
-    
-    if (totalAdjustableOwnership > 0) {
-      // Proportionally adjust prior investors
-      postRoundPriorInvestors.forEach(investor => {
-        const proportion = investor.postRoundPercent / totalAdjustableOwnership
-        const adjustment = proportion * ownershipAdjustment
-        investor.postRoundPercent = Math.round((investor.postRoundPercent + adjustment) * 100) / 100
-        // Update dilution calculation
-        const preRoundInvestor = scaledPriorInvestors.find(pi => pi.id === investor.id)
-        if (preRoundInvestor) {
-          investor.dilution = Math.round((preRoundInvestor.ownershipPercent - investor.postRoundPercent) * 100) / 100
-        }
-      })
-      
-      // Proportionally adjust founders
-      postRoundFounders.forEach(founder => {
-        const proportion = founder.postRoundPercent / totalAdjustableOwnership
-        const adjustment = proportion * ownershipAdjustment
-        founder.postRoundPercent = Math.round((founder.postRoundPercent + adjustment) * 100) / 100
-        // Update dilution calculation  
-        const preRoundFounder = scaledFounders.find(f => f.id === founder.id)
-        if (preRoundFounder) {
-          founder.dilution = Math.round((preRoundFounder.ownershipPercent - founder.postRoundPercent) * 100) / 100
-        }
-      })
-    }
-  }
+  // Calculate unknown ownership (what's not accounted for)
+  const unknownOwnership = Math.round((100 - totalAccountedOwnership) * 100) / 100
   
   return {
     // Basic valuation info
@@ -317,11 +293,12 @@ export function calculateEnhancedScenario(inputs) {
     investorName: investorName || 'US',
     
     // Round composition - ensure no undefined values
-    newMoneyAmount: newMoneyAmount || 0,
+    newMoneyAmount: roundSize || 0,
     investorAmount: adjustedInvestorPortion || 0,
     investorPercent: investorPercent || 0,
     otherAmount: adjustedOtherPortion || 0,
     otherPercent: otherPercent || 0,
+    otherAmountOriginal: otherPortion || 0, // Original other amount before pro-rata adjustment
     roundPercent: finalRoundPercent || 0,
     
     // Total round details for legacy compatibility
@@ -329,21 +306,21 @@ export function calculateEnhancedScenario(inputs) {
     totalPercent: finalRoundPercent || 0,
     
     // Pro-rata details
-    totalProRataAmount: proRataCalc.totalProRataAmount || 0,
-    totalProRataPercent: proRataCalc.totalProRataPercent || 0,
-    proRataAmount: proRataCalc.totalProRataAmount || 0,
-    proRataPercent: proRataCalc.totalProRataPercent || 0,
+    totalProRataAmount: actualProRataAmount || 0,
+    totalProRataPercent: Math.round((actualProRataAmount / postMoneyVal) * 10000) / 100,
+    proRataAmount: actualProRataAmount || 0,
+    proRataPercent: Math.round((actualProRataAmount / postMoneyVal) * 10000) / 100,
     proRataDetails: proRataCalc.proRataResults || [],
     
     // SAFE details
     totalSafeAmount: safeCalc.totalSafeAmount || 0,
     totalSafePercent: safeCalc.totalSafePercent || 0,
     safeDetails: safeCalc.safeDetails || [],
-    safes: safes || [],
+    safes: effectiveSafes || [],
     
     // ESOP details
-    currentEsopPercent: currentEsopPercent || 0,
-    targetEsopPercent: targetEsopPercent || 0,
+    currentEsopPercent: effectiveCurrentEsopPercent || 0,
+    targetEsopPercent: effectiveTargetEsopPercent || 0,
     finalEsopPercent: esopCalc.finalEsopPercent || 0,
     esopIncrease: esopCalc.esopIncrease || 0,
     esopIncreasePreClose: esopCalc.esopIncreasePreClose || 0,
@@ -359,8 +336,9 @@ export function calculateEnhancedScenario(inputs) {
     preRoundFounderPercent: Math.round((scaledFounders.reduce((sum, f) => sum + (f.ownershipPercent || 0), 0)) * 100) / 100,
     founderDilution: Math.round((scaledFounders.reduce((sum, f) => sum + (f.ownershipPercent || 0), 0) - postRoundFounders.reduce((sum, f) => sum + (f.postRoundPercent || 0), 0)) * 100) / 100,
     
-    // Total verification
-    totalOwnership: Math.round((finalRoundPercent + safeCalc.totalSafePercent + totalPriorInvestorOwnership + postRoundFounders.reduce((sum, f) => sum + (f.postRoundPercent || 0), 0) + esopCalc.finalEsopPercent) * 100) / 100
+    // Total verification and unknown ownership
+    totalOwnership: Math.round(totalAccountedOwnership * 100) / 100,
+    unknownOwnership: unknownOwnership
   }
 }
 
@@ -382,21 +360,39 @@ export function calculateEnhancedScenarios(company) {
     isBase: true
   }]
   
-  // Generate alternative scenarios based on valuation multiples
-  const valuationMultipliers = [0.8, 1.2, 1.5, 2.0]
+  // Generate 10 alternative scenarios with varied parameters
+  const scenarioVariations = [
+    { multiplier: 0.5, roundMultiplier: 1.0, title: '0.5x Valuation' },
+    { multiplier: 0.75, roundMultiplier: 1.0, title: '0.75x Valuation' },
+    { multiplier: 0.9, roundMultiplier: 1.0, title: '0.9x Valuation' },
+    { multiplier: 1.1, roundMultiplier: 1.0, title: '1.1x Valuation' },
+    { multiplier: 1.25, roundMultiplier: 1.0, title: '1.25x Valuation' },
+    { multiplier: 1.5, roundMultiplier: 1.0, title: '1.5x Valuation' },
+    { multiplier: 2.0, roundMultiplier: 1.0, title: '2x Valuation' },
+    { multiplier: 1.0, roundMultiplier: 0.5, title: 'Half Round Size' },
+    { multiplier: 1.0, roundMultiplier: 1.5, title: '1.5x Round Size' },
+    { multiplier: 1.5, roundMultiplier: 1.5, title: '1.5x Val & Round' }
+  ]
   
-  valuationMultipliers.forEach((multiplier, index) => {
-    const adjustedPostMoney = Math.round(company.postMoneyVal * multiplier * 100) / 100
+  scenarioVariations.forEach((variation, index) => {
+    const adjustedPostMoney = Math.round(company.postMoneyVal * variation.multiplier * 100) / 100
+    const adjustedRoundSize = Math.round(company.roundSize * variation.roundMultiplier * 100) / 100
+    const adjustedInvestorPortion = Math.round(company.investorPortion * variation.roundMultiplier * 100) / 100
+    const adjustedOtherPortion = Math.round((adjustedRoundSize - adjustedInvestorPortion) * 100) / 100
+    
     const scenarioInputs = {
       ...company,
-      postMoneyVal: adjustedPostMoney
+      postMoneyVal: adjustedPostMoney,
+      roundSize: adjustedRoundSize,
+      investorPortion: adjustedInvestorPortion,
+      otherPortion: adjustedOtherPortion
     }
     
     const scenario = calculateEnhancedScenario(scenarioInputs)
     if (scenario) {
       scenarios.push({
         ...scenario,
-        title: `${multiplier}x Valuation`,
+        title: variation.title,
         isBase: false
       })
     }

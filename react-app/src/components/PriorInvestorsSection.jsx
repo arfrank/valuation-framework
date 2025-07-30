@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { createPriorInvestor, calculateTotalOwnership } from '../utils/dataStructures'
+import FormInput from './FormInput'
 
 function PriorInvestorsSection({ priorInvestors = [], onUpdate }) {
   const [expandedInvestor, setExpandedInvestor] = useState(null)
@@ -37,7 +38,7 @@ function PriorInvestorsSection({ priorInvestors = [], onUpdate }) {
   
   return (
     <div className="prior-investors-section">
-      <div className="section-header">
+      <div className="founders-investors-header">
         <div className="section-title-row">
           <h5 className="section-label">Prior Investors</h5>
           <button 
@@ -66,57 +67,48 @@ function PriorInvestorsSection({ priorInvestors = [], onUpdate }) {
           {priorInvestors.map(investor => (
             <div key={investor.id} className="investor-row">
               <div className="investor-row-header">
-                <div className="investor-basic-info">
-                  <input
-                    type="text"
-                    value={investor.name}
-                    onChange={(e) => updateInvestor(investor.id, 'name', e.target.value)}
-                    placeholder="Investor name"
-                    className="investor-name-input"
-                  />
-                  <div className="ownership-input-wrapper">
-                    <input
-                      type="number"
-                      value={investor.ownershipPercent}
-                      onChange={(e) => updateInvestor(investor.id, 'ownershipPercent', e.target.value)}
-                      min="0"
-                      max="100"
-                      step="0.1"
-                      className="ownership-input"
-                    />
-                    <span className="unit">%</span>
-                  </div>
-                </div>
-                
-                <div className="investor-controls">
-                  <label className="pro-rata-checkbox">
-                    <input
-                      type="checkbox"
-                      checked={investor.hasProRataRights}
-                      onChange={(e) => updateInvestor(investor.id, 'hasProRataRights', e.target.checked)}
-                    />
-                    <span className="checkbox-label">Pro-rata rights</span>
-                  </label>
-                  
-                  <button
-                    className="remove-investor-btn"
-                    onClick={() => removeInvestor(investor.id)}
-                    type="button"
-                    title="Remove investor"
-                  >
-                    ×
-                  </button>
-                </div>
+                <span className="investor-label">Prior Investor</span>
+                <button
+                  className="remove-investor-btn"
+                  onClick={() => removeInvestor(investor.id)}
+                  type="button"
+                  title="Remove investor"
+                >
+                  ×
+                </button>
               </div>
               
-              {investor.hasProRataRights && investor.ownershipPercent > 0 && (
-                <div className="pro-rata-info">
-                  <div className="pro-rata-display">
-                    <span className="pro-rata-label">Pro-rata entitlement:</span>
-                    <span className="pro-rata-value">{investor.ownershipPercent.toFixed(1)}% of round size</span>
-                  </div>
-                </div>
-              )}
+              <div className="investor-inputs">
+                <FormInput
+                  label="Name"
+                  type="text"
+                  value={investor.name}
+                  onChange={(value) => updateInvestor(investor.id, 'name', value)}
+                  placeholder="Investor name"
+                />
+                <FormInput
+                  label="Ownership"
+                  type="number"
+                  value={investor.ownershipPercent}
+                  onChange={(value) => updateInvestor(investor.id, 'ownershipPercent', value)}
+                  suffix="%"
+                  min="0"
+                  max="100"
+                  step="0.1"
+                />
+              </div>
+              
+              <div className="investor-pro-rata">
+                <label className="pro-rata-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={investor.hasProRataRights}
+                    onChange={(e) => updateInvestor(investor.id, 'hasProRataRights', e.target.checked)}
+                  />
+                  <span className="checkbox-label">Pro-rata rights</span>
+                </label>
+              </div>
+              
             </div>
           ))}
         </div>

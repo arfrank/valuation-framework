@@ -9,6 +9,7 @@ describe('Multi-Party Calculations - Multiple Founders', () => {
         roundSize: 3,
         investorPortion: 2.75,
         otherPortion: 0.25,
+        showAdvanced: true,
         priorInvestors: [],
         founders: [
           { id: 1, name: 'CEO', ownershipPercent: 60 },
@@ -76,6 +77,7 @@ describe('Multi-Party Calculations - Multiple Founders', () => {
         roundSize: 5,
         investorPortion: 4,
         otherPortion: 1,
+        showAdvanced: true,
         priorInvestors: [],
         founders: [
           { id: 1, name: 'CEO', ownershipPercent: 50 },
@@ -124,6 +126,7 @@ describe('Multi-Party Calculations - Multiple Founders', () => {
         roundSize: 3,
         investorPortion: 2,
         otherPortion: 1,
+        showAdvanced: true,
         priorInvestors: [
           { id: 1, name: 'Seed VC', ownershipPercent: 20, hasProRataRights: true }
         ],
@@ -151,7 +154,8 @@ describe('Multi-Party Calculations - Multiple Founders', () => {
       })
       
       // Seed VC should get pro-rata: 20% of $3M = $0.6M
-      // New money: $3M - $0.6M = $2.4M  
+      // Pro-rata comes from "Other" portion ($1M)
+      // Adjusted Other: $1M - $0.6M = $0.4M
       // Round %: $3M / $15M = 20%
       // Total new ownership (including pro-rata): 20%
       // Remaining for existing: 80%
@@ -160,6 +164,8 @@ describe('Multi-Party Calculations - Multiple Founders', () => {
       // Seed VC: 20% * 80% + pro-rata ownership
       
       expect(result.totalProRataAmount).toBeCloseTo(0.6, 1) // 20% of $3M
+      expect(result.otherAmountOriginal).toBe(1) // Original other amount
+      expect(result.otherAmount).toBeCloseTo(0.4, 1) // Adjusted after pro-rata
       
       const founderA = result.founders.find(f => f.name === 'Founder A')
       const founderB = result.founders.find(f => f.name === 'Founder B')
@@ -174,10 +180,21 @@ describe('Multi-Party Calculations - Multiple Founders', () => {
       expect(founderB.postRoundPercent).toBeLessThan(35) // Should be diluted
       expect(founderA.postRoundPercent).toBeGreaterThan(founderB.postRoundPercent) // A should still own more than B
       
-      // Verify total ownership
+      // Verify total ownership including unknown
       const seedVC = result.priorInvestors.find(i => i.name === 'Seed VC')
-      const total = result.roundPercent + seedVC.postRoundPercent + founderA.postRoundPercent + founderB.postRoundPercent
-      expect(total).toBeCloseTo(100, 1)
+      const knownTotal = result.roundPercent + seedVC.postRoundPercent + founderA.postRoundPercent + founderB.postRoundPercent
+      const totalWithUnknown = knownTotal + (result.unknownOwnership || 0)
+      expect(totalWithUnknown).toBeCloseTo(100, 1)
+      
+      // Log the ownership breakdown for clarity
+      console.log('')
+      console.log('Ownership breakdown:')
+      console.log(`- Round: ${result.roundPercent}%`)
+      console.log(`- Seed VC: ${seedVC.postRoundPercent}%`)
+      console.log(`- Founder A: ${founderA.postRoundPercent}%`)
+      console.log(`- Founder B: ${founderB.postRoundPercent}%`)
+      console.log(`- Unknown: ${result.unknownOwnership || 0}%`)
+      console.log(`- Total: ${totalWithUnknown}%`)
     })
 
     it('should not unfairly adjust only the first founder for rounding differences', () => {
@@ -186,6 +203,7 @@ describe('Multi-Party Calculations - Multiple Founders', () => {
         roundSize: 3,
         investorPortion: 2.75,  
         otherPortion: 0.25,
+        showAdvanced: true,
         priorInvestors: [],
         founders: [
           { id: 1, name: 'Founder 1', ownershipPercent: 33.33 },
@@ -253,6 +271,7 @@ describe('Multi-Party Calculations - Multiple Founders', () => {
         roundSize: 1.333333, 
         investorPortion: 1.222222,  
         otherPortion: 0.111111,
+        showAdvanced: true,
         priorInvestors: [],
         founders: [
           { id: 1, name: 'Founder A', ownershipPercent: 33.333333 }, // Repeating decimals
@@ -334,6 +353,7 @@ describe('Multi-Party Calculations - Multiple Founders', () => {
         roundSize: 3,
         investorPortion: 2.75,
         otherPortion: 0.25,
+        showAdvanced: true,
         priorInvestors: [
           { id: 1, name: 'Prior VC', ownershipPercent: 25, hasProRataRights: false }
         ],
@@ -367,5 +387,104 @@ describe('Multi-Party Calculations - Multiple Founders', () => {
       console.log('✅ Correctly returns null for ownership > 100%')
     })
 
+  })
+
+  describe('showAdvanced flag behavior', () => {
+    it('should ignore advanced inputs when showAdvanced is false', () => {
+      const inputs = {
+        postMoneyVal: 20,
+        roundSize: 5,
+        investorPortion: 3,
+        otherPortion: 2,
+        showAdvanced: false,
+        // These should all be ignored when showAdvanced is false
+        priorInvestors: [
+          { id: 1, name: 'Seed VC', ownershipPercent: 20, hasProRataRights: true }
+        ],
+        founders: [
+          { id: 1, name: 'CEO', ownershipPercent: 50 },
+          { id: 2, name: 'CTO', ownershipPercent: 30 }
+        ],
+        safes: [
+          { id: 1, amount: 1, cap: 10, discount: 20 }
+        ],
+        currentEsopPercent: 10,
+        targetEsopPercent: 15
+      }
+
+      const result = calculateEnhancedScenario(inputs)
+      
+      console.log('=== SHOW ADVANCED FALSE TEST ===')
+      console.log('showAdvanced: false')
+      console.log('All advanced inputs should be ignored')
+      console.log('')
+      console.log('Result:')
+      console.log(`- Round %: ${result.roundPercent}%`)
+      console.log(`- Prior investors: ${result.priorInvestors.length}`)
+      console.log(`- Founders: ${result.founders.length}`)
+      console.log(`- SAFEs: ${result.safes.length}`)
+      console.log(`- Current ESOP: ${result.currentEsopPercent}%`)
+      console.log(`- Target ESOP: ${result.targetEsopPercent}%`)
+      console.log(`- Final ESOP: ${result.finalEsopPercent}%`)
+      
+      // When showAdvanced is false, all advanced arrays should be empty
+      expect(result.priorInvestors).toHaveLength(0)
+      expect(result.founders).toHaveLength(0)
+      expect(result.safes).toHaveLength(0)
+      expect(result.safeDetails).toHaveLength(0)
+      
+      // ESOP values should be 0
+      expect(result.currentEsopPercent).toBe(0)
+      expect(result.targetEsopPercent).toBe(0)
+      expect(result.finalEsopPercent).toBe(0)
+      expect(result.esopIncrease).toBe(0)
+      
+      // Pro-rata should be 0
+      expect(result.totalProRataAmount).toBe(0)
+      expect(result.totalProRataPercent).toBe(0)
+      
+      // Round should be simple calculation
+      expect(result.roundPercent).toBeCloseTo(25, 1) // 5/20 = 25%
+      expect(result.investorPercent).toBeCloseTo(15, 1) // 3/20 = 15%
+      expect(result.otherPercent).toBeCloseTo(10, 1) // 2/20 = 10%
+    })
+
+    it('should use advanced inputs when showAdvanced is true', () => {
+      const inputs = {
+        postMoneyVal: 20,
+        roundSize: 5,
+        investorPortion: 3,
+        otherPortion: 2,
+        showAdvanced: true,
+        priorInvestors: [
+          { id: 1, name: 'Seed VC', ownershipPercent: 20, hasProRataRights: true }
+        ],
+        founders: [
+          { id: 1, name: 'CEO', ownershipPercent: 50 },
+          { id: 2, name: 'CTO', ownershipPercent: 30 }
+        ],
+        safes: [],
+        currentEsopPercent: 0,
+        targetEsopPercent: 0
+      }
+
+      const result = calculateEnhancedScenario(inputs)
+      
+      console.log('=== SHOW ADVANCED TRUE TEST ===')
+      console.log('showAdvanced: true')
+      console.log('All advanced inputs should be used')
+      console.log('')
+      console.log('Result:')
+      console.log(`- Prior investors: ${result.priorInvestors.length}`)
+      console.log(`- Founders: ${result.founders.length}`)
+      console.log(`- Pro-rata amount: $${result.totalProRataAmount}M`)
+      
+      // When showAdvanced is true, advanced inputs should be used
+      expect(result.priorInvestors).toHaveLength(1)
+      expect(result.founders).toHaveLength(2)
+      
+      // Pro-rata should be calculated (20% of $5M = $1M)
+      expect(result.totalProRataAmount).toBeCloseTo(1, 1)
+    })
   })
 })

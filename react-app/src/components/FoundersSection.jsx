@@ -1,4 +1,5 @@
 import { createFounder, calculateTotalOwnership } from '../utils/dataStructures'
+import FormInput from './FormInput'
 
 function FoundersSection({ founders = [], onUpdate }) {
   const addFounder = () => {
@@ -21,10 +22,6 @@ function FoundersSection({ founders = [], onUpdate }) {
   }
   
   const removeFounder = (founderId) => {
-    if (founders.length <= 1) {
-      // Always keep at least one founder
-      return
-    }
     const updatedFounders = founders.filter(founder => founder.id !== founderId)
     onUpdate(updatedFounders)
   }
@@ -33,7 +30,7 @@ function FoundersSection({ founders = [], onUpdate }) {
   
   return (
     <div className="founders-section">
-      <div className="section-header">
+      <div className="founders-investors-header">
         <div className="section-title-row">
           <h5 className="section-label">Founders</h5>
           <button 
@@ -55,45 +52,42 @@ function FoundersSection({ founders = [], onUpdate }) {
       
       {founders.length === 0 ? (
         <div className="no-founders-message">
-          At least one founder is required. Click "Add Founder" to add founding team members.
+          No founders added. Click "Add Founder" to add founding team members.
         </div>
       ) : (
         <div className="founders-list">
           {founders.map((founder, index) => (
             <div key={founder.id} className="founder-row">
-              <div className="founder-basic-info">
-                <input
-                  type="text"
-                  value={founder.name}
-                  onChange={(e) => updateFounder(founder.id, 'name', e.target.value)}
-                  placeholder={`Founder ${index + 1}`}
-                  className="founder-name-input"
-                />
-                <div className="ownership-input-wrapper">
-                  <input
-                    type="number"
-                    value={founder.ownershipPercent}
-                    onChange={(e) => updateFounder(founder.id, 'ownershipPercent', e.target.value)}
-                    min="0"
-                    max="100"
-                    step="0.1"
-                    className="ownership-input"
-                  />
-                  <span className="unit">%</span>
-                </div>
+              <div className="founder-row-header">
+                <span className="founder-label">Founder #{index + 1}</span>
+                <button
+                  className="remove-founder-btn"
+                  onClick={() => removeFounder(founder.id)}
+                  type="button"
+                  title="Remove founder"
+                >
+                  ×
+                </button>
               </div>
               
-              <div className="founder-controls">
-                {founders.length > 1 && (
-                  <button
-                    className="remove-founder-btn"
-                    onClick={() => removeFounder(founder.id)}
-                    type="button"
-                    title="Remove founder"
-                  >
-                    ×
-                  </button>
-                )}
+              <div className="founder-inputs">
+                <FormInput
+                  label="Name"
+                  type="text"
+                  value={founder.name}
+                  onChange={(value) => updateFounder(founder.id, 'name', value)}
+                  placeholder={`Founder ${index + 1}`}
+                />
+                <FormInput
+                  label="Ownership"
+                  type="number"
+                  value={founder.ownershipPercent}
+                  onChange={(value) => updateFounder(founder.id, 'ownershipPercent', value)}
+                  suffix="%"
+                  min="0"
+                  max="100"
+                  step="0.1"
+                />
               </div>
             </div>
           ))}
