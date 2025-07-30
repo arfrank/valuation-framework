@@ -15,6 +15,9 @@ const URL_PARAM_MAP = {
   // N SAFEs array will be encoded as 'safes' parameter
   safes: 'safes',
   preRoundFounderOwnership: 'pf',
+  // Multi-party arrays
+  priorInvestors: 'pi',
+  founders: 'f',
   // ESOP modeling
   currentEsopPercent: 'ce',
   targetEsopPercent: 'te',
@@ -99,6 +102,39 @@ export function encodeScenarioToURL(scenarioData) {
         return
       }
       
+      // Handle prior investors array encoding
+      if (field === 'priorInvestors') {
+        if (Array.isArray(value) && value.length > 0) {
+          // Encode prior investors with essential data
+          const piData = value.map((investor, index) => ({
+            n: investor.name || `Investor ${index + 1}`,
+            o: investor.ownershipPercent || 0,
+            p: investor.proRataAmount || 0
+          })).filter(pi => pi.o > 0) // Only include investors with ownership > 0
+          
+          if (piData.length > 0) {
+            params.set(param, JSON.stringify(piData))
+          }
+        }
+        return
+      }
+      
+      // Handle founders array encoding
+      if (field === 'founders') {
+        if (Array.isArray(value) && value.length > 0) {
+          // Encode founders with essential data
+          const foundersData = value.map((founder, index) => ({
+            n: founder.name || `Founder ${index + 1}`,
+            o: founder.ownershipPercent || 0
+          })).filter(f => f.o > 0) // Only include founders with ownership > 0
+          
+          if (foundersData.length > 0) {
+            params.set(param, JSON.stringify(foundersData))
+          }
+        }
+        return
+      }
+      
       // Only include non-zero values for optional fields
       if (['proRataPercent', 'currentEsopPercent', 'targetEsopPercent'].includes(field) && value === 0) {
         return
@@ -142,6 +178,9 @@ export function decodeScenarioFromURL(urlParams) {
       proRataPercent: 0,
       safes: [], // N SAFEs array
       preRoundFounderOwnership: 0,
+      // Multi-party defaults
+      priorInvestors: [],
+      founders: [],
       // ESOP defaults
       currentEsopPercent: 0,
       targetEsopPercent: 0,
@@ -175,6 +214,43 @@ export function decodeScenarioFromURL(urlParams) {
             console.warn('Failed to decode SAFEs array from URL:', error)
             scenarioData[field] = []
           }
+        } else if (field === 'priorInvestors') {
+          // Decode prior investors array from JSON
+          try {
+            const piData = JSON.parse(value)
+            if (Array.isArray(piData)) {
+              scenarioData[field] = piData.map((investor, index) => ({
+                id: Date.now() + index + 1000, // Generate unique IDs offset from SAFEs
+                name: investor.n || `Investor ${index + 1}`,
+                ownershipPercent: investor.o || 0,
+                proRataAmount: investor.p || 0,
+                // These will be calculated by the engine:
+                postRoundPercent: 0,
+                dilution: 0
+              }))
+            }
+          } catch (error) {
+            console.warn('Failed to decode prior investors array from URL:', error)
+            scenarioData[field] = []
+          }
+        } else if (field === 'founders') {
+          // Decode founders array from JSON
+          try {
+            const foundersData = JSON.parse(value)
+            if (Array.isArray(foundersData)) {
+              scenarioData[field] = foundersData.map((founder, index) => ({
+                id: Date.now() + index + 2000, // Generate unique IDs offset from others
+                name: founder.n || `Founder ${index + 1}`,
+                ownershipPercent: founder.o || 0,
+                // These will be calculated by the engine:
+                postRoundPercent: 0,
+                dilution: 0
+              }))
+            }
+          } catch (error) {
+            console.warn('Failed to decode founders array from URL:', error)
+            scenarioData[field] = []
+          }
         } else {
           const numValue = parseFloat(value)
           if (isNaN(numValue)) {
@@ -188,7 +264,8 @@ export function decodeScenarioFromURL(urlParams) {
     // Set showAdvanced to true if any advanced features are present (but don't override explicit setting)
     if (!params.has('adv') && (scenarioData.proRataPercent > 0 || scenarioData.preRoundFounderOwnership > 0 ||
         (scenarioData.safes && scenarioData.safes.length > 0) || scenarioData.currentEsopPercent > 0 || 
-        scenarioData.targetEsopPercent > 0)) {
+        scenarioData.targetEsopPercent > 0 || (scenarioData.priorInvestors && scenarioData.priorInvestors.length > 0) ||
+        (scenarioData.founders && scenarioData.founders.length > 0))) {
       scenarioData.showAdvanced = true
     }
 
