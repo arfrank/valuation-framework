@@ -171,11 +171,12 @@ const InputForm = ({ company, onUpdate }) => {
         <h3>Investment Parameters</h3>
         <div className="header-controls">
           <div className="investor-name-input">
-            <FormInput
-              label="Investor Name"
+            <label htmlFor="investor-name">Investor:</label>
+            <input
+              id="investor-name"
               type="text"
               value={values.investorName || 'US'}
-              onChange={(value) => handleChange('investorName', value)}
+              onChange={(e) => handleChange('investorName', e.target.value)}
               placeholder="US"
             />
           </div>
@@ -300,7 +301,7 @@ const InputForm = ({ company, onUpdate }) => {
                   />
 
                   <FormInput
-                    label="Valuation Cap"
+                    label="Valuation"
                     type="number"
                     value={safe.cap}
                     onChange={(value) => updateSafe(safe.id, 'cap', value)}

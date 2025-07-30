@@ -334,6 +334,7 @@ body.geometric-background-active .app {
   color: #718096;
 }
 
+/* Investor name input in header */
 .investor-name-input {
   display: flex;
   align-items: center;
@@ -341,27 +342,29 @@ body.geometric-background-active .app {
 }
 
 .investor-name-input label {
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   color: #718096;
   font-weight: 500;
 }
 
 .investor-name-input input {
-  border: 1px solid #e2e8f0;
-  border-radius: 3px;
-  padding: 0.25rem 0.5rem;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: #4a5568;
-  background: #f7fafc;
   width: 80px;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 600;
   text-align: center;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  background: #f7fafc;
+  color: #2d3748;
+  transition: all 0.2s ease;
 }
 
 .investor-name-input input:focus {
   outline: none;
   border-color: #3182ce;
   box-shadow: 0 0 0 2px rgba(49, 130, 206, 0.1);
+  background: #ffffff;
 }
 
 /* Advanced Features */
@@ -1003,6 +1006,25 @@ body.geometric-background-active .app {
   font-weight: 600;
 }
 
+.table-row.header-row.clickable {
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  user-select: none;
+}
+
+.table-row.header-row.clickable:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.collapse-indicator {
+  display: inline-block;
+  width: 1.2rem;
+  font-size: 0.75rem;
+  color: #718096;
+  transition: transform 0.2s ease;
+  margin-right: 0.25rem;
+}
+
 .table-row.sub-row {
   padding-left: 1.5rem;
   font-size: 0.85rem;
@@ -1368,7 +1390,7 @@ body.geometric-background-active .app {
 
 /* Adjust form input spacing for different contexts */
 .input-grid .form-input-field {
-  padding-left: 120px;
+  padding-left: 140px;
 }
 
 .safe-inputs .form-input-field,
@@ -1515,7 +1537,8 @@ body.geometric-background-active .app {
   flex: 1;
 }
 
-.investor-name-input, .founder-name-input {
+/* Direct input elements in PriorInvestorsSection and FoundersSection */
+input.investor-name-input, input.founder-name-input {
   flex: 1;
   border: 1px solid #e2e8f0;
   border-radius: 4px;
@@ -1526,7 +1549,7 @@ body.geometric-background-active .app {
   background: #f7fafc;
 }
 
-.investor-name-input:focus, .founder-name-input:focus {
+input.investor-name-input:focus, input.founder-name-input:focus {
   outline: none;
   border-color: #3182ce;
   box-shadow: 0 0 0 2px rgba(49, 130, 206, 0.1);
@@ -1792,7 +1815,7 @@ body.geometric-background-active .app {
 
 .amount, .percent {
   text-align: right;
-  font-weight: 600;
+  font-weight: 400;
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
   color: #2d3748;
 }

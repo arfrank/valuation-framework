@@ -2,6 +2,20 @@ import { useState } from 'react'
 
 const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalink, investorName = 'US', showAdvanced = false }) => {
   const [copyFeedback, setCopyFeedback] = useState('')
+  const [collapsed, setCollapsed] = useState({
+    newRound: false,
+    founders: false,
+    priorInvestors: false,
+    safes: false
+  })
+  
+  const toggleCollapse = (section) => {
+    setCollapsed(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }))
+  }
+  
   const getCardClass = () => {
     if (isBase) return 'scenario-card base-scenario'
     return `scenario-card scenario-${index % 5}`
@@ -87,6 +101,21 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
   const priorInvestorsTotal = scenario.priorInvestors
     ? scenario.priorInvestors.reduce((sum, inv) => sum + inv.postRoundPercent, 0)
     : 0
+    
+  // Calculate unknown/other ownership lost
+  // Pre-round unknown ownership = unknown post-round ownership / (1 - total new ownership %)
+  const totalNewOwnership = scenario.roundPercent / 100
+  const unknownPreRound = scenario.unknownOwnership > 0 
+    ? scenario.unknownOwnership / (1 - totalNewOwnership)
+    : 0
+  const unknownOwnershipLost = unknownPreRound > 0 
+    ? unknownPreRound - scenario.unknownOwnership
+    : 0
+    
+  // Calculate total dilution for prior investors (includes effect of pro-rata)
+  const priorInvestorsTotalDilution = scenario.priorInvestors
+    ? scenario.priorInvestors.reduce((sum, inv) => sum + inv.dilution, 0)
+    : 0
 
   return (
     <div className={getCardClass()}>
@@ -113,18 +142,26 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
         </div>
         
         {/* Total New Round Header */}
-        <div className="table-row header-row">
-          <div className="label"><strong>New Round Total</strong></div>
+        <div 
+          className="table-row header-row clickable"
+          onClick={() => toggleCollapse('newRound')}
+        >
+          <div className="label">
+            <span className="collapse-indicator">{collapsed.newRound ? '▶' : '▼'}</span>
+            <strong>New Round Total</strong>
+          </div>
           <div className="amount amount-positive">+{formatDollar(scenario.roundSize)}</div>
           <div className="percent percent-bold">{formatPercent(scenario.roundPercent)}</div>
         </div>
         
         {/* New money breakdown */}
-        <div className="table-row sub-row">
-          <div className="label">├─ {investorName}</div>
-          <div className="amount amount-positive">+{formatDollar(scenario.investorAmount)}</div>
-          <div className="percent">{formatPercent(scenario.investorPercent)}</div>
-        </div>
+        {!collapsed.newRound && (
+          <>
+            <div className="table-row sub-row">
+              <div className="label">├─ {investorName}</div>
+              <div className="amount amount-positive">+{formatDollar(scenario.investorAmount)}</div>
+              <div className="percent">{formatPercent(scenario.investorPercent)}</div>
+            </div>
         
         {showAdvanced ? (
           <>
@@ -164,20 +201,28 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
             <div className="percent">{formatPercent(((scenario.otherAmountOriginal || scenario.otherAmount) / scenario.postMoneyVal) * 100)}</div>
           </div>
         )}
+          </>
+        )}
         
         {/* Founders section */}
         {showAdvanced && foundersTotal > 0 ? (
           <>
             {/* Founders header row */}
-            <div className="table-row header-row">
-              <div className="label"><strong>Founders Total</strong></div>
+            <div 
+              className="table-row header-row clickable"
+              onClick={() => toggleCollapse('founders')}
+            >
+              <div className="label">
+                <span className="collapse-indicator">{collapsed.founders ? '▶' : '▼'}</span>
+                <strong>Founders Total</strong>
+              </div>
               <div className="amount amount-negative">
                 -{scenario.founders.reduce((sum, f) => sum + f.dilution, 0).toFixed(1)}%
               </div>
               <div className="percent percent-bold">{formatPercent(foundersTotal)}</div>
             </div>
             {/* Individual founders */}
-            {scenario.founders && scenario.founders.map((founder, idx) => (
+            {!collapsed.founders && scenario.founders && scenario.founders.map((founder, idx) => (
               <div key={founder.id || idx} className="table-row sub-row">
                 <div className="label">{idx === scenario.founders.length - 1 ? '└─' : '├─'} {founder.name || `Founder ${idx + 1}`}</div>
                 <div className="amount amount-negative">-{founder.dilution.toFixed(1)}%</div>
@@ -195,20 +240,84 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
           )
         )}
         
-        {/* Prior Investors */}
-        {showAdvanced && scenario.priorInvestors && scenario.priorInvestors.map((investor, idx) => (
-          <div key={investor.id || idx} className="table-row">
-            <div className="label">{investor.name}</div>
-            <div className="amount">
-              {investor.proRataAmount > 0 ? (
-                <span className="amount-neutral">pro-rata above</span>
-              ) : (
-                <span className="amount-negative">-{investor.dilution.toFixed(1)}%</span>
-              )}
+        {/* Prior Investors & Unknown section */}
+        {showAdvanced && (scenario.priorInvestors?.length > 0 || scenario.unknownOwnership > 0.01) && (
+          <>
+            {/* Prior Investors header row */}
+            <div 
+              className="table-row header-row clickable"
+              onClick={() => toggleCollapse('priorInvestors')}
+            >
+              <div className="label">
+                <span className="collapse-indicator">{collapsed.priorInvestors ? '▶' : '▼'}</span>
+                <strong>Prior Investors Total</strong>
+              </div>
+              <div className="amount amount-negative">
+                {/*-{(priorInvestorsTotalDilution + unknownOwnershipLost).toFixed(1)}%*/}
+              </div>
+              <div className="percent percent-bold">{formatPercent(priorInvestorsTotal + (scenario.unknownOwnership || 0))}</div>
             </div>
-            <div className="percent percent-bold">{formatPercent(investor.postRoundPercent)}</div>
-          </div>
-        ))}
+            
+            {/* Individual prior investors */}
+            {!collapsed.priorInvestors && (
+              <>
+                {scenario.priorInvestors && scenario.priorInvestors.map((investor, idx) => {
+                  const isLast = idx === scenario.priorInvestors.length - 1 && scenario.unknownOwnership <= 0.01
+                  return (
+                    <div key={investor.id || idx} className="table-row sub-row">
+                      <div className="label">{isLast ? '└─' : '├─'} {investor.name}</div>
+                      <div className="amount">
+                        {investor.proRataAmount > 0 ? (
+                          <span className="amount-neutral">pro-rata above</span>
+                        ) : (
+                          <span className="amount-negative">-{investor.dilution.toFixed(1)}%</span>
+                        )}
+                      </div>
+                      <div className="percent">{formatPercent(investor.postRoundPercent)}</div>
+                    </div>
+                  )
+                })}
+                
+                {/* Unknown/Other ownership */}
+                {scenario.unknownOwnership > 0.01 && (
+                  <div className="table-row sub-row">
+                    <div className="label">└─ Unknown/Other</div>
+                    <div className="amount amount-negative">-{unknownOwnershipLost.toFixed(1)}%</div>
+                    <div className="percent">{formatPercent(scenario.unknownOwnership)}</div>
+                  </div>
+                )}
+              </>
+            )}
+          </>
+        )}
+        
+        {/* SAFEs */}
+        {showAdvanced && scenario.safeDetails && scenario.safeDetails.length > 0 && (
+          <>
+            {/* SAFEs header row */}
+            <div 
+              className="table-row header-row clickable"
+              onClick={() => toggleCollapse('safes')}
+            >
+              <div className="label">
+                <span className="collapse-indicator">{collapsed.safes ? '▶' : '▼'}</span>
+                <strong>SAFEs Total</strong>
+              </div>
+              <div className="amount amount-neutral">converts</div>
+              <div className="percent percent-bold">{formatPercent(scenario.totalSafePercent)}</div>
+            </div>
+            {/* Individual SAFEs */}
+            {!collapsed.safes && scenario.safeDetails.map((safe, safeIndex) => (
+              <div key={safe.id || safeIndex} className="table-row sub-row">
+                <div className="label">{safeIndex === scenario.safeDetails.length - 1 ? '└─' : '├─'} SAFE #{safe.index}</div>
+                <div className="amount amount-neutral">
+                  <span style={{ fontSize: '0.85rem' }}>${safe.amount}M @ ${safe.conversionPrice}M</span>
+                </div>
+                <div className="percent">{formatPercent(safe.percent)}</div>
+              </div>
+            ))}
+          </>
+        )}
         
         {/* ESOP */}
         {showAdvanced && scenario.finalEsopPercent > 0 && (
@@ -236,37 +345,6 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
               })()}
             </div>
             <div className="percent percent-bold">{scenario.finalEsopPercent.toFixed(1)}%</div>
-          </div>
-        )}
-        
-        {/* SAFEs */}
-        {showAdvanced && scenario.safeDetails && scenario.safeDetails.length > 0 && (
-          <>
-            {/* SAFEs header row */}
-            <div className="table-row header-row">
-              <div className="label"><strong>SAFEs Total</strong></div>
-              <div className="amount amount-neutral">converts</div>
-              <div className="percent percent-bold">{formatPercent(scenario.totalSafePercent)}</div>
-            </div>
-            {/* Individual SAFEs */}
-            {scenario.safeDetails.map((safe, safeIndex) => (
-              <div key={safe.id || safeIndex} className="table-row sub-row">
-                <div className="label">{safeIndex === scenario.safeDetails.length - 1 ? '└─' : '├─'} SAFE #{safe.index}</div>
-                <div className="amount amount-neutral">
-                  <span style={{ fontSize: '0.85rem' }}>${safe.amount}M @ ${safe.conversionPrice}M</span>
-                </div>
-                <div className="percent">{formatPercent(safe.percent)}</div>
-              </div>
-            ))}
-          </>
-        )}
-        
-        {/* Unknown/Other ownership */}
-        {scenario.unknownOwnership > 0.01 && (
-          <div className="table-row">
-            <div className="label">Unknown/Other</div>
-            <div className="amount amount-neutral">—</div>
-            <div className="percent percent-bold">{formatPercent(scenario.unknownOwnership)}</div>
           </div>
         )}
         
