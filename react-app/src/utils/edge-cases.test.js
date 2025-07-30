@@ -121,19 +121,65 @@ describe('Edge Cases and Bug Detection', () => {
       expect(result.totalSafePercent).toBe(0)
     })
 
-    it('should ignore SAFEs with no cap or discount', () => {
+    it('should convert SAFEs with no cap or discount at current round price', () => {
       const result = calculateScenario({
         ...baseInputs,
         safes: [{
           id: 1,
           amount: 1,
           cap: 0,
-          discount: 0 // No cap or discount
+          discount: 0 // No cap or discount - should convert at preMoneyVal
         }]
       })
       
-      expect(result.totalSafePercent).toBe(0)
-      expect(result.safeDetails).toHaveLength(0)
+      // preMoneyVal = 13 - 3 = 10, so 1M / 10M = 10% ownership
+      expect(result.safeDetails).toHaveLength(1)
+      expect(result.safeDetails[0].conversionPrice).toBe(10) // preMoneyVal
+      expect(result.safeDetails[0].percent).toBe(10) // 1M / 10M = 10%
+      expect(result.totalSafePercent).toBe(10)
+    })
+
+    it('should handle multiple SAFEs including ones with no cap/discount', () => {
+      const result = calculateScenario({
+        ...baseInputs,
+        safes: [
+          {
+            id: 1,
+            amount: 1,
+            cap: 8, // Cap below preMoneyVal (10)
+            discount: 0
+          },
+          {
+            id: 2,
+            amount: 0.5,
+            cap: 0,
+            discount: 0 // No cap or discount - converts at preMoneyVal (10)
+          },
+          {
+            id: 3,
+            amount: 0.5,
+            cap: 0,
+            discount: 20 // 20% discount on preMoneyVal (10) = 8
+          }
+        ]
+      })
+      
+      expect(result.safeDetails).toHaveLength(3)
+      
+      // SAFE 1: 1M at cap of 8M = 12.5%
+      expect(result.safeDetails[0].conversionPrice).toBe(8)
+      expect(result.safeDetails[0].percent).toBe(12.5)
+      
+      // SAFE 2: 0.5M at preMoneyVal of 10M = 5%  
+      expect(result.safeDetails[1].conversionPrice).toBe(10)
+      expect(result.safeDetails[1].percent).toBe(5)
+      
+      // SAFE 3: 0.5M at discounted price of 8M = 6.25%
+      expect(result.safeDetails[2].conversionPrice).toBe(8)
+      expect(result.safeDetails[2].percent).toBe(6.25)
+      
+      // Total: 12.5% + 5% + 6.25% = 23.75%
+      expect(result.totalSafePercent).toBe(23.75)
     })
   })
 

@@ -44,6 +44,9 @@ export const calculateScenario = (inputs) => {
         } else if (safe.discount > 0) {
           // SAFE with discount only
           conversionPrice = preMoneyVal * (1 - safe.discount / 100)
+        } else {
+          // SAFE with no cap or discount - converts at current round price
+          conversionPrice = preMoneyVal
         }
         
         if (conversionPrice > 0) {

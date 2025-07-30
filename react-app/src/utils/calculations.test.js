@@ -127,9 +127,12 @@ describe('SAFE Calculations', () => {
     
     const result = calculateScenario(inputs)
     
-    // No cap or discount = invalid SAFE configuration, should be skipped
-    expect(result.totalSafePercent).toBe(0)
-    expect(result.safeDetails).toHaveLength(0)
+    // No cap or discount = converts at current round price (preMoneyVal)
+    // preMoneyVal = 13 - 3 = 10, so 1M / 10M = 10%
+    expect(result.totalSafePercent).toBe(10)
+    expect(result.safeDetails).toHaveLength(1)
+    expect(result.safeDetails[0].conversionPrice).toBe(10)
+    expect(result.safeDetails[0].percent).toBe(10)
   })
 
   it('should handle multiple SAFEs correctly', () => {
