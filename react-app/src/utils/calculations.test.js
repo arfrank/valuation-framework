@@ -236,15 +236,15 @@ describe('ESOP Calculations', () => {
     const result = calculateScenario(inputs)
     
     expect(result.finalEsopPercent).toBe(15)
-    // With iterative calculation, round dilution is reduced by pre-close ESOP
-    // ESOP increase is ~7.15% (lower than naive 7.31%)
-    expect(result.esopIncrease).toBeCloseTo(7.15, 1)
-    expect(result.esopIncreasePreClose).toBeCloseTo(7.15, 1)
+    // With corrected post-money framework, round % stays fixed
+    // ESOP increase is standard 7.31% (no iterative reduction)
+    expect(result.esopIncrease).toBeCloseTo(7.31, 1)
+    expect(result.esopIncreasePreClose).toBeCloseTo(7.31, 1)
     expect(result.esopIncreasePostClose).toBe(0)
     
     // Pre-close ESOP should increase founder dilution
-    // With iterative calculation, total dilution is properly accounted for
-    expect(result.postRoundFounderPercent).toBeCloseTo(49.91, 1)
+    // Fixed round % + ESOP increase = proper total dilution
+    expect(result.postRoundFounderPercent).toBeCloseTo(48.73, 1)
   })
 
   it('should calculate post-close ESOP increase correctly', () => {
@@ -344,7 +344,7 @@ describe('ESOP Calculations', () => {
     expect(result.esopIncreasePostClose).toBe(result.esopIncrease)
   })
 
-  it('should demonstrate the iterative dilution calculation approach', () => {
+  it('should demonstrate the corrected post-money framework approach', () => {
     const inputs = {
       ...baseInputs,
       currentEsopPercent: 10,
@@ -354,16 +354,14 @@ describe('ESOP Calculations', () => {
     
     const result = calculateScenario(inputs)
     
-    // New iterative approach: ESOP increase affects round dilution percentage
-    // When ESOP shares are added pre-close, they increase pre-money shares
-    // This reduces the effective round percentage: $3M / ($13M + esopIncrease)  
-    expect(result.roundPercent).toBeCloseTo(22.57, 1) // Reduced from 23.08%
-    expect(result.esopIncrease).toBeCloseTo(2.26, 1) // Slightly lower than naive 2.31%
+    // Corrected post-money approach: Round percentage stays fixed
+    // Pre-close ESOP is calculated independently without affecting round %
+    expect(result.roundPercent).toBeCloseTo(23.08, 1) // Fixed at 23.08%
+    expect(result.esopIncrease).toBeCloseTo(2.31, 1) // Standard calculation
     expect(result.finalEsopPercent).toBe(10)
     
-    // The iterative calculation properly accounts for the circular dependency
-    // between ESOP increase and round dilution percentage
-    console.log('Iterative round %:', result.roundPercent)
+    // Post-money framework maintains consistency with valuation terms
+    console.log('Fixed round %:', result.roundPercent)
     console.log('ESOP increase %:', result.esopIncrease)
     console.log('Total dilution impact:', result.roundPercent + result.esopIncrease)
   })
@@ -421,6 +419,33 @@ describe('ESOP Calculations', () => {
     console.log('Pre-close: Round %', preCloseResult.roundPercent, 'Founder %', preCloseResult.postRoundFounderPercent)
     console.log('Post-close: Round %', postCloseResult.roundPercent, 'Founder %', postCloseResult.postRoundFounderPercent)
   })
+
+  it('should reproduce the user-reported bug: pre-close ESOP affecting round percentage incorrectly', () => {
+    const inputs = {
+      postMoneyVal: 100, // $100M post-money
+      roundSize: 20,     // $20M investment = 20%
+      investorPortion: 16,
+      otherPortion: 4,
+      proRataPercent: 0,
+      preRoundFounderOwnership: 80,
+      safes: [],
+      currentEsopPercent: 1,
+      targetEsopPercent: 1, // 1% ESOP staying flat
+      esopTiming: 'pre-close'
+    }
+    
+    const result = calculateScenario(inputs)
+    
+    // BUG: Pre-close ESOP is incorrectly affecting round percentage
+    // Expected: $20M / $100M = 20.00%
+    // Actual: Shows 19.96% (incorrect!)
+    console.log('Round percentage (should be 20%):', result.roundPercent)
+    console.log('ESOP increase:', result.esopIncrease)
+    
+    // This test documents the bug - round percentage should NOT change
+    // for pre-close ESOP in a post-money valuation framework
+    expect(result.roundPercent).toBe(20) // This will fail, showing the bug
+  })
 })
 
 describe('ESOP Mathematical Verification Tests', () => {
@@ -446,10 +471,10 @@ describe('ESOP Mathematical Verification Tests', () => {
       const result = calculateScenario(inputs)
       
       // Business logic: Starting from 0%, need to create 20% ESOP pre-close
-      // This should be a substantial increase that affects round dilution
+      // In post-money framework, round % stays fixed
       expect(result.finalEsopPercent).toBe(20)
       expect(result.esopIncrease).toBeGreaterThan(15) // Should be significant
-      expect(result.roundPercent).toBeLessThan(25) // Round % should be reduced by pre-close ESOP
+      expect(result.roundPercent).toBe(25) // Round % stays fixed in post-money framework
       
       // Founders should be significantly diluted
       expect(result.postRoundFounderPercent).toBeLessThan(60) // 80% * 0.6 = 48%
@@ -470,7 +495,7 @@ describe('ESOP Mathematical Verification Tests', () => {
       // Need to add: 15% - 11.25% = 3.75% (approximately)
       expect(result.finalEsopPercent).toBe(15)
       expect(result.esopIncrease).toBeCloseTo(3.75, 0.5) // Roughly 3.75%
-      expect(result.roundPercent).toBeLessThan(25) // Iterative reduction
+      expect(result.roundPercent).toBe(25) // Fixed in post-money framework
     })
 
     it('should handle small ESOP increase from 8% to 12%', () => {
@@ -503,13 +528,13 @@ describe('ESOP Mathematical Verification Tests', () => {
       const result = calculateScenario(inputs)
       
       // Business logic: Massive ESOP expansion
-      // Should significantly reduce round percentage due to iterative effect
+      // In post-money framework, round % stays fixed
       expect(result.finalEsopPercent).toBe(25)
       expect(result.esopIncrease).toBeGreaterThan(18) // Large increase needed
-      expect(result.roundPercent).toBeLessThan(23) // Significant round % reduction
+      expect(result.roundPercent).toBe(25) // Fixed in post-money framework
       
       // Founders should be heavily diluted
-      expect(result.postRoundFounderPercent).toBeCloseTo(46.65, 1) // Actual result
+      expect(result.postRoundFounderPercent).toBeCloseTo(43, 1) // Corrected result
     })
   })
 

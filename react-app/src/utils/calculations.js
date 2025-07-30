@@ -111,46 +111,19 @@ export const calculateScenario = (inputs) => {
   
   if (targetEsopPercent > 0) {
     if (esopTiming === 'pre-close') {
-      // Pre-close: Use iterative calculation since ESOP additions affect round dilution
-      // When ESOP shares are added pre-close, they increase pre-money share count
-      // This changes the effective round dilution percentage
+      // Pre-close: In post-money framework, round percentage stays fixed
+      // ESOP dilution is calculated independently without affecting round %
       
-      let currentRoundPercent = roundPercent
-      let currentEsopIncrease = 0
-      const maxIterations = 10 // Prevent infinite loops
-      let iteration = 0
-      
-      do {
-        const prevEsopIncrease = currentEsopIncrease
-        
-        // Calculate what ESOP percentage would be after current round dilution
-        const esopAfterDilution = currentEsopPercent * (100 - currentRoundPercent) / 100
-        currentEsopIncrease = Math.max(0, targetEsopPercent - esopAfterDilution)
-        
-        // If we're adding ESOP pre-close, it increases total pre-money shares
-        // This reduces the round percentage: round$ / (post-money$ + esopIncrease$)
-        if (currentEsopIncrease > 0) {
-          // The ESOP increase percentage represents additional shares at pre-money valuation
-          // Adjusted post-money = original post-money + (esopIncrease% * post-money)
-          const adjustedPostMoney = postMoneyVal * (100 + currentEsopIncrease) / 100
-          currentRoundPercent = Math.round((roundSize / adjustedPostMoney) * 10000) / 100
-        } else {
-          currentRoundPercent = roundPercent
-        }
-        
-        iteration++
-        
-        // Continue until convergence or max iterations
-        if (Math.abs(currentEsopIncrease - prevEsopIncrease) < 0.001) break
-        
-      } while (iteration < maxIterations)
-      
-      esopIncrease = currentEsopIncrease
+      // Calculate what ESOP percentage would be after round dilution
+      const esopAfterDilution = currentEsopPercent * (100 - roundPercent) / 100
+      esopIncrease = Math.max(0, targetEsopPercent - esopAfterDilution)
       esopIncreasePreClose = esopIncrease
-      adjustedRoundPercent = currentRoundPercent
       
-      // Calculate adjusted founder dilution with iterative values
-      const totalDilutionWithEsop = adjustedRoundPercent + safePercent + esopIncrease
+      // Round percentage remains unchanged in post-money framework
+      adjustedRoundPercent = roundPercent
+      
+      // Calculate founder dilution: round + SAFE + ESOP increase dilute existing holders
+      const totalDilutionWithEsop = roundPercent + safePercent + esopIncrease
       adjustedPostRoundFounderPercent = Math.round((preRoundFounderPercent * (100 - totalDilutionWithEsop) / 100) * 100) / 100
       adjustedFounderDilution = Math.round((preRoundFounderPercent - adjustedPostRoundFounderPercent) * 100) / 100
       
