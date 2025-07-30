@@ -138,7 +138,7 @@ describe('InputForm with Pre-Money Toggle', () => {
   })
 
   it('should handle investor name changes correctly', async () => {
-    const user = userEvent.setup()
+    // const user = userEvent.setup()
     render(<InputForm company={defaultCompany} onUpdate={mockOnUpdate} />)
 
     const investorInput = screen.getByLabelText('Investor:')
@@ -157,7 +157,7 @@ describe('InputForm with Pre-Money Toggle', () => {
     render(<InputForm company={defaultCompany} onUpdate={mockOnUpdate} />)
     
     const inputForm = document.querySelector('.input-form')
-    const computedStyle = window.getComputedStyle(inputForm)
+    // const computedStyle = window.getComputedStyle(inputForm)
     
     // Should have reduced padding for compact layout
     expect(inputForm).toHaveClass('input-form')

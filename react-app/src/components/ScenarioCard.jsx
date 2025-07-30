@@ -61,7 +61,7 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
       
       // Clear feedback after 3 seconds
       setTimeout(() => setCopyFeedback(''), 3000)
-    } catch (error) {
+    } catch {
       setCopyFeedback('Failed to copy')
       setTimeout(() => setCopyFeedback(''), 3000)
     }

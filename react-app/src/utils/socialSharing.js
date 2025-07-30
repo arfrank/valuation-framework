@@ -104,7 +104,7 @@ function generateScenarioDescription(scenarioData) {
  * @param {string} description - Page description
  * @param {string} url - Current page URL
  */
-function updateMetaTags(title, description, url) {
+function updateMetaTags(title, description, _url) {
   // Update title
   document.title = title
   
