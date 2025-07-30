@@ -354,4 +354,304 @@ describe('Permalink Utilities', () => {
       expect(decoded.safes[1].discount).toBe(20)
     })
   })
+
+  describe('Multi-Party Features', () => {
+    const multiPartyScenario = {
+      ...mockScenario,
+      showAdvanced: true,
+      priorInvestors: [
+        {
+          id: 1,
+          name: 'Seed VC',
+          ownershipPercent: 15,
+          proRataAmount: 0.5,
+          postRoundPercent: 11.5,
+          dilution: 3.5
+        },
+        {
+          id: 2,
+          name: 'Angel Group',
+          ownershipPercent: 10,
+          proRataAmount: 0,
+          postRoundPercent: 7.7,
+          dilution: 2.3
+        }
+      ],
+      founders: [
+        {
+          id: 1,
+          name: 'CEO',
+          ownershipPercent: 50,
+          postRoundPercent: 38.46,
+          dilution: 11.54
+        },
+        {
+          id: 2,
+          name: 'CTO',
+          ownershipPercent: 30,
+          postRoundPercent: 23.08,
+          dilution: 6.92
+        }
+      ]
+    }
+
+    describe('encodeScenarioToURL with multi-party', () => {
+      it('should encode prior investors array to URL', () => {
+        const encoded = encodeScenarioToURL(multiPartyScenario)
+        expect(encoded).toMatch(/pi=/)
+        
+        // Decode the parameter to verify structure
+        const params = new URLSearchParams(encoded)
+        const piParam = params.get('pi')
+        const piData = JSON.parse(piParam)
+        
+        expect(piData).toHaveLength(2)
+        expect(piData[0]).toEqual({ n: 'Seed VC', o: 15, p: 0.5 })
+        expect(piData[1]).toEqual({ n: 'Angel Group', o: 10, p: 0 })
+      })
+
+      it('should encode founders array to URL', () => {
+        const encoded = encodeScenarioToURL(multiPartyScenario)
+        expect(encoded).toMatch(/f=/)
+        
+        // Decode the parameter to verify structure
+        const params = new URLSearchParams(encoded)
+        const foundersParam = params.get('f')
+        const foundersData = JSON.parse(foundersParam)
+        
+        expect(foundersData).toHaveLength(2)
+        expect(foundersData[0]).toEqual({ n: 'CEO', o: 50 })
+        expect(foundersData[1]).toEqual({ n: 'CTO', o: 30 })
+      })
+
+      it('should only include investors with ownership > 0', () => {
+        const scenarioWithZeroOwnership = {
+          ...multiPartyScenario,
+          priorInvestors: [
+            { id: 1, name: 'Valid Investor', ownershipPercent: 15, proRataAmount: 0.5 },
+            { id: 2, name: 'Zero Investor', ownershipPercent: 0, proRataAmount: 0 }
+          ]
+        }
+        
+        const encoded = encodeScenarioToURL(scenarioWithZeroOwnership)
+        const params = new URLSearchParams(encoded)
+        const piData = JSON.parse(params.get('pi'))
+        
+        expect(piData).toHaveLength(1)
+        expect(piData[0].n).toBe('Valid Investor')
+      })
+
+      it('should only include founders with ownership > 0', () => {
+        const scenarioWithZeroFounder = {
+          ...multiPartyScenario,
+          founders: [
+            { id: 1, name: 'Valid Founder', ownershipPercent: 50 },
+            { id: 2, name: 'Zero Founder', ownershipPercent: 0 }
+          ]
+        }
+        
+        const encoded = encodeScenarioToURL(scenarioWithZeroFounder)
+        const params = new URLSearchParams(encoded)
+        const foundersData = JSON.parse(params.get('f'))
+        
+        expect(foundersData).toHaveLength(1)
+        expect(foundersData[0].n).toBe('Valid Founder')
+      })
+
+      it('should not include empty arrays', () => {
+        const scenarioWithEmptyArrays = {
+          ...mockScenario,
+          priorInvestors: [],
+          founders: []
+        }
+        
+        const encoded = encodeScenarioToURL(scenarioWithEmptyArrays)
+        expect(encoded).not.toMatch(/pi=/)
+        expect(encoded).not.toMatch(/f=/)
+      })
+    })
+
+    describe('decodeScenarioFromURL with multi-party', () => {
+      it('should decode prior investors from URL', () => {
+        const encoded = encodeScenarioToURL(multiPartyScenario)
+        const decoded = decodeScenarioFromURL(encoded)
+        
+        expect(decoded.priorInvestors).toHaveLength(2)
+        expect(decoded.priorInvestors[0].name).toBe('Seed VC')
+        expect(decoded.priorInvestors[0].ownershipPercent).toBe(15)
+        expect(decoded.priorInvestors[0].proRataAmount).toBe(0.5)
+        expect(decoded.priorInvestors[0]).toHaveProperty('id')
+        expect(decoded.priorInvestors[0].postRoundPercent).toBe(0) // Should be 0, calculated later
+        expect(decoded.priorInvestors[0].dilution).toBe(0) // Should be 0, calculated later
+        
+        expect(decoded.priorInvestors[1].name).toBe('Angel Group')
+        expect(decoded.priorInvestors[1].ownershipPercent).toBe(10)
+        expect(decoded.priorInvestors[1].proRataAmount).toBe(0)
+      })
+
+      it('should decode founders from URL', () => {
+        const encoded = encodeScenarioToURL(multiPartyScenario)
+        const decoded = decodeScenarioFromURL(encoded)
+        
+        expect(decoded.founders).toHaveLength(2)
+        expect(decoded.founders[0].name).toBe('CEO')
+        expect(decoded.founders[0].ownershipPercent).toBe(50)
+        expect(decoded.founders[0]).toHaveProperty('id')
+        expect(decoded.founders[0].postRoundPercent).toBe(0) // Should be 0, calculated later
+        expect(decoded.founders[0].dilution).toBe(0) // Should be 0, calculated later
+        
+        expect(decoded.founders[1].name).toBe('CTO')
+        expect(decoded.founders[1].ownershipPercent).toBe(30)
+      })
+
+      it('should auto-enable showAdvanced when multi-party arrays present', () => {
+        const scenarioWithoutAdvancedFlag = {
+          ...mockScenario,
+          // Note: showAdvanced is false, but we have multi-party data
+          priorInvestors: [{ id: 1, name: 'Investor', ownershipPercent: 15, proRataAmount: 0 }]
+        }
+        
+        const encoded = encodeScenarioToURL(scenarioWithoutAdvancedFlag)
+        // Remove explicit showAdvanced flag from URL
+        const cleanEncoded = encoded.replace(/&?adv=1/, '')
+        
+        const decoded = decodeScenarioFromURL(cleanEncoded)
+        expect(decoded.showAdvanced).toBe(true) // Should be auto-enabled
+      })
+
+      it('should handle malformed prior investors JSON gracefully', () => {
+        const malformedUrl = 'pmv=13&rs=3&ip=2.75&op=0.25&in=US&pi=invalid-json'
+        const decoded = decodeScenarioFromURL(malformedUrl)
+        
+        expect(decoded.priorInvestors).toEqual([])
+        expect(decoded.showAdvanced).toBe(false)
+      })
+
+      it('should handle malformed founders JSON gracefully', () => {
+        const malformedUrl = 'pmv=13&rs=3&ip=2.75&op=0.25&in=US&f=invalid-json'
+        const decoded = decodeScenarioFromURL(malformedUrl)
+        
+        expect(decoded.founders).toEqual([])
+        expect(decoded.showAdvanced).toBe(false)
+      })
+
+      it('should generate unique IDs for decoded arrays', () => {
+        const encoded = encodeScenarioToURL(multiPartyScenario)
+        const decoded = decodeScenarioFromURL(encoded)
+        
+        // Check that all entities have unique IDs
+        const allIds = [
+          ...decoded.priorInvestors.map(pi => pi.id),
+          ...decoded.founders.map(f => f.id)
+        ]
+        
+        const uniqueIds = new Set(allIds)
+        expect(uniqueIds.size).toBe(allIds.length) // All IDs should be unique
+      })
+
+      it('should provide default names for unnamed entities', () => {
+        const scenarioWithUnnamedEntities = {
+          ...mockScenario,
+          priorInvestors: [{ ownershipPercent: 15, proRataAmount: 0.5 }],
+          founders: [{ ownershipPercent: 50 }]
+        }
+        
+        const encoded = encodeScenarioToURL(scenarioWithUnnamedEntities)
+        const decoded = decodeScenarioFromURL(encoded)
+        
+        expect(decoded.priorInvestors[0].name).toBe('Investor 1')
+        expect(decoded.founders[0].name).toBe('Founder 1')
+      })
+    })
+
+    describe('Complex multi-party scenarios', () => {
+      it('should handle full scenario with SAFEs, multi-party, and ESOP', () => {
+        const complexScenario = {
+          ...multiPartyScenario,
+          safes: [
+            { id: 1, amount: 1, cap: 10, discount: 0 },
+            { id: 2, amount: 0.5, cap: 0, discount: 20 }
+          ],
+          currentEsopPercent: 10,
+          targetEsopPercent: 15,
+          esopTiming: 'post-close'
+        }
+        
+        const encoded = encodeScenarioToURL(complexScenario)
+        const decoded = decodeScenarioFromURL(encoded)
+        
+        // Verify all components are preserved
+        expect(decoded.priorInvestors).toHaveLength(2)
+        expect(decoded.founders).toHaveLength(2)
+        expect(decoded.safes).toHaveLength(2)
+        expect(decoded.currentEsopPercent).toBe(10)
+        expect(decoded.targetEsopPercent).toBe(15)
+        expect(decoded.esopTiming).toBe('post-close')
+        expect(decoded.showAdvanced).toBe(true)
+      })
+
+      it('should create compact URLs by excluding default values', () => {
+        const scenarioWithDefaults = {
+          ...mockScenario,
+          priorInvestors: [{ id: 1, name: 'Investor', ownershipPercent: 15, proRataAmount: 0 }],
+          currentEsopPercent: 0, // Default value, should be excluded
+          targetEsopPercent: 0,  // Default value, should be excluded
+          esopTiming: 'pre-close' // Default value, should be excluded
+        }
+        
+        const encoded = encodeScenarioToURL(scenarioWithDefaults)
+        expect(encoded).not.toMatch(/ce=0/)
+        expect(encoded).not.toMatch(/te=0/)
+        expect(encoded).not.toMatch(/et=pre-close/)
+        expect(encoded).toMatch(/pi=/) // Should include prior investors
+      })
+
+      it('should round-trip complex scenarios without data loss', () => {
+        const complexScenario = {
+          postMoneyVal: 15.75,
+          roundSize: 4.25,
+          investorPortion: 3.1,
+          otherPortion: 1.15,
+          investorName: 'Lead Investor',
+          showAdvanced: true,
+          priorInvestors: [
+            { id: 1, name: 'Seed Fund', ownershipPercent: 12.5, proRataAmount: 0.75 },
+            { id: 2, name: 'Strategic', ownershipPercent: 8.25, proRataAmount: 0 }
+          ],
+          founders: [
+            { id: 1, name: 'CEO & Founder', ownershipPercent: 55 },
+            { id: 2, name: 'Co-founder', ownershipPercent: 25 }
+          ],
+          safes: [
+            { id: 1, amount: 2, cap: 12, discount: 0 }
+          ],
+          currentEsopPercent: 7.5,
+          targetEsopPercent: 12.5,
+          esopTiming: 'post-close'
+        }
+        
+        const encoded = encodeScenarioToURL(complexScenario)
+        const decoded = decodeScenarioFromURL(encoded)
+        
+        // Verify core fields
+        expect(decoded.postMoneyVal).toBe(15.75)
+        expect(decoded.roundSize).toBe(4.25)
+        expect(decoded.investorName).toBe('Lead Investor')
+        
+        // Verify multi-party data
+        expect(decoded.priorInvestors[0].name).toBe('Seed Fund')
+        expect(decoded.priorInvestors[0].ownershipPercent).toBe(12.5)
+        expect(decoded.priorInvestors[0].proRataAmount).toBe(0.75)
+        
+        expect(decoded.founders[0].name).toBe('CEO & Founder')
+        expect(decoded.founders[0].ownershipPercent).toBe(55)
+        
+        // Verify other advanced features
+        expect(decoded.safes[0].amount).toBe(2)
+        expect(decoded.currentEsopPercent).toBe(7.5)
+        expect(decoded.targetEsopPercent).toBe(12.5)
+        expect(decoded.esopTiming).toBe('post-close')
+      })
+    })
+  })
 })
