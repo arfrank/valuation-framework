@@ -1,4 +1,7 @@
 import { useState, useEffect } from 'react'
+import PriorInvestorsSection from './PriorInvestorsSection'
+import FoundersSection from './FoundersSection'
+import { migrateLegacyCompany, createDefaultCompany } from '../utils/dataStructures'
 
 const InputForm = ({ company, onUpdate }) => {
   const [values, setValues] = useState({
@@ -24,10 +27,15 @@ const InputForm = ({ company, onUpdate }) => {
 
   useEffect(() => {
     if (company) {
+      // Migrate legacy company data to new multi-party structure
+      const migratedCompany = migrateLegacyCompany(company)
       setValues({
-        ...company,
+        ...migratedCompany,
         // Ensure safes array is always present
-        safes: company.safes || []
+        safes: migratedCompany.safes || [],
+        // Ensure multi-party arrays are present
+        priorInvestors: migratedCompany.priorInvestors || [],
+        founders: migratedCompany.founders || []
       })
     }
   }, [company])
@@ -132,6 +140,25 @@ const InputForm = ({ company, onUpdate }) => {
           ? { ...safe, [field]: numValue }
           : safe
       )
+    }
+    setValues(newValues)
+    onUpdate(newValues)
+  }
+
+  // Multi-party handlers
+  const handlePriorInvestorsUpdate = (updatedPriorInvestors) => {
+    const newValues = {
+      ...values,
+      priorInvestors: updatedPriorInvestors
+    }
+    setValues(newValues)
+    onUpdate(newValues)
+  }
+
+  const handleFoundersUpdate = (updatedFounders) => {
+    const newValues = {
+      ...values,
+      founders: updatedFounders
     }
     setValues(newValues)
     onUpdate(newValues)
@@ -430,6 +457,18 @@ const InputForm = ({ company, onUpdate }) => {
               ))}
             </div>
           </div>
+
+          {/* Prior Investors Section */}
+          <PriorInvestorsSection 
+            priorInvestors={values.priorInvestors || []}
+            onUpdate={handlePriorInvestorsUpdate}
+          />
+
+          {/* Founders Section */}
+          <FoundersSection 
+            founders={values.founders || []}
+            onUpdate={handleFoundersUpdate}
+          />
 
           {/* ESOP Section */}
           <div className="esop-section">

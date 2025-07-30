@@ -8,28 +8,15 @@ import GeometricBackground from './components/GeometricBackground'
 import NotificationContainer from './components/NotificationContainer'
 import { useLocalStorage } from './hooks/useLocalStorage'
 import { useNotifications } from './hooks/useNotifications'
-import { calculateScenarios } from './utils/calculations'
+import { calculateEnhancedScenarios } from './utils/multiPartyCalculations'
 import { copyPermalinkToClipboard, loadScenarioFromURL } from './utils/permalink'
 import { updateSocialSharingMeta } from './utils/socialSharing'
+import { createDefaultCompany } from './utils/dataStructures'
 
 function App() {
   const [activeCompany, setActiveCompany] = useState('company1')
   const [companies, setCompanies] = useLocalStorage('valuationFramework', {
-    company1: {
-      name: 'Startup Alpha',
-      postMoneyVal: 13,
-      roundSize: 3,
-      investorPortion: 2.75,
-      otherPortion: 0.25,
-      investorName: 'US',
-      showAdvanced: false,
-      proRataPercent: 15,
-      safes: [],
-      preRoundFounderOwnership: 70,
-      currentEsopPercent: 0,
-      targetEsopPercent: 0,
-      esopTiming: 'pre-close'
-    }
+    company1: createDefaultCompany('Startup Alpha')
   })
   const [nextCompanyId, setNextCompanyId] = useState(2)
   const [showGeometricBackground, setShowGeometricBackground] = useState(false)
@@ -57,23 +44,11 @@ function App() {
 
   const addCompany = () => {
     const newCompanyId = `company${nextCompanyId}`
-    const newCompany = {
-      name: nextCompanyId <= 26 
-        ? `Startup ${String.fromCharCode(64 + nextCompanyId)}`
-        : `Startup ${nextCompanyId}`,
-      postMoneyVal: 13,
-      roundSize: 3,
-      investorPortion: 2.75,
-      otherPortion: 0.25,
-      investorName: 'US',
-      showAdvanced: false,
-      proRataPercent: 15,
-      safes: [],
-      preRoundFounderOwnership: 70,
-      currentEsopPercent: 0,
-      targetEsopPercent: 0,
-      esopTiming: 'pre-close'
-    }
+    const companyName = nextCompanyId <= 26 
+      ? `Startup ${String.fromCharCode(64 + nextCompanyId)}`
+      : `Startup ${nextCompanyId}`
+    const newCompany = createDefaultCompany(companyName)
+    
     setCompanies(prev => ({ ...prev, [newCompanyId]: newCompany }))
     setActiveCompany(newCompanyId)
     setNextCompanyId(prev => prev + 1)
@@ -107,7 +82,7 @@ function App() {
   useEffect(() => {
     const currentCompany = companies[activeCompany]
     if (currentCompany) {
-      const newScenarios = calculateScenarios(currentCompany)
+      const newScenarios = calculateEnhancedScenarios(currentCompany)
       setScenarios(newScenarios || []) // Fallback to empty array if calculation fails
       
       // Update page metadata for permalinks

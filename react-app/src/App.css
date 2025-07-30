@@ -916,6 +916,248 @@ body.geometric-background-active .app {
   border-left: 3px solid #3182ce;
 }
 
+/* Prior Investors Section Styles */
+.prior-investors-section {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.section-header {
+  margin-bottom: 1rem;
+}
+
+.section-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.add-investor-btn, .add-founder-btn {
+  background: #48bb78;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.add-investor-btn:hover, .add-founder-btn:hover {
+  background: #38a169;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(72, 187, 120, 0.3);
+}
+
+.ownership-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  background: #f7fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+
+.summary-label {
+  color: #4a5568;
+  font-weight: 500;
+}
+
+.summary-value {
+  color: #3182ce;
+  font-weight: 700;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+}
+
+.no-investors-message, .no-founders-message {
+  text-align: center;
+  color: #718096;
+  font-style: italic;
+  font-size: 0.85rem;
+  padding: 1.5rem;
+  background: #f7fafc;
+  border: 1px dashed #cbd5e0;
+  border-radius: 4px;
+}
+
+.investors-list, .founders-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.investor-row, .founder-row {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 1rem;
+  transition: all 0.2s ease;
+}
+
+.investor-row:hover, .founder-row:hover {
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  border-color: #cbd5e0;
+}
+
+.investor-row-header, .founder-basic-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.investor-basic-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex: 1;
+}
+
+.investor-name-input, .founder-name-input {
+  flex: 1;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  padding: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #4a5568;
+  background: #f7fafc;
+}
+
+.investor-name-input:focus, .founder-name-input:focus {
+  outline: none;
+  border-color: #3182ce;
+  box-shadow: 0 0 0 2px rgba(49, 130, 206, 0.1);
+}
+
+.ownership-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 80px;
+}
+
+.ownership-input {
+  width: 60px;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  padding: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-align: right;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+}
+
+.ownership-input:focus {
+  outline: none;
+  border-color: #3182ce;
+  box-shadow: 0 0 0 2px rgba(49, 130, 206, 0.1);
+}
+
+.investor-controls, .founder-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.pro-rata-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: #4a5568;
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkbox-label {
+  font-weight: 500;
+}
+
+.remove-investor-btn, .remove-founder-btn {
+  background: #e2e8f0;
+  color: #718096;
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.remove-investor-btn:hover, .remove-founder-btn:hover {
+  background: #fed7d7;
+  color: #e53e3e;
+  transform: scale(1.1);
+}
+
+.pro-rata-info {
+  margin-top: 0.75rem;
+  padding: 0.65rem;
+  background: #e3f2fd;
+  border: 1px solid #bbdefb;
+  border-radius: 4px;
+  border-left: 3px solid #2196f3;
+}
+
+.pro-rata-display {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+}
+
+.pro-rata-label {
+  color: #1565c0;
+  font-weight: 500;
+}
+
+.pro-rata-value {
+  color: #1565c0;
+  font-weight: 700;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+}
+
+.pro-rata-explanation, .founders-note {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background: #f0f8ff;
+  border: 1px solid #cce7ff;
+  border-radius: 4px;
+  display: flex;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.explanation-icon, .note-icon {
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.explanation-text, .note-text {
+  color: #2c5aa0;
+  line-height: 1.4;
+}
+
+/* Founders Section Styles */
+.founders-section {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e2e8f0;
+}
+
 /* ESOP Section Styles */
 .esop-section {
   margin-top: 1.5rem;
