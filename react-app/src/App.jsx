@@ -23,7 +23,7 @@ function App() {
   const [hasLoadedFromURL, setHasLoadedFromURL] = useState(false)
 
   const [scenarios, setScenarios] = useState([])
-  const { notifications, removeNotification, showSuccess, showInfo } = useNotifications()
+  const { notifications, removeNotification, showSuccess, showInfo, showError } = useNotifications()
 
   const updateCompany = (companyId, data) => {
     setCompanies(prev => ({
@@ -83,14 +83,27 @@ function App() {
     const currentCompany = companies[activeCompany]
     if (currentCompany) {
       const newScenarios = calculateEnhancedScenarios(currentCompany)
-      setScenarios(newScenarios || []) // Fallback to empty array if calculation fails
+      
+      if (!newScenarios || newScenarios.length === 0) {
+        // Check if ownership exceeds 100%
+        const totalPriorOwnership = (currentCompany.priorInvestors || []).reduce((sum, inv) => sum + (inv.ownershipPercent || 0), 0)
+        const totalFounderOwnership = (currentCompany.founders || []).reduce((sum, f) => sum + (f.ownershipPercent || 0), 0)
+        const totalOwnership = totalPriorOwnership + totalFounderOwnership
+        
+        if (totalOwnership > 100) {
+          showError(`Cannot calculate scenarios: Total pre-round ownership is ${totalOwnership.toFixed(1)}% (exceeds 100%). Please adjust prior investor and founder ownership percentages.`)
+        }
+        setScenarios([]) // Clear scenarios
+      } else {
+        setScenarios(newScenarios)
+      }
       
       // Update page metadata for permalinks
       updateSocialSharingMeta()
     } else {
       setScenarios([]) // Clear scenarios if no valid company
     }
-  }, [companies, activeCompany])
+  }, [companies, activeCompany, showError])
 
   // Hidden keyboard shortcut: Shift + Space
   useEffect(() => {

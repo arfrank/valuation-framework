@@ -24,18 +24,19 @@ describe('ScenarioCard Display Logic', () => {
     safeDetails: []
   }
 
-  describe('Founder Impact Display', () => {
-    it('should hide founder impact row when preRoundFounderPercent is 0', () => {
-      const scenarioWithZeroFounder = {
+  describe('Founder Display', () => {
+    it('should hide founder rows when no founders in array', () => {
+      const scenarioWithNoFounders = {
         ...baseScenario,
+        founders: [],
         preRoundFounderPercent: 0,
         postRoundFounderPercent: 0,
         founderDilution: 0
       }
 
-      const { queryByText } = render(
+      const { container } = render(
         <ScenarioCard 
-          scenario={scenarioWithZeroFounder} 
+          scenario={scenarioWithNoFounders} 
           index={1} 
           isBase={false}
           showAdvanced={true}
@@ -43,12 +44,28 @@ describe('ScenarioCard Display Logic', () => {
         />
       )
 
-      expect(queryByText('Founder Impact')).toBeNull()
+      expect(container.querySelector('.founder-row')).toBeNull()
     })
 
-    it('should show founder impact row when preRoundFounderPercent > 0', () => {
-      const scenarioWithFounder = {
+    it('should show individual founder rows when founders array has data', () => {
+      const scenarioWithFounders = {
         ...baseScenario,
+        founders: [
+          {
+            id: 1,
+            name: 'John Founder',
+            ownershipPercent: 40,
+            postRoundPercent: 30.8,
+            dilution: 9.2
+          },
+          {
+            id: 2,
+            name: 'Jane Founder', 
+            ownershipPercent: 30,
+            postRoundPercent: 23.1,
+            dilution: 6.9
+          }
+        ],
         preRoundFounderPercent: 70,
         postRoundFounderPercent: 53.84,
         founderDilution: 16.16
@@ -56,7 +73,7 @@ describe('ScenarioCard Display Logic', () => {
 
       const { getByText } = render(
         <ScenarioCard 
-          scenario={scenarioWithFounder} 
+          scenario={scenarioWithFounders} 
           index={1} 
           isBase={false}
           showAdvanced={true}
@@ -64,22 +81,34 @@ describe('ScenarioCard Display Logic', () => {
         />
       )
 
-      expect(getByText('Founder Impact')).toBeTruthy()
-      expect(getByText('53.8%')).toBeTruthy()
-      expect(getByText('-16.16%')).toBeTruthy()
+      expect(getByText('John Founder')).toBeTruthy()
+      expect(getByText('Jane Founder')).toBeTruthy()
+      expect(getByText('30.8%')).toBeTruthy()
+      expect(getByText('23.1%')).toBeTruthy()
+      expect(getByText('-9.20%')).toBeTruthy()
+      expect(getByText('-6.90%')).toBeTruthy()
     })
 
-    it('should hide founder impact row when showAdvanced is false', () => {
-      const scenarioWithFounder = {
+    it('should hide founder rows when showAdvanced is false', () => {
+      const scenarioWithFounders = {
         ...baseScenario,
+        founders: [
+          {
+            id: 1,
+            name: 'John Founder',
+            ownershipPercent: 40,
+            postRoundPercent: 30.8,
+            dilution: 9.2
+          }
+        ],
         preRoundFounderPercent: 70,
         postRoundFounderPercent: 53.84,
         founderDilution: 16.16
       }
 
-      const { queryByText } = render(
+      const { container } = render(
         <ScenarioCard 
-          scenario={scenarioWithFounder} 
+          scenario={scenarioWithFounders} 
           index={1} 
           isBase={false}
           showAdvanced={false}
@@ -87,7 +116,217 @@ describe('ScenarioCard Display Logic', () => {
         />
       )
 
-      expect(queryByText('Founder Impact')).toBeNull()
+      expect(container.querySelector('.founder-row')).toBeNull()
+    })
+  })
+
+  describe('Multi-Party Display (N Founders & N Prior Investors)', () => {
+    it('should display multiple prior investors with pro-rata details', () => {
+      const scenarioWithMultipleInvestors = {
+        ...baseScenario,
+        priorInvestors: [
+          {
+            id: 1,
+            name: 'Seed VC',
+            ownershipPercent: 15,
+            postRoundPercent: 11.5,
+            proRataAmount: 0.5,
+            dilution: 3.5
+          },
+          {
+            id: 2,
+            name: 'Angel Group',
+            ownershipPercent: 10,
+            postRoundPercent: 7.7,
+            proRataAmount: 0,
+            dilution: 2.3
+          },
+          {
+            id: 3,
+            name: 'Strategic Partner',
+            ownershipPercent: 5,
+            postRoundPercent: 5.8,
+            proRataAmount: 0.3,
+            dilution: -0.8 // Actually gained due to pro-rata
+          }
+        ]
+      }
+
+      const { getByText } = render(
+        <ScenarioCard 
+          scenario={scenarioWithMultipleInvestors} 
+          index={1} 
+          isBase={false}
+          showAdvanced={true}
+          investorName="US"
+        />
+      )
+
+      // Check all prior investors are displayed
+      expect(getByText('Seed VC')).toBeTruthy()
+      expect(getByText('Angel Group')).toBeTruthy()
+      expect(getByText('Strategic Partner')).toBeTruthy()
+      
+      // Check ownership percentages
+      expect(getByText('11.5%')).toBeTruthy()
+      expect(getByText('7.7%')).toBeTruthy()
+      expect(getByText('5.8%')).toBeTruthy()
+      
+      // Check pro-rata amounts and dilution info
+      expect(getByText('+$0.50M')).toBeTruthy() // Seed VC pro-rata
+      expect(getByText('-2.30%')).toBeTruthy()  // Angel Group dilution
+      expect(getByText('+$0.30M')).toBeTruthy() // Strategic Partner pro-rata
+    })
+
+    it('should display multiple founders with individual dilution', () => {
+      const scenarioWithMultipleFounders = {
+        ...baseScenario,
+        founders: [
+          {
+            id: 1,
+            name: 'CEO',
+            ownershipPercent: 45,
+            postRoundPercent: 34.6,
+            dilution: 10.4
+          },
+          {
+            id: 2,
+            name: 'CTO',
+            ownershipPercent: 35,
+            postRoundPercent: 26.9,
+            dilution: 8.1
+          },
+          {
+            id: 3,
+            name: 'COO',
+            ownershipPercent: 20,
+            postRoundPercent: 15.4,
+            dilution: 4.6
+          }
+        ]
+      }
+
+      const { getByText } = render(
+        <ScenarioCard 
+          scenario={scenarioWithMultipleFounders} 
+          index={1} 
+          isBase={false}
+          showAdvanced={true}
+          investorName="US"
+        />
+      )
+
+      // Check all founders are displayed
+      expect(getByText('CEO')).toBeTruthy()
+      expect(getByText('CTO')).toBeTruthy()
+      expect(getByText('COO')).toBeTruthy()
+      
+      // Check post-round ownership percentages
+      expect(getByText('34.6%')).toBeTruthy()
+      expect(getByText('26.9%')).toBeTruthy()
+      expect(getByText('15.4%')).toBeTruthy()
+      
+      // Check dilution percentages
+      expect(getByText('-10.40%')).toBeTruthy()
+      expect(getByText('-8.10%')).toBeTruthy()
+      expect(getByText('-4.60%')).toBeTruthy()
+    })
+
+    it('should display both multiple founders and multiple prior investors together', () => {
+      const scenarioWithBoth = {
+        ...baseScenario,
+        priorInvestors: [
+          {
+            id: 1,
+            name: 'Previous Round',
+            ownershipPercent: 20,
+            postRoundPercent: 15.4,
+            proRataAmount: 0,
+            dilution: 4.6
+          }
+        ],
+        founders: [
+          {
+            id: 1,
+            name: 'Founder 1',
+            ownershipPercent: 40,
+            postRoundPercent: 30.8,
+            dilution: 9.2
+          },
+          {
+            id: 2,
+            name: 'Founder 2',
+            ownershipPercent: 30,
+            postRoundPercent: 23.1,
+            dilution: 6.9
+          }
+        ]
+      }
+
+      const { getByText } = render(
+        <ScenarioCard 
+          scenario={scenarioWithBoth} 
+          index={1} 
+          isBase={false}
+          showAdvanced={true}
+          investorName="US"
+        />
+      )
+
+      // Check prior investor
+      expect(getByText('Previous Round')).toBeTruthy()
+      expect(getByText('15.4%')).toBeTruthy()
+      
+      // Check founders
+      expect(getByText('Founder 1')).toBeTruthy()
+      expect(getByText('Founder 2')).toBeTruthy()
+      expect(getByText('30.8%')).toBeTruthy()
+      expect(getByText('23.1%')).toBeTruthy()
+    })
+
+    it('should handle edge case with many stakeholders (5+ founders, 3+ investors)', () => {
+      const scenarioWithManyStakeholders = {
+        ...baseScenario,
+        priorInvestors: [
+          { id: 1, name: 'VC 1', ownershipPercent: 8, postRoundPercent: 6.2, proRataAmount: 0, dilution: 1.8 },
+          { id: 2, name: 'VC 2', ownershipPercent: 7, postRoundPercent: 5.4, proRataAmount: 0.2, dilution: 1.6 },
+          { id: 3, name: 'Angel', ownershipPercent: 5, postRoundPercent: 3.8, proRataAmount: 0, dilution: 1.2 }
+        ],
+        founders: [
+          { id: 1, name: 'CEO', ownershipPercent: 25, postRoundPercent: 19.2, dilution: 5.8 },
+          { id: 2, name: 'CTO', ownershipPercent: 20, postRoundPercent: 15.4, dilution: 4.6 },
+          { id: 3, name: 'COO', ownershipPercent: 15, postRoundPercent: 11.5, dilution: 3.5 },
+          { id: 4, name: 'CMO', ownershipPercent: 10, postRoundPercent: 7.7, dilution: 2.3 },
+          { id: 5, name: 'CFO', ownershipPercent: 10, postRoundPercent: 7.7, dilution: 2.3 }
+        ]
+      }
+
+      const { getByText } = render(
+        <ScenarioCard 
+          scenario={scenarioWithManyStakeholders} 
+          index={1} 
+          isBase={false}
+          showAdvanced={true}
+          investorName="US"
+        />
+      )
+
+      // Check all prior investors are displayed
+      expect(getByText('VC 1')).toBeTruthy()
+      expect(getByText('VC 2')).toBeTruthy()
+      expect(getByText('Angel')).toBeTruthy()
+      
+      // Check all founders are displayed
+      expect(getByText('CEO')).toBeTruthy()
+      expect(getByText('CTO')).toBeTruthy()
+      expect(getByText('COO')).toBeTruthy()
+      expect(getByText('CMO')).toBeTruthy()
+      expect(getByText('CFO')).toBeTruthy()
+      
+      // Spot check some percentages
+      expect(getByText('19.2%')).toBeTruthy() // CEO
+      expect(getByText('6.2%')).toBeTruthy()  // VC 1
+      expect(getByText('+$0.20M')).toBeTruthy() // VC 2 pro-rata
     })
   })
 
@@ -137,9 +376,25 @@ describe('ScenarioCard Display Logic', () => {
   })
 
   describe('Combined Display Logic', () => {
-    it('should show both SAFEs and founder impact when both present', () => {
+    it('should show both SAFEs and individual founders when both present', () => {
       const fullScenario = {
         ...baseScenario,
+        founders: [
+          {
+            id: 1,
+            name: 'CEO',
+            ownershipPercent: 40,
+            postRoundPercent: 25.5,
+            dilution: 14.5
+          },
+          {
+            id: 2,
+            name: 'CTO',
+            ownershipPercent: 30,
+            postRoundPercent: 20.0,
+            dilution: 10.0
+          }
+        ],
         preRoundFounderPercent: 70,
         postRoundFounderPercent: 45.5,
         founderDilution: 24.5,
@@ -159,12 +414,16 @@ describe('ScenarioCard Display Logic', () => {
       )
 
       expect(getByText('SAFE #1')).toBeTruthy()
-      expect(getByText('Founder Impact')).toBeTruthy()
+      expect(getByText('CEO')).toBeTruthy()
+      expect(getByText('CTO')).toBeTruthy()
+      expect(getByText('25.5%')).toBeTruthy()
+      expect(getByText('20.0%')).toBeTruthy()
     })
 
-    it('should show only SAFEs when founder ownership is 0', () => {
+    it('should show only SAFEs when no founders present', () => {
       const safeOnlyScenario = {
         ...baseScenario,
+        founders: [], // Empty founders array
         preRoundFounderPercent: 0,
         postRoundFounderPercent: 0,
         founderDilution: 0,
@@ -173,7 +432,7 @@ describe('ScenarioCard Display Logic', () => {
         ]
       }
 
-      const { getByText, queryByText } = render(
+      const { getByText, container } = render(
         <ScenarioCard 
           scenario={safeOnlyScenario} 
           index={1} 
@@ -184,7 +443,7 @@ describe('ScenarioCard Display Logic', () => {
       )
 
       expect(getByText('SAFE #1')).toBeTruthy()
-      expect(queryByText('Founder Impact')).toBeNull()
+      expect(container.querySelector('.founder-row')).toBeNull()
     })
   })
 })

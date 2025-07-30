@@ -135,13 +135,29 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
           <div className="percent">{formatPercent(scenario.totalPercent)}</div>
         </div>
 
-        {showAdvanced && scenario.preRoundFounderPercent > 0 && (
-          <div className="table-row founder-row">
-            <div className="label">Founder Impact</div>
-            <div className="amount">{scenario.postRoundFounderPercent.toFixed(1)}%</div>
-            <div className="percent">-{formatPercent(scenario.founderDilution)}</div>
-          </div>
-        )}
+        {/* Individual Prior Investors */}
+        {showAdvanced && scenario.priorInvestors && scenario.priorInvestors.length > 0 && 
+          scenario.priorInvestors.map((investor, investorIndex) => (
+            <div key={investor.id || investorIndex} className="table-row pro-rata-row">
+              <div className="label">{investor.name || `Prior Investor ${investorIndex + 1}`}</div>
+              <div className="amount">{investor.postRoundPercent.toFixed(2)}%</div>
+              <div className="percent">
+                {investor.proRataAmount > 0 ? `+${formatDollar(investor.proRataAmount)}` : `-${investor.dilution.toFixed(2)}%`}
+              </div>
+            </div>
+          ))
+        }
+
+        {/* Individual Founders */}
+        {showAdvanced && scenario.founders && scenario.founders.length > 0 && 
+          scenario.founders.map((founder, founderIndex) => (
+            <div key={founder.id || founderIndex} className="table-row founder-row">
+              <div className="label">{founder.name || `Founder ${founderIndex + 1}`}</div>
+              <div className="amount">{founder.postRoundPercent.toFixed(2)}%</div>
+              <div className="percent">-{founder.dilution.toFixed(2)}%</div>
+            </div>
+          ))
+        }
 
         {showAdvanced && scenario.finalEsopPercent > 0 && (
           <div className="table-row esop-row">
