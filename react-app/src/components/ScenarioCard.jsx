@@ -30,7 +30,7 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
         postMoneyVal: scenario.postMoneyVal,
         roundSize: scenario.roundSize,
         investorPortion: scenario.investorAmount,
-        otherPortion: scenario.otherAmount,
+        otherPortion: scenario.otherAmountOriginal || scenario.otherAmount,
         // Include advanced features if available
         proRataPercent: scenario.proRataPercentInput || 0,
         // N SAFEs support
@@ -55,7 +55,7 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
         postMoneyVal: scenario.postMoneyVal,
         roundSize: scenario.roundSize,
         investorPortion: scenario.investorAmount,
-        otherPortion: scenario.otherAmount,
+        otherPortion: scenario.otherAmountOriginal || scenario.otherAmount,
         investorName: investorName,
         showAdvanced: showAdvanced,
         proRataPercent: scenario.proRataPercentInput || 0,
