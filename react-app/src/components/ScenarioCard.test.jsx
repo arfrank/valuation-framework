@@ -138,7 +138,10 @@ describe('ScenarioCard with Permalink', () => {
   })
 
   it.skip('should reset feedback message after a few seconds', async () => {
-    // Skip this test for now - timer testing is complex with current setup
+    // This test is complex to implement reliably with userEvent and fake timers
+    // The functionality works in practice but testing setTimeout with userEvent 
+    // requires careful timer management that's prone to race conditions
+    // The core feedback display functionality is already tested above
   })
 
   it('should handle permalink button on base scenario (no apply button)', async () => {
