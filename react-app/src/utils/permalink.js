@@ -14,7 +14,11 @@ const URL_PARAM_MAP = {
   proRataPercent: 'pr',
   // N SAFEs array will be encoded as 'safes' parameter
   safes: 'safes',
-  preRoundFounderOwnership: 'pf'
+  preRoundFounderOwnership: 'pf',
+  // ESOP modeling
+  currentEsopPercent: 'ce',
+  targetEsopPercent: 'te',
+  esopTiming: 'et'
 }
 
 const REVERSE_PARAM_MAP = Object.fromEntries(
@@ -96,12 +100,17 @@ export function encodeScenarioToURL(scenarioData) {
       }
       
       // Only include non-zero values for optional fields
-      if (['proRataPercent'].includes(field) && value === 0) {
+      if (['proRataPercent', 'currentEsopPercent', 'targetEsopPercent'].includes(field) && value === 0) {
         return
       }
       
       // Don't include default value for preRoundFounderOwnership
       if (field === 'preRoundFounderOwnership' && value === 0) {
+        return // Don't include default value
+      }
+
+      // Don't include default ESOP timing
+      if (field === 'esopTiming' && value === 'pre-close') {
         return // Don't include default value
       }
       
@@ -132,7 +141,11 @@ export function decodeScenarioFromURL(urlParams) {
       showAdvanced: false,
       proRataPercent: 0,
       safes: [], // N SAFEs array
-      preRoundFounderOwnership: 0
+      preRoundFounderOwnership: 0,
+      // ESOP defaults
+      currentEsopPercent: 0,
+      targetEsopPercent: 0,
+      esopTiming: 'pre-close'
     }
 
     // Decode parameters
@@ -144,6 +157,8 @@ export function decodeScenarioFromURL(urlParams) {
           scenarioData[field] = decodeURIComponent(value)
         } else if (field === 'showAdvanced') {
           scenarioData[field] = value === '1'
+        } else if (field === 'esopTiming') {
+          scenarioData[field] = value // String value, no parsing needed
         } else if (field === 'safes') {
           // Decode SAFEs array from JSON
           try {
@@ -172,7 +187,8 @@ export function decodeScenarioFromURL(urlParams) {
 
     // Set showAdvanced to true if any advanced features are present (but don't override explicit setting)
     if (!params.has('adv') && (scenarioData.proRataPercent > 0 || scenarioData.preRoundFounderOwnership > 0 ||
-        (scenarioData.safes && scenarioData.safes.length > 0))) {
+        (scenarioData.safes && scenarioData.safes.length > 0) || scenarioData.currentEsopPercent > 0 || 
+        scenarioData.targetEsopPercent > 0)) {
       scenarioData.showAdvanced = true
     }
 

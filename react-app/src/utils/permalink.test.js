@@ -300,10 +300,10 @@ describe('Permalink Utilities', () => {
     })
 
     it('should reject scenario with missing required fields', () => {
-      const { postMoneyVal, ...incomplete } = mockScenario
+      const { postMoneyVal: _postMoneyVal, ...incomplete } = mockScenario
       expect(isValidScenarioData(incomplete)).toBe(false)
 
-      const { investorName, ...noInvestor } = mockScenario
+      const { investorName: _investorName, ...noInvestor } = mockScenario
       expect(isValidScenarioData(noInvestor)).toBe(false)
     })
   })

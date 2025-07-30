@@ -8,7 +8,7 @@ const mockMetaTag = (selector, content = '') => ({
 })
 
 describe('Social Sharing Utilities', () => {
-  const mockScenarioData = {
+  const MOCK_SCENARIO_DATA = {
     postMoneyVal: 13,
     roundSize: 3,
     investorPortion: 2.75,
@@ -20,8 +20,9 @@ describe('Social Sharing Utilities', () => {
     preRoundFounderOwnership: 0
   }
 
+  /*
   const mockAdvancedScenario = {
-    ...mockScenarioData,
+    ...MOCK_SCENARIO_DATA,
     showAdvanced: true,
     preRoundFounderOwnership: 70,
     proRataPercent: 25,
@@ -30,6 +31,7 @@ describe('Social Sharing Utilities', () => {
       { id: 2, amount: 0.5, cap: 0, discount: 20 }
     ]
   }
+  */
 
   beforeEach(() => {
     // Mock document methods

@@ -25,7 +25,10 @@ function App() {
       showAdvanced: false,
       proRataPercent: 15,
       safes: [],
-      preRoundFounderOwnership: 70
+      preRoundFounderOwnership: 70,
+      currentEsopPercent: 0,
+      targetEsopPercent: 0,
+      esopTiming: 'pre-close'
     }
   })
   const [nextCompanyId, setNextCompanyId] = useState(2)
@@ -66,7 +69,10 @@ function App() {
       showAdvanced: false,
       proRataPercent: 15,
       safes: [],
-      preRoundFounderOwnership: 70
+      preRoundFounderOwnership: 70,
+      currentEsopPercent: 0,
+      targetEsopPercent: 0,
+      esopTiming: 'pre-close'
     }
     setCompanies(prev => ({ ...prev, [newCompanyId]: newCompany }))
     setActiveCompany(newCompanyId)

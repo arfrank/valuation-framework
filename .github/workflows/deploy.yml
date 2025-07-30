@@ -1,0 +1,88 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [ main, master ]
+  
+  # Allow manual deployment
+  workflow_dispatch:
+
+jobs:
+  test-before-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+        cache-dependency-path: react-app/package-lock.json
+    
+    - name: Install dependencies
+      working-directory: ./react-app
+      run: npm ci
+    
+    - name: Run all tests
+      working-directory: ./react-app
+      run: npm test -- --run
+    
+    - name: Build for production
+      working-directory: ./react-app
+      run: npm run build
+    
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-files
+        path: react-app/dist/
+        retention-days: 30
+
+  # Deployment job (customize this based on your hosting provider)
+  deploy:
+    needs: test-before-deploy
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Download build artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: build-files
+        path: react-app/dist/
+    
+    # Example for Vercel deployment (uncomment and configure as needed)
+    # - name: Deploy to Vercel
+    #   uses: vercel/action@v1
+    #   with:
+    #     vercel-token: ${{ secrets.VERCEL_TOKEN }}
+    #     vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+    #     vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+    #     working-directory: ./react-app
+    
+    # Example for Netlify deployment (uncomment and configure as needed)
+    # - name: Deploy to Netlify
+    #   uses: netlify/actions/cli@master
+    #   with:
+    #     args: deploy --prod --dir=react-app/dist
+    #   env:
+    #     NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+    #     NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+    
+    # Example for GitHub Pages deployment (uncomment and configure as needed)
+    # - name: Deploy to GitHub Pages
+    #   uses: peaceiris/actions-gh-pages@v3
+    #   with:
+    #     github_token: ${{ secrets.GITHUB_TOKEN }}
+    #     publish_dir: ./react-app/dist
+    
+    - name: Deployment notification
+      run: |
+        echo "🚀 Deployment completed successfully!"
+        echo "Build artifacts are available for 30 days"

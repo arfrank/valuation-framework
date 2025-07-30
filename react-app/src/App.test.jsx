@@ -4,7 +4,7 @@ import App from './App'
 
 // Mock the child components to focus on App's permalink functionality
 vi.mock('./components/CompanyTabs', () => ({
-  default: ({ companies, activeCompany, onCompanyChange }) => (
+  default: ({ _companies, _activeCompany, onCompanyChange }) => (
     <div data-testid="company-tabs">
       <button onClick={() => onCompanyChange('company1')}>Company 1</button>
     </div>
@@ -24,7 +24,7 @@ vi.mock('./components/InputForm', () => ({
 }))
 
 vi.mock('./components/ScenarioCard', () => ({
-  default: ({ scenario, onApplyScenario, onCopyPermalink, isBase }) => (
+  default: ({ scenario, _onApplyScenario, onCopyPermalink, isBase }) => (
     <div data-testid={isBase ? "base-scenario" : "alt-scenario"}>
       <span>Post-Money: {scenario?.postMoneyVal}</span>
       {!isBase && onCopyPermalink && (

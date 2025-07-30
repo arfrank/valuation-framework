@@ -21,7 +21,11 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
         proRataPercent: scenario.proRataPercentInput || 0,
         // N SAFEs support
         safes: scenario.safes || [],
-        preRoundFounderOwnership: scenario.preRoundFounderPercent ?? 0
+        preRoundFounderOwnership: scenario.preRoundFounderPercent ?? 0,
+        // ESOP modeling
+        currentEsopPercent: scenario.currentEsopPercent || 0,
+        targetEsopPercent: scenario.targetEsopPercent || 0,
+        esopTiming: scenario.esopTiming || 'pre-close'
       })
     }
   }
@@ -40,7 +44,11 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
         proRataPercent: scenario.proRataPercentInput || 0,
         // N SAFEs support
         safes: scenario.safes || [],
-        preRoundFounderOwnership: scenario.preRoundFounderPercent ?? 0
+        preRoundFounderOwnership: scenario.preRoundFounderPercent ?? 0,
+        // ESOP modeling
+        currentEsopPercent: scenario.currentEsopPercent || 0,
+        targetEsopPercent: scenario.targetEsopPercent || 0,
+        esopTiming: scenario.esopTiming || 'pre-close'
       }
 
       const result = await onCopyPermalink(scenarioData)
@@ -53,7 +61,7 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
       
       // Clear feedback after 3 seconds
       setTimeout(() => setCopyFeedback(''), 3000)
-    } catch (error) {
+    } catch {
       setCopyFeedback('Failed to copy')
       setTimeout(() => setCopyFeedback(''), 3000)
     }
@@ -132,6 +140,16 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
             <div className="label">Founder Impact</div>
             <div className="amount">{scenario.postRoundFounderPercent.toFixed(1)}%</div>
             <div className="percent">-{formatPercent(scenario.founderDilution)}</div>
+          </div>
+        )}
+
+        {showAdvanced && scenario.finalEsopPercent > 0 && (
+          <div className="table-row esop-row">
+            <div className="label">🏊‍♀️ ESOP Pool</div>
+            <div className="amount">{scenario.finalEsopPercent.toFixed(1)}%</div>
+            <div className="percent">
+              {scenario.esopIncrease > 0 ? `+${scenario.esopIncrease.toFixed(1)}%` : '—'}
+            </div>
           </div>
         )}
       </div>
