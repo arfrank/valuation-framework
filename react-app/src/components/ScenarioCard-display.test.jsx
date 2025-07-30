@@ -81,8 +81,8 @@ describe('ScenarioCard Display Logic', () => {
         />
       )
 
-      expect(getByText((content, element) => content.includes('John Founder'))).toBeTruthy()
-      expect(getByText((content, element) => content.includes('Jane Founder'))).toBeTruthy()
+      expect(getByText((content, _element) => content.includes('John Founder'))).toBeTruthy()
+      expect(getByText((content, _element) => content.includes('Jane Founder'))).toBeTruthy()
       // Verify percentages are displayed (from HTML debug output)
       expect(getByText('30.80%')).toBeTruthy() // John Founder's percentage from mock data
       expect(getByText('23.10%')).toBeTruthy() // Jane Founder's percentage from mock data
@@ -164,18 +164,18 @@ describe('ScenarioCard Display Logic', () => {
       )
 
       // Check all prior investors are displayed (use getAllByText for duplicates)
-      expect(getAllByText((content, element) => content.includes('Seed VC')).length).toBeGreaterThan(0)
-      expect(getAllByText((content, element) => content.includes('Angel Group')).length).toBeGreaterThan(0)
-      expect(getAllByText((content, element) => content.includes('Strategic Partner')).length).toBeGreaterThan(0)
+      expect(getAllByText((content, _element) => content.includes('Seed VC')).length).toBeGreaterThan(0)
+      expect(getAllByText((content, _element) => content.includes('Angel Group')).length).toBeGreaterThan(0)
+      expect(getAllByText((content, _element) => content.includes('Strategic Partner')).length).toBeGreaterThan(0)
       
       // Check ownership percentages
-      expect(getByText('11.5%')).toBeTruthy()
-      expect(getByText('7.7%')).toBeTruthy()
-      expect(getByText('5.8%')).toBeTruthy()
+      expect(getByText('11.50%')).toBeTruthy()
+      expect(getByText('7.70%')).toBeTruthy()
+      expect(getByText('5.80%')).toBeTruthy()
       
       // Check pro-rata amounts and dilution info
       expect(getByText('+$0.50M')).toBeTruthy() // Seed VC pro-rata
-      expect(getByText('-2.30%')).toBeTruthy()  // Angel Group dilution
+      expect(getByText('-2.3%')).toBeTruthy()   // Angel Group dilution (uses toFixed(1))
       expect(getByText('+$0.30M')).toBeTruthy() // Strategic Partner pro-rata
     })
 
@@ -218,19 +218,19 @@ describe('ScenarioCard Display Logic', () => {
       )
 
       // Check all founders are displayed
-      expect(getByText((content, element) => content.includes('CEO'))).toBeTruthy()
-      expect(getByText((content, element) => content.includes('CTO'))).toBeTruthy()
-      expect(getByText((content, element) => content.includes('COO'))).toBeTruthy()
+      expect(getByText((content, _element) => content.includes('CEO'))).toBeTruthy()
+      expect(getByText((content, _element) => content.includes('CTO'))).toBeTruthy()
+      expect(getByText((content, _element) => content.includes('COO'))).toBeTruthy()
       
       // Check post-round ownership percentages
-      expect(getByText('34.6%')).toBeTruthy()
-      expect(getByText('26.9%')).toBeTruthy()
-      expect(getByText('15.4%')).toBeTruthy()
+      expect(getByText('34.60%')).toBeTruthy()
+      expect(getByText('26.90%')).toBeTruthy()
+      expect(getByText('15.40%')).toBeTruthy()
       
       // Check dilution percentages
-      expect(getByText('-10.40%')).toBeTruthy()
-      expect(getByText('-8.10%')).toBeTruthy()
-      expect(getByText('-4.60%')).toBeTruthy()
+      expect(getByText('-10.4%')).toBeTruthy()
+      expect(getByText('-8.1%')).toBeTruthy()
+      expect(getByText('-4.6%')).toBeTruthy()
     })
 
     it('should display both multiple founders and multiple prior investors together', () => {
@@ -264,7 +264,7 @@ describe('ScenarioCard Display Logic', () => {
         ]
       }
 
-      const { getByText } = render(
+      const { getByText, getAllByText } = render(
         <ScenarioCard 
           scenario={scenarioWithBoth} 
           index={1} 
@@ -275,14 +275,14 @@ describe('ScenarioCard Display Logic', () => {
       )
 
       // Check prior investor
-      expect(getByText((content, element) => content.includes('Previous Round'))).toBeTruthy()
-      expect(getByText('15.4%')).toBeTruthy()
+      expect(getByText((content, _element) => content.includes('Previous Round'))).toBeTruthy()
+      expect(getAllByText('15.40%').length).toBeGreaterThan(0)
       
       // Check founders
-      expect(getByText((content, element) => content.includes('Founder 1'))).toBeTruthy()
-      expect(getByText((content, element) => content.includes('Founder 2'))).toBeTruthy()
-      expect(getByText('30.8%')).toBeTruthy()
-      expect(getByText('23.1%')).toBeTruthy()
+      expect(getByText((content, _element) => content.includes('Founder 1'))).toBeTruthy()
+      expect(getByText((content, _element) => content.includes('Founder 2'))).toBeTruthy()
+      expect(getByText('30.80%')).toBeTruthy()
+      expect(getByText('23.10%')).toBeTruthy()
     })
 
     it('should handle edge case with many stakeholders (5+ founders, 3+ investors)', () => {
@@ -302,7 +302,7 @@ describe('ScenarioCard Display Logic', () => {
         ]
       }
 
-      const { getByText } = render(
+      const { getByText, getAllByText } = render(
         <ScenarioCard 
           scenario={scenarioWithManyStakeholders} 
           index={1} 
@@ -312,21 +312,21 @@ describe('ScenarioCard Display Logic', () => {
         />
       )
 
-      // Check all prior investors are displayed
-      expect(getByText((content, element) => content.includes('VC 1'))).toBeTruthy()
-      expect(getByText((content, element) => content.includes('VC 2'))).toBeTruthy()
-      expect(getByText((content, element) => content.includes('Angel'))).toBeTruthy()
+      // Check all prior investors are displayed (use getAllByText for potential duplicates)
+      expect(getAllByText((content, _element) => content.includes('VC 1')).length).toBeGreaterThan(0)
+      expect(getAllByText((content, _element) => content.includes('VC 2')).length).toBeGreaterThan(0)
+      expect(getAllByText((content, _element) => content.includes('Angel')).length).toBeGreaterThan(0)
       
       // Check all founders are displayed
-      expect(getByText((content, element) => content.includes('CEO'))).toBeTruthy()
-      expect(getByText((content, element) => content.includes('CTO'))).toBeTruthy()
-      expect(getByText((content, element) => content.includes('COO'))).toBeTruthy()
-      expect(getByText((content, element) => content.includes('CMO'))).toBeTruthy()
-      expect(getByText((content, element) => content.includes('CFO'))).toBeTruthy()
+      expect(getByText((content, _element) => content.includes('CEO'))).toBeTruthy()
+      expect(getByText((content, _element) => content.includes('CTO'))).toBeTruthy()
+      expect(getByText((content, _element) => content.includes('COO'))).toBeTruthy()
+      expect(getByText((content, _element) => content.includes('CMO'))).toBeTruthy()
+      expect(getByText((content, _element) => content.includes('CFO'))).toBeTruthy()
       
-      // Spot check some percentages
-      expect(getByText('19.2%')).toBeTruthy() // CEO
-      expect(getByText('6.2%')).toBeTruthy()  // VC 1
+      // Spot check some percentages  
+      expect(getByText('19.20%')).toBeTruthy() // CEO
+      expect(getByText('6.20%')).toBeTruthy()  // VC 1
       expect(getByText('+$0.20M')).toBeTruthy() // VC 2 pro-rata
     })
   })
@@ -353,10 +353,10 @@ describe('ScenarioCard Display Logic', () => {
         />
       )
 
-      expect(getByText((content, element) => content.includes('SAFE #1'))).toBeTruthy()
-      expect(getByText((content, element) => content.includes('SAFE #2'))).toBeTruthy()
-      expect(getByText('$1.00M')).toBeTruthy() // SAFE 1 amount
-      expect(getByText('$0.50M')).toBeTruthy() // SAFE 2 amount
+      expect(getByText((content, _element) => content.includes('SAFE #1'))).toBeTruthy()
+      expect(getByText((content, _element) => content.includes('SAFE #2'))).toBeTruthy()
+      expect(getByText((content, _element) => content.includes('$1M @'))).toBeTruthy() // SAFE 1 amount display
+      expect(getByText((content, _element) => content.includes('$0.5M @'))).toBeTruthy() // SAFE 2 amount display
     })
 
 
@@ -414,11 +414,11 @@ describe('ScenarioCard Display Logic', () => {
         />
       )
 
-      expect(getByText((content, element) => content.includes('SAFE #1'))).toBeTruthy()
-      expect(getByText((content, element) => content.includes('CEO'))).toBeTruthy()
-      expect(getByText((content, element) => content.includes('CTO'))).toBeTruthy()
-      expect(getByText('25.5%')).toBeTruthy()
-      expect(getByText('20.0%')).toBeTruthy()
+      expect(getByText((content, _element) => content.includes('SAFE #1'))).toBeTruthy()
+      expect(getByText((content, _element) => content.includes('CEO'))).toBeTruthy()
+      expect(getByText((content, _element) => content.includes('CTO'))).toBeTruthy()
+      expect(getByText('25.50%')).toBeTruthy()
+      expect(getByText('20.00%')).toBeTruthy()
     })
 
     it('should show only SAFEs when no founders present', () => {
@@ -443,7 +443,7 @@ describe('ScenarioCard Display Logic', () => {
         />
       )
 
-      expect(getByText((content, element) => content.includes('SAFE #1'))).toBeTruthy()
+      expect(getByText((content, _element) => content.includes('SAFE #1'))).toBeTruthy()
       expect(container.querySelector('.founder-row')).toBeNull()
     })
   })

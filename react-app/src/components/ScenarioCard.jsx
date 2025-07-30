@@ -112,10 +112,6 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
     ? unknownPreRound - scenario.unknownOwnership
     : 0
     
-  // Calculate total dilution for prior investors (includes effect of pro-rata)
-  const priorInvestorsTotalDilution = scenario.priorInvestors
-    ? scenario.priorInvestors.reduce((sum, inv) => sum + inv.dilution, 0)
-    : 0
 
   return (
     <div className={getCardClass()}>

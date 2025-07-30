@@ -34,7 +34,7 @@ describe('Multi-Party Calculations - Multiple Founders', () => {
       console.log(`- Round %: ${result.roundPercent}%`)
       console.log('')
       console.log('Post-round calculated ownership:')
-      result.founders.forEach((founder, index) => {
+      result.founders.forEach((founder, _index) => {
         console.log(`- ${founder.name}: ${founder.postRoundPercent}% (dilution: ${founder.dilution}%)`)
       })
       console.log('')
@@ -171,8 +171,8 @@ describe('Multi-Party Calculations - Multiple Founders', () => {
       const founderB = result.founders.find(f => f.name === 'Founder B')
       
       // With 20% round and prior investors, remaining ownership should be diluted proportionally
-      const totalNewOwnership = result.roundPercent
-      const remainingPercent = 100 - totalNewOwnership
+      // const totalNewOwnership = result.roundPercent
+      // const remainingPercent = 100 - totalNewOwnership
       
       // But we also need to account for pro-rata participation
       // The calculation is more complex - let's verify the actual values match expected dilution patterns
@@ -221,7 +221,7 @@ describe('Multi-Party Calculations - Multiple Founders', () => {
       console.log('Pre-round ownership: All founders roughly equal (33.33%, 33.33%, 33.34%)')
       console.log(`Round %: ${result.roundPercent}%`)
       console.log('Post-round ownership:')
-      result.founders.forEach((founder, index) => {
+      result.founders.forEach((founder, _index) => {
         const expectedPostRound = founder.ownershipPercent * (100 - result.roundPercent) / 100
         console.log(`- ${founder.name}: ${founder.postRoundPercent}% (expected: ${expectedPostRound.toFixed(2)}%, diff: ${(founder.postRoundPercent - expectedPostRound).toFixed(4)}%)`)
       })
@@ -298,7 +298,7 @@ describe('Multi-Party Calculations - Multiple Founders', () => {
       
       console.log('Ownership breakdown:')
       console.log(`- Round: ${result.roundPercent}%`)
-      result.founders.forEach((founder, index) => {
+      result.founders.forEach((founder, _index) => {
         console.log(`- ${founder.name}: ${founder.postRoundPercent}%`)
       })
       console.log(`- Total: ${totalOwnership}%`)

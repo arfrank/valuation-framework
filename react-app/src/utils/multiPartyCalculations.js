@@ -3,7 +3,7 @@
  * This replaces the legacy single pro-rata and founder ownership calculations
  */
 
-import { calculateTotalOwnership, migrateLegacyCompany, validateCompanyData } from './dataStructures'
+import { migrateLegacyCompany, validateCompanyData } from './dataStructures'
 
 /**
  * Calculate pro-rata allocation for prior investors with pro-rata rights
@@ -374,7 +374,7 @@ export function calculateEnhancedScenarios(company) {
     { multiplier: 1.5, roundMultiplier: 1.5, title: '1.5x Val & Round' }
   ]
   
-  scenarioVariations.forEach((variation, index) => {
+  scenarioVariations.forEach((variation, _index) => {
     const adjustedPostMoney = Math.round(company.postMoneyVal * variation.multiplier * 100) / 100
     const adjustedRoundSize = Math.round(company.roundSize * variation.roundMultiplier * 100) / 100
     const adjustedInvestorPortion = Math.round(company.investorPortion * variation.roundMultiplier * 100) / 100

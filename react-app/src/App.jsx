@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import './App.css'
 import CompanyTabs from './components/CompanyTabs'
 import InputForm from './components/InputForm'
@@ -25,12 +25,12 @@ function App() {
   const [scenarios, setScenarios] = useState([])
   const { notifications, removeNotification, showSuccess, showInfo, showError } = useNotifications()
 
-  const updateCompany = (companyId, data) => {
+  const updateCompany = useCallback((companyId, data) => {
     setCompanies(prev => ({
       ...prev,
       [companyId]: { ...prev[companyId], ...data }
     }))
-  }
+  }, [setCompanies])
 
   const applyScenario = (scenarioData) => {
     updateCompany(activeCompany, scenarioData)
@@ -76,7 +76,7 @@ function App() {
       }
       setHasLoadedFromURL(true)
     }
-  }, [hasLoadedFromURL, activeCompany, showInfo])
+  }, [hasLoadedFromURL, activeCompany, showInfo, updateCompany])
 
 
   useEffect(() => {

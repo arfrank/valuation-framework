@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import PriorInvestorsSection from './PriorInvestorsSection'
 import FoundersSection from './FoundersSection'
 import FormInput from './FormInput'
-import { migrateLegacyCompany, createDefaultCompany } from '../utils/dataStructures'
+import { migrateLegacyCompany } from '../utils/dataStructures'
 
 const InputForm = ({ company, onUpdate }) => {
   const [values, setValues] = useState({
