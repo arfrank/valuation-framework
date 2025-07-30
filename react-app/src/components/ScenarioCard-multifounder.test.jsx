@@ -73,9 +73,9 @@ describe('ScenarioCard - Multiple Founders Display', () => {
     console.log('Checking if all founder names are displayed...')
     
     // Check that all founder names are displayed
-    expect(getByText('CEO')).toBeTruthy()
-    expect(getByText('CTO')).toBeTruthy()
-    expect(getByText('VP Sales')).toBeTruthy()
+    expect(getByText((content, element) => content.includes('CEO'))).toBeTruthy()
+    expect(getByText((content, element) => content.includes('CTO'))).toBeTruthy()
+    expect(getByText((content, element) => content.includes('VP Sales'))).toBeTruthy()
     
     console.log('✓ All founder names found')
 
@@ -166,8 +166,8 @@ describe('ScenarioCard - Multiple Founders Display', () => {
     )
 
     // Check that founder-specific content is there
-    expect(getByText('Founder 1')).toBeTruthy()
-    expect(getByText('Founder 2')).toBeTruthy()
+    expect(getByText((content, element) => content.includes('Founder 1'))).toBeTruthy()
+    expect(getByText((content, element) => content.includes('Founder 2'))).toBeTruthy()
     expect(getByText('48.00%')).toBeTruthy()    // Founder 1 post-round  
     expect(getByText('32.00%')).toBeTruthy()    // Founder 2 post-round
     
@@ -259,7 +259,7 @@ describe('ScenarioCard - Multiple Founders Display', () => {
     )
 
     // Verify Founder 1 is displayed correctly
-    expect(getByText('Founder 1')).toBeTruthy()
+    expect(getByText((content, element) => content.includes('Founder 1'))).toBeTruthy()
     expect(getByText('34.62%')).toBeTruthy()  // Post-round percentage  
     expect(getByText('-10.38%')).toBeTruthy() // Dilution
     

@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { render, screen, act } from '@testing-library/react'
 import Notification from './Notification'
 
 describe('Notification', () => {
@@ -78,8 +78,10 @@ describe('Notification', () => {
 
     expect(screen.getByText('Auto dismiss test')).toBeInTheDocument()
 
-    // Fast forward time
-    vi.advanceTimersByTime(2300) // duration + animation time
+    // Fast forward time wrapped in act()
+    act(() => {
+      vi.advanceTimersByTime(2300) // duration + animation time
+    })
 
     expect(mockOnClose).toHaveBeenCalledOnce()
   })
@@ -93,8 +95,10 @@ describe('Notification', () => {
       />
     )
 
-    // Default duration is 3000ms
-    vi.advanceTimersByTime(3300)
+    // Default duration is 3000ms wrapped in act()
+    act(() => {
+      vi.advanceTimersByTime(3300)
+    })
 
     expect(mockOnClose).toHaveBeenCalledOnce()
   })
