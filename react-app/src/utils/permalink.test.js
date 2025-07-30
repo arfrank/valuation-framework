@@ -365,6 +365,7 @@ describe('Permalink Utilities', () => {
           name: 'Seed VC',
           ownershipPercent: 15,
           proRataAmount: 0.5,
+          hasProRataRights: true,
           postRoundPercent: 11.5,
           dilution: 3.5
         },
@@ -373,6 +374,7 @@ describe('Permalink Utilities', () => {
           name: 'Angel Group',
           ownershipPercent: 10,
           proRataAmount: 0,
+          hasProRataRights: false,
           postRoundPercent: 7.7,
           dilution: 2.3
         }
@@ -406,8 +408,8 @@ describe('Permalink Utilities', () => {
         const piData = JSON.parse(piParam)
         
         expect(piData).toHaveLength(2)
-        expect(piData[0]).toEqual({ n: 'Seed VC', o: 15, p: 0.5 })
-        expect(piData[1]).toEqual({ n: 'Angel Group', o: 10, p: 0 })
+        expect(piData[0]).toEqual({ n: 'Seed VC', o: 15, p: 0.5, r: true })
+        expect(piData[1]).toEqual({ n: 'Angel Group', o: 10, p: 0, r: false })
       })
 
       it('should encode founders array to URL', () => {
@@ -480,6 +482,7 @@ describe('Permalink Utilities', () => {
         expect(decoded.priorInvestors[0].name).toBe('Seed VC')
         expect(decoded.priorInvestors[0].ownershipPercent).toBe(15)
         expect(decoded.priorInvestors[0].proRataAmount).toBe(0.5)
+        expect(decoded.priorInvestors[0].hasProRataRights).toBe(true)
         expect(decoded.priorInvestors[0]).toHaveProperty('id')
         expect(decoded.priorInvestors[0].postRoundPercent).toBe(0) // Should be 0, calculated later
         expect(decoded.priorInvestors[0].dilution).toBe(0) // Should be 0, calculated later
@@ -487,6 +490,7 @@ describe('Permalink Utilities', () => {
         expect(decoded.priorInvestors[1].name).toBe('Angel Group')
         expect(decoded.priorInvestors[1].ownershipPercent).toBe(10)
         expect(decoded.priorInvestors[1].proRataAmount).toBe(0)
+        expect(decoded.priorInvestors[1].hasProRataRights).toBe(false)
       })
 
       it('should decode founders from URL', () => {
@@ -533,6 +537,43 @@ describe('Permalink Utilities', () => {
         
         expect(decoded.founders).toEqual([])
         expect(decoded.showAdvanced).toBe(false)
+      })
+
+      it('should preserve pro-rata rights checkbox state in round-trip', () => {
+        const scenarioWithProRataRights = {
+          ...mockScenario,
+          priorInvestors: [
+            { 
+              id: 1, 
+              name: 'VC with Rights', 
+              ownershipPercent: 20, 
+              proRataAmount: 1.0,
+              hasProRataRights: true,
+              postRoundPercent: 15.4,
+              dilution: 4.6
+            },
+            { 
+              id: 2, 
+              name: 'VC without Rights', 
+              ownershipPercent: 15, 
+              proRataAmount: 0,
+              hasProRataRights: false,
+              postRoundPercent: 11.5,
+              dilution: 3.5
+            }
+          ]
+        }
+
+        const encoded = encodeScenarioToURL(scenarioWithProRataRights)
+        const decoded = decodeScenarioFromURL(encoded)
+
+        expect(decoded.priorInvestors).toHaveLength(2)
+        expect(decoded.priorInvestors[0].hasProRataRights).toBe(true)
+        expect(decoded.priorInvestors[1].hasProRataRights).toBe(false)
+        
+        // Verify the URL parameter structure contains the rights info
+        expect(encoded).toMatch(/pi=.*%22r%22%3Atrue/)  // r:true in URL encoding
+        expect(encoded).toMatch(/pi=.*%22r%22%3Afalse/) // r:false in URL encoding
       })
 
       it('should generate unique IDs for decoded arrays', () => {
@@ -669,6 +710,7 @@ describe('Permalink Utilities', () => {
               name: 'Seed Fund',
               ownershipPercent: 15,
               proRataAmount: 0.5,
+              hasProRataRights: true,
               postRoundPercent: 12.5,
               dilution: 2.5
             },
@@ -677,6 +719,7 @@ describe('Permalink Utilities', () => {
               name: 'Angel Group',
               ownershipPercent: 10,
               proRataAmount: 0,
+              hasProRataRights: false,
               postRoundPercent: 7.69,
               dilution: 2.31
             }
@@ -730,9 +773,11 @@ describe('Permalink Utilities', () => {
         expect(decodedScenario.priorInvestors[0].name).toBe('Seed Fund')
         expect(decodedScenario.priorInvestors[0].ownershipPercent).toBe(15)
         expect(decodedScenario.priorInvestors[0].proRataAmount).toBe(0.5)
+        expect(decodedScenario.priorInvestors[0].hasProRataRights).toBe(true)
         expect(decodedScenario.priorInvestors[1].name).toBe('Angel Group')
         expect(decodedScenario.priorInvestors[1].ownershipPercent).toBe(10)
         expect(decodedScenario.priorInvestors[1].proRataAmount).toBe(0)
+        expect(decodedScenario.priorInvestors[1].hasProRataRights).toBe(false)
         
         // Verify founders data
         expect(decodedScenario.founders[0].name).toBe('CEO')

@@ -109,7 +109,8 @@ export function encodeScenarioToURL(scenarioData) {
           const piData = value.map((investor, index) => ({
             n: investor.name || `Investor ${index + 1}`,
             o: investor.ownershipPercent || 0,
-            p: investor.proRataAmount || 0
+            p: investor.proRataAmount || 0,
+            r: investor.hasProRataRights || false
           })).filter(pi => pi.o > 0) // Only include investors with ownership > 0
           
           if (piData.length > 0) {
@@ -224,6 +225,7 @@ export function decodeScenarioFromURL(urlParams) {
                 name: investor.n || `Investor ${index + 1}`,
                 ownershipPercent: investor.o || 0,
                 proRataAmount: investor.p || 0,
+                hasProRataRights: investor.r || false,
                 // These will be calculated by the engine:
                 postRoundPercent: 0,
                 dilution: 0
