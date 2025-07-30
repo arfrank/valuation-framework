@@ -1,0 +1,58 @@
+name: Run Tests
+
+on:
+  # Trigger on pushes to main branch
+  push:
+    branches: [ main, master ]
+  
+  # Trigger on pull requests targeting main branch
+  pull_request:
+    branches: [ main, master ]
+  
+  # Allow manual triggering
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        cache-dependency-path: react-app/package-lock.json
+    
+    - name: Install dependencies
+      working-directory: ./react-app
+      run: npm ci
+    
+    - name: Run linter
+      working-directory: ./react-app
+      run: npm run lint
+    
+    - name: Run tests
+      working-directory: ./react-app
+      run: npm test -- --run --reporter=verbose --coverage
+    
+    - name: Build project
+      working-directory: ./react-app
+      run: npm run build
+    
+    - name: Upload coverage reports
+      if: matrix.node-version == '20.x'
+      uses: codecov/codecov-action@v4
+      with:
+        directory: ./react-app/coverage
+        fail_ci_if_error: false
+        verbose: true
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}

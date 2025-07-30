@@ -145,7 +145,18 @@ export const calculateScenario = (inputs) => {
     }
   }
   
-  const finalEsopPercent = targetEsopPercent > 0 ? targetEsopPercent : currentEsopPercent
+  // Calculate final ESOP percentage based on target
+  let finalEsopPercent
+  if (targetEsopPercent === 0) {
+    // When target is 0, calculate natural dilution of current ESOP
+    finalEsopPercent = Math.round((currentEsopPercent * (100 - roundPercent) / 100) * 100) / 100
+  } else if (targetEsopPercent > 0) {
+    // When target is positive, use the target
+    finalEsopPercent = targetEsopPercent
+  } else {
+    // When no target specified, keep current
+    finalEsopPercent = currentEsopPercent
+  }
 
   // Calculate total round investment (just the cash round, SAFE is conversion not new cash)
   const totalInvestmentAmount = Math.round(roundSize * 100) / 100

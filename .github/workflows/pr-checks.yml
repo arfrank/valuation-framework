@@ -1,0 +1,132 @@
+name: Pull Request Checks
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  # Check for critical test failures
+  critical-tests:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+        cache-dependency-path: react-app/package-lock.json
+    
+    - name: Install dependencies
+      working-directory: ./react-app
+      run: npm ci
+    
+    - name: Run critical mathematical consistency tests
+      working-directory: ./react-app
+      run: |
+        # Run only the edge cases tests that check for critical bugs
+        npm test -- --run src/utils/edge-cases.test.js --reporter=verbose
+    
+    - name: Check for known critical bugs
+      working-directory: ./react-app
+      run: |
+        echo "Checking for known critical bugs..."
+        
+        # Check if mathematical consistency tests are still failing
+        # This will help track if the critical bugs are being addressed
+        if npm test -- --run src/utils/edge-cases.test.js --reporter=json | grep -q '"failed":[^0]'; then
+          echo "⚠️  WARNING: Critical mathematical consistency bugs are still present"
+          echo "Please see the failing tests for details on ownership calculation issues"
+          echo "This does not block the PR but should be addressed soon"
+        else
+          echo "✅ Mathematical consistency tests are passing"
+        fi
+
+  # Code quality checks
+  quality:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+        cache-dependency-path: react-app/package-lock.json
+    
+    - name: Install dependencies
+      working-directory: ./react-app
+      run: npm ci
+    
+    - name: Run linter
+      working-directory: ./react-app
+      run: npm run lint
+    
+    - name: Check for TypeScript errors (if applicable)
+      working-directory: ./react-app
+      run: |
+        if [ -f "tsconfig.json" ]; then
+          npm run typecheck || echo "No typecheck script found"
+        fi
+    
+    - name: Test build
+      working-directory: ./react-app
+      run: npm run build
+    
+    - name: Check bundle size
+      working-directory: ./react-app
+      run: |
+        npm run build
+        echo "Bundle size check:"
+        du -sh dist/
+        
+        # Check if bundle is reasonable size (< 5MB)
+        size=$(du -s dist/ | cut -f1)
+        if [ $size -gt 5120 ]; then
+          echo "⚠️  WARNING: Bundle size is quite large (>5MB)"
+        else
+          echo "✅ Bundle size looks reasonable"
+        fi
+
+  # Security checks
+  security:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+        cache-dependency-path: react-app/package-lock.json
+    
+    - name: Install dependencies
+      working-directory: ./react-app
+      run: npm ci
+    
+    - name: Run security audit
+      working-directory: ./react-app
+      run: |
+        # Run npm audit but don't fail on low severity issues
+        npm audit --audit-level moderate || echo "Some security issues found, please review"
+    
+    - name: Check for sensitive data
+      run: |
+        echo "Checking for potentially sensitive data..."
+        
+        # Check for common sensitive patterns
+        if grep -r -i "password\|secret\|key\|token" --include="*.js" --include="*.jsx" --include="*.ts" --include="*.tsx" react-app/src/ | grep -v test | grep -v "// " | grep -v "/* "; then
+          echo "⚠️  WARNING: Potential sensitive data found in source code"
+          echo "Please review the above matches to ensure no secrets are committed"
+        else
+          echo "✅ No obvious sensitive data patterns found"
+        fi

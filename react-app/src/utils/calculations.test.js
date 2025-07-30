@@ -446,6 +446,27 @@ describe('ESOP Calculations', () => {
     // for pre-close ESOP in a post-money valuation framework
     expect(result.roundPercent).toBe(20) // This will fail, showing the bug
   })
+
+  it('should handle zero target ESOP with natural dilution only', () => {
+    const inputs = {
+      ...baseInputs,
+      currentEsopPercent: 10, // Start with 10% ESOP
+      targetEsopPercent: 0,   // Target is 0% - let it dilute naturally
+      esopTiming: 'pre-close'
+    }
+    
+    const result = calculateScenario(inputs)
+    
+    // When target is 0%, should just calculate natural dilution
+    // 10% ESOP after 23.08% round dilution = 10% * 76.92% = 7.69%
+    expect(result.finalEsopPercent).toBeCloseTo(7.69, 1) // Natural diluted amount
+    expect(result.esopIncrease).toBe(0) // No increase needed
+    expect(result.esopIncreasePreClose).toBe(0)
+    expect(result.esopIncreasePostClose).toBe(0)
+    expect(result.roundPercent).toBeCloseTo(23.08, 1) // Round % unaffected
+    
+    console.log('Natural ESOP dilution from 10% to:', result.finalEsopPercent)
+  })
 })
 
 describe('ESOP Mathematical Verification Tests', () => {
@@ -632,8 +653,8 @@ describe('ESOP Mathematical Verification Tests', () => {
       
       const result = calculateScenario(inputs)
       
-      // Business logic: No ESOP target, keeps current ESOP
-      expect(result.finalEsopPercent).toBe(10) // Keeps current value, doesn't zero out
+      // Business logic: No ESOP target, shows natural dilution of current ESOP
+      expect(result.finalEsopPercent).toBeCloseTo(7.5, 0.1) // 10% * 75% = 7.5% (natural dilution)
       expect(result.esopIncrease).toBe(0)
       expect(result.roundPercent).toBeCloseTo(25, 0.1) // Standard round %
     })
