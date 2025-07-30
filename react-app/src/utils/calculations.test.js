@@ -391,6 +391,36 @@ describe('ESOP Calculations', () => {
     const expectedDilutedRound = 23.08 * (100 - result.esopIncrease) / 100
     expect(result.roundPercent).toBeCloseTo(expectedDilutedRound, 1)
   })
+
+  it('should demonstrate timing choice matters even when ESOP percentages are equal', () => {
+    const baseScenario = {
+      ...baseInputs,
+      currentEsopPercent: 10,
+      targetEsopPercent: 10 // Same percentage
+    }
+    
+    const preCloseResult = calculateScenario({
+      ...baseScenario,
+      esopTiming: 'pre-close'
+    })
+    
+    const postCloseResult = calculateScenario({
+      ...baseScenario,
+      esopTiming: 'post-close'
+    })
+    
+    // Even with same target percentage, timing should produce different results
+    expect(preCloseResult.roundPercent).not.toBeCloseTo(postCloseResult.roundPercent, 2)
+    expect(preCloseResult.postRoundFounderPercent).not.toBeCloseTo(postCloseResult.postRoundFounderPercent, 2)
+    
+    // Both should achieve the target percentage
+    expect(preCloseResult.finalEsopPercent).toBe(10)
+    expect(postCloseResult.finalEsopPercent).toBe(10)
+    
+    // But with different dilution effects
+    console.log('Pre-close: Round %', preCloseResult.roundPercent, 'Founder %', preCloseResult.postRoundFounderPercent)
+    console.log('Post-close: Round %', postCloseResult.roundPercent, 'Founder %', postCloseResult.postRoundFounderPercent)
+  })
 })
 
 describe('ESOP Mathematical Verification Tests', () => {

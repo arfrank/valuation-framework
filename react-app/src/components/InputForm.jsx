@@ -490,9 +490,9 @@ const InputForm = ({ company, onUpdate }) => {
             </div>
 
             {/* ESOP Timing Selection */}
-            {values.targetEsopPercent > values.currentEsopPercent && (
+            {values.targetEsopPercent > 0 && values.currentEsopPercent >= 0 && (
               <div className="esop-timing-section">
-                <label className="section-label">New ESOP Allocation Timing</label>
+                <label className="section-label">ESOP Pool Timing</label>
                 <div className="esop-timing-options">
                   <label className="radio-option">
                     <input
@@ -524,13 +524,13 @@ const InputForm = ({ company, onUpdate }) => {
                 <div className="esop-timing-info">
                   {values.esopTiming === 'pre-close' ? (
                     <p className="timing-explanation">
-                      💡 New ESOP shares are created before the investment, so only existing shareholders 
-                      (founders, employees, previous investors) are diluted by the expanded option pool.
+                      💡 ESOP shares are allocated before the investment. This affects only existing shareholders 
+                      (founders, employees, previous investors) and uses iterative dilution calculations.
                     </p>
                   ) : (
                     <p className="timing-explanation">
-                      💡 New ESOP shares are created after the investment, so all shareholders including 
-                      the new investors share the dilution from the expanded option pool.
+                      💡 ESOP shares are allocated after the investment. All shareholders including 
+                      the new investors share the dilution proportionally.
                     </p>
                   )}
                 </div>
