@@ -36,6 +36,9 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
         // N SAFEs support
         safes: scenario.safes || [],
         preRoundFounderOwnership: scenario.preRoundFounderPercent ?? 0,
+        // Multi-party arrays
+        priorInvestors: scenario.priorInvestors || [],
+        founders: scenario.founders || [],
         // ESOP modeling
         currentEsopPercent: scenario.currentEsopPercent || 0,
         targetEsopPercent: scenario.targetEsopPercent || 0,
@@ -59,6 +62,9 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
         // N SAFEs support
         safes: scenario.safes || [],
         preRoundFounderOwnership: scenario.preRoundFounderPercent ?? 0,
+        // Multi-party arrays
+        priorInvestors: scenario.priorInvestors || [],
+        founders: scenario.founders || [],
         // ESOP modeling
         currentEsopPercent: scenario.currentEsopPercent || 0,
         targetEsopPercent: scenario.targetEsopPercent || 0,

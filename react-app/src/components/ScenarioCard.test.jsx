@@ -165,4 +165,82 @@ describe('ScenarioCard with Permalink', () => {
     await user.click(screen.getByRole('button', { name: /🔗/ }))
     expect(mockOnCopyPermalink).toHaveBeenCalledOnce()
   })
+
+  it('should include multi-party arrays in permalink data', async () => {
+    const multiPartyScenario = {
+      ...mockScenario,
+      priorInvestors: [
+        { 
+          id: 1, 
+          name: 'Seed VC', 
+          ownershipPercent: 15, 
+          proRataAmount: 0.5,
+          postRoundPercent: 11.5,
+          dilution: 3.5
+        }
+      ],
+      founders: [
+        { 
+          id: 1, 
+          name: 'CEO', 
+          ownershipPercent: 50,
+          postRoundPercent: 38.5,
+          dilution: 11.5
+        },
+        { 
+          id: 2, 
+          name: 'CTO', 
+          ownershipPercent: 30,
+          postRoundPercent: 23.1,
+          dilution: 6.9
+        }
+      ]
+    }
+
+    mockOnCopyPermalink.mockResolvedValue({ success: true })
+    const user = userEvent.setup()
+    
+    render(
+      <ScenarioCard 
+        scenario={multiPartyScenario}
+        index={0}
+        isBase={true}
+        onCopyPermalink={mockOnCopyPermalink}
+        showAdvanced={true}
+      />
+    )
+
+    await user.click(screen.getByRole('button', { name: /🔗/ }))
+    
+    expect(mockOnCopyPermalink).toHaveBeenCalledWith(
+      expect.objectContaining({
+        priorInvestors: [
+          { 
+            id: 1, 
+            name: 'Seed VC', 
+            ownershipPercent: 15, 
+            proRataAmount: 0.5,
+            postRoundPercent: 11.5,
+            dilution: 3.5
+          }
+        ],
+        founders: [
+          { 
+            id: 1, 
+            name: 'CEO', 
+            ownershipPercent: 50,
+            postRoundPercent: 38.5,
+            dilution: 11.5
+          },
+          { 
+            id: 2, 
+            name: 'CTO', 
+            ownershipPercent: 30,
+            postRoundPercent: 23.1,
+            dilution: 6.9
+          }
+        ]
+      })
+    )
+  })
 })

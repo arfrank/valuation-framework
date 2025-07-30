@@ -653,5 +653,103 @@ describe('Permalink Utilities', () => {
         expect(decoded.esopTiming).toBe('post-close')
       })
     })
+
+    describe('End-to-end multi-party permalink integration', () => {
+      it('should handle complete round-trip of complex multi-party scenario', () => {
+        const complexScenario = {
+          postMoneyVal: 15,
+          roundSize: 4,
+          investorPortion: 3,
+          otherPortion: 1,
+          investorName: 'Lead VC',
+          showAdvanced: true,
+          priorInvestors: [
+            {
+              id: 1,
+              name: 'Seed Fund',
+              ownershipPercent: 15,
+              proRataAmount: 0.5,
+              postRoundPercent: 12.5,
+              dilution: 2.5
+            },
+            {
+              id: 2,
+              name: 'Angel Group',
+              ownershipPercent: 10,
+              proRataAmount: 0,
+              postRoundPercent: 7.69,
+              dilution: 2.31
+            }
+          ],
+          founders: [
+            {
+              id: 1,
+              name: 'CEO',
+              ownershipPercent: 50,
+              postRoundPercent: 38.46,
+              dilution: 11.54
+            },
+            {
+              id: 2,
+              name: 'CTO',
+              ownershipPercent: 25,
+              postRoundPercent: 19.23,
+              dilution: 5.77
+            }
+          ],
+          safes: [
+            {
+              id: 1,
+              amount: 1,
+              cap: 10,
+              discount: 0
+            }
+          ],
+          currentEsopPercent: 5,
+          targetEsopPercent: 10,
+          esopTiming: 'pre-close'
+        }
+
+        // Encode to URL
+        const encodedURL = encodeScenarioToURL(complexScenario)
+        
+        // Verify URL contains multi-party parameters
+        expect(encodedURL).toMatch(/pi=/) // Prior investors
+        expect(encodedURL).toMatch(/f=/)  // Founders
+        expect(encodedURL).toMatch(/safes=/) // SAFEs
+        
+        // Decode back from URL
+        const decodedScenario = decodeScenarioFromURL(encodedURL)
+        
+        // Verify structure integrity
+        expect(decodedScenario.priorInvestors).toHaveLength(2)
+        expect(decodedScenario.founders).toHaveLength(2)
+        expect(decodedScenario.safes).toHaveLength(1)
+        
+        // Verify prior investors data
+        expect(decodedScenario.priorInvestors[0].name).toBe('Seed Fund')
+        expect(decodedScenario.priorInvestors[0].ownershipPercent).toBe(15)
+        expect(decodedScenario.priorInvestors[0].proRataAmount).toBe(0.5)
+        expect(decodedScenario.priorInvestors[1].name).toBe('Angel Group')
+        expect(decodedScenario.priorInvestors[1].ownershipPercent).toBe(10)
+        expect(decodedScenario.priorInvestors[1].proRataAmount).toBe(0)
+        
+        // Verify founders data
+        expect(decodedScenario.founders[0].name).toBe('CEO')
+        expect(decodedScenario.founders[0].ownershipPercent).toBe(50)
+        expect(decodedScenario.founders[1].name).toBe('CTO')
+        expect(decodedScenario.founders[1].ownershipPercent).toBe(25)
+        
+        // Verify basic scenario data
+        expect(decodedScenario.postMoneyVal).toBe(15)
+        expect(decodedScenario.investorName).toBe('Lead VC')
+        expect(decodedScenario.showAdvanced).toBe(true)
+        
+        // Verify ESOP data
+        expect(decodedScenario.currentEsopPercent).toBe(5)
+        expect(decodedScenario.targetEsopPercent).toBe(10)
+        expect(decodedScenario.esopTiming).toBe('pre-close')
+      })
+    })
   })
 })
