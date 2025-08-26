@@ -119,7 +119,7 @@ describe('Social Sharing Utilities', () => {
     it('should generate comprehensive description for advanced scenario', () => {
       // This test verifies that the description generation works
       // The actual DOM updates are mocked, so we focus on the logic
-      const advancedUrl = 'http://localhost:3000/?pmv=13&rs=3&ip=2.75&op=0.25&in=US&adv=1&pf=70&pr=25'
+      const advancedUrl = 'http://localhost:3000/?pmv=13&rs=3&ip=2&op=1&in=US&adv=1&pf=70&pr=20'
       
       // Mock the description meta tag specifically
       const mockDescMeta = mockMetaTag('description')
@@ -135,7 +135,7 @@ describe('Social Sharing Utilities', () => {
       // Verify that setAttribute was called on the description meta tag
       expect(mockDescMeta.setAttribute).toHaveBeenCalledWith(
         'content',
-        expect.stringContaining('US invests $2.75M')
+        expect.stringContaining('US invests $2M')
       )
     })
   })

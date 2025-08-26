@@ -14,7 +14,7 @@ function generateScenarioSummary(scenarioData) {
   if (!scenarioData) return 'Investment scenario analysis'
 
   const result = calculateScenario(scenarioData)
-  if (!result) return 'Investment scenario analysis'
+  if (!result || result.error) return 'Investment scenario analysis'
 
   const parts = []
   
@@ -38,7 +38,7 @@ function generateScenarioSummary(scenarioData) {
       }
     }
     
-    if (scenarioData.preRoundFounderOwnership > 0) {
+    if (scenarioData.preRoundFounderOwnership > 0 && result.founderDilution !== undefined) {
       parts.push(`Founder dilution: ${result.founderDilution.toFixed(1)}%`)
     }
     
@@ -61,7 +61,7 @@ function generateScenarioDescription(scenarioData) {
   }
 
   const result = calculateScenario(scenarioData)
-  if (!result) {
+  if (!result || result.error) {
     return 'Investment scenario analysis with detailed cap table modeling.'
   }
 

@@ -208,8 +208,21 @@ export function calculateEnhancedScenario(inputs) {
   const proRataCalc = calculateProRataAllocations(scaledPriorInvestors, roundSize)
   
   // Pro-rata comes from the "Other" portion, not from round size
-  // If Other portion is insufficient, pro-rata is capped at Other amount
-  const actualProRataAmount = Math.min(proRataCalc.totalProRataAmount, otherPortion)
+  // Validate that pro-rata doesn't exceed the "Other" portion
+  if (proRataCalc.totalProRataAmount > otherPortion) {
+    // Return an error object that can be handled by the UI
+    return {
+      error: true,
+      errorMessage: `Total pro-rata amount ($${proRataCalc.totalProRataAmount.toFixed(2)}M) exceeds available "Other" portion ($${otherPortion.toFixed(2)}M). Please reduce pro-rata rights or increase "Other" portion.`,
+      proRataAmount: proRataCalc.totalProRataAmount,
+      otherPortion,
+      roundSize,
+      postMoneyVal,
+      preMoneyVal
+    }
+  }
+  
+  const actualProRataAmount = proRataCalc.totalProRataAmount
   
   // Adjust investor portions - investor stays the same, other is reduced by pro-rata
   const adjustedInvestorPortion = investorPortion
@@ -354,6 +367,11 @@ export function calculateEnhancedScenarios(company) {
     return []
   }
   
+  // Check if base scenario is an error
+  if (baseScenario.error) {
+    return baseScenario  // Return the error object directly
+  }
+  
   const scenarios = [{
     ...baseScenario,
     title: 'Base Case',
@@ -389,7 +407,7 @@ export function calculateEnhancedScenarios(company) {
     }
     
     const scenario = calculateEnhancedScenario(scenarioInputs)
-    if (scenario) {
+    if (scenario && !scenario.error) {  // Skip error scenarios
       scenarios.push({
         ...scenario,
         title: variation.title,

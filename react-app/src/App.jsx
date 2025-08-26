@@ -84,7 +84,11 @@ function App() {
     if (currentCompany) {
       const newScenarios = calculateEnhancedScenarios(currentCompany)
       
-      if (!newScenarios || newScenarios.length === 0) {
+      // Check if the result is an error object
+      if (newScenarios && newScenarios.error) {
+        showError(newScenarios.errorMessage)
+        setScenarios([]) // Clear scenarios
+      } else if (!newScenarios || newScenarios.length === 0) {
         // Check if ownership exceeds 100%
         const totalPriorOwnership = (currentCompany.priorInvestors || []).reduce((sum, inv) => sum + (inv.ownershipPercent || 0), 0)
         const totalFounderOwnership = (currentCompany.founders || []).reduce((sum, f) => sum + (f.ownershipPercent || 0), 0)
