@@ -82,16 +82,26 @@ export const calculateScenario = (inputs) => {
   const proRataAmount = Math.round((roundSize * (proRataPercent || 0) / 100) * 100) / 100
   // const newMoneyAmount = Math.round((roundSize - proRataAmount) * 100) / 100
   
+  // Validate that pro-rata doesn't exceed the "Other" portion
+  if (proRataAmount > otherPortion) {
+    // Return an error object that can be handled by the UI
+    return {
+      error: true,
+      errorMessage: `Pro-rata amount ($${proRataAmount.toFixed(2)}M) exceeds available "Other" portion ($${otherPortion.toFixed(2)}M). Please reduce pro-rata percentage or increase "Other" portion.`,
+      proRataAmount,
+      otherPortion,
+      roundSize,
+      postMoneyVal,
+      preMoneyVal
+    }
+  }
+  
   // Adjust new investor portions - pro-rata comes from "Other" bucket
   let adjustedInvestorPortion = investorPortion  // US portion stays the same
   let adjustedOtherPortion = Math.round((otherPortion - proRataAmount) * 100) / 100
   
-  // Calculate actual pro-rata amount (limited by available "Other" portion)
+  // Calculate actual pro-rata amount (now we know it's valid)
   let actualProRataAmount = proRataAmount
-  if (adjustedOtherPortion < 0) {
-    actualProRataAmount = otherPortion  // Can't exceed what's available in "Other"
-    adjustedOtherPortion = 0
-  }
   
   // Calculate ownership percentages (post-money basis including SAFEs)
   const totalValue = postMoneyVal

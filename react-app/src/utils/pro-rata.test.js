@@ -23,28 +23,32 @@ describe('Pro-Rata Calculations', () => {
     expect(result.otherAmount).toBe(1) // $2M - $1M pro-rata = $1M remaining
   })
 
-  it('should limit pro-rata when exceeding other portion', () => {
+  it('should return error when pro-rata exceeds other portion', () => {
     const result = calculateScenario({
       ...baseInputs,
       otherPortion: 1, // Only $1M available in "Other"
       proRataPercent: 50 // 50% of $5M = $2.5M, but only $1M available
     })
     
-    expect(result.proRataAmount).toBe(1) // Limited to available other portion
-    expect(result.otherAmount).toBe(0) // All other portion consumed by pro-rata
+    expect(result.error).toBe(true)
+    expect(result.errorMessage).toContain('exceeds available')
+    expect(result.proRataAmount).toBe(2.5) // Shows attempted pro-rata amount
+    expect(result.otherPortion).toBe(1) // Shows available other portion
   })
 
-  it('should handle 100% pro-rata scenario', () => {
+  it('should return error for 100% pro-rata when exceeding other portion', () => {
     const result = calculateScenario({
       ...baseInputs,
-      proRataPercent: 100 // 100% of round is pro-rata
+      proRataPercent: 100 // 100% of round is pro-rata = $5M, but only $2M other available
     })
     
-    expect(result.proRataAmount).toBe(2) // Limited to $2M other portion
-    expect(result.otherAmount).toBe(0) // All other portion consumed
+    expect(result.error).toBe(true)
+    expect(result.errorMessage).toContain('exceeds available')
+    expect(result.proRataAmount).toBe(5) // Shows attempted $5M pro-rata
+    expect(result.otherPortion).toBe(2) // Shows available $2M other portion
   })
 
-  it('should handle pro-rata with zero other portion', () => {
+  it('should return error when pro-rata requested with zero other portion', () => {
     const result = calculateScenario({
       ...baseInputs,
       investorPortion: 5,
@@ -52,25 +56,31 @@ describe('Pro-Rata Calculations', () => {
       proRataPercent: 20 // 20% pro-rata but nothing to take from
     })
     
-    expect(result.proRataAmount).toBe(0) // No other portion to take from
-    expect(result.otherAmount).toBe(0) // Stays zero
+    expect(result.error).toBe(true)
+    expect(result.errorMessage).toContain('exceeds available')
+    expect(result.proRataAmount).toBe(1) // Shows attempted $1M pro-rata (20% of $5M)
+    expect(result.otherPortion).toBe(0) // Shows $0 available
   })
 
-  it('should handle extreme pro-rata percentage', () => {
+  it('should return error for extreme pro-rata percentage', () => {
     const result = calculateScenario({
       ...baseInputs,
-      proRataPercent: 1000 // 1000% pro-rata (extreme)
+      proRataPercent: 1000 // 1000% pro-rata (extreme) = $50M
     })
     
-    expect(result.proRataAmount).toBe(2) // Limited to available other portion
-    expect(result.otherAmount).toBe(0) // All other portion consumed
+    expect(result.error).toBe(true)
+    expect(result.errorMessage).toContain('exceeds available')
+    expect(result.proRataAmount).toBe(50) // Shows attempted $50M pro-rata (1000% of $5M)
+    expect(result.otherPortion).toBe(2) // Shows available $2M other portion
   })
 
-  it('should maintain mathematical consistency with pro-rata', () => {
+  it('should maintain mathematical consistency with valid pro-rata', () => {
     const result = calculateScenario({
       ...baseInputs,
-      proRataPercent: 30
+      proRataPercent: 30 // 30% of $5M = $1.5M, which fits in $2M other portion
     })
+    
+    expect(result.error).toBeFalsy() // Should succeed
     
     // The sum of investor + other + pro-rata amounts should equal round size
     const totalInvestment = result.investorAmount + result.otherAmount + result.proRataAmount
@@ -79,5 +89,16 @@ describe('Pro-Rata Calculations', () => {
     // The percentages should be calculated correctly
     const expectedProRataPercent = (result.proRataAmount / result.postMoneyVal) * 100
     expect(result.proRataPercent).toBeCloseTo(expectedProRataPercent, 1)
+  })
+  
+  it('should work at the exact boundary of other portion', () => {
+    const result = calculateScenario({
+      ...baseInputs,
+      proRataPercent: 40 // 40% of $5M = $2M, exactly matching other portion
+    })
+    
+    expect(result.error).toBeFalsy() // Should succeed at boundary
+    expect(result.proRataAmount).toBe(2) // Exactly $2M pro-rata
+    expect(result.otherAmount).toBe(0) // All other portion consumed
   })
 })
