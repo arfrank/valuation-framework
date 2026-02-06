@@ -205,7 +205,12 @@ export function calculateEnhancedScenario(inputs) {
   const preMoneyVal = Math.round((postMoneyVal - roundSize) * 100) / 100
   
   // Calculate pro-rata allocations for prior investors (using scaled values)
-  const proRataCalc = calculateProRataAllocations(scaledPriorInvestors, roundSize)
+  // If a prior investor matches the lead investor name, skip their pro-rata —
+  // their participation in the round already covers their pro-rata rights
+  const priorInvestorsForProRata = scaledPriorInvestors.map(inv =>
+    inv.name === investorName ? { ...inv, hasProRataRights: false } : inv
+  )
+  const proRataCalc = calculateProRataAllocations(priorInvestorsForProRata, roundSize)
   
   // Pro-rata comes from the "Other" portion, not from round size
   // Validate that pro-rata doesn't exceed the "Other" portion
