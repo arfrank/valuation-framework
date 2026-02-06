@@ -87,34 +87,57 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
     }
   }
 
-  // Calculate round structure breakdown
-  const totalProRataAmount = scenario.priorInvestors 
+  // Detect combined investor (investorName matches a prior investor exactly)
+  const combinedInvestor = scenario.combinedInvestor
+
+  // Calculate total pro-rata across all prior investors
+  const totalProRataAmount = scenario.priorInvestors
     ? scenario.priorInvestors.reduce((sum, inv) => sum + (inv.proRataAmount || 0), 0)
     : (scenario.proRataAmount || 0)
-  
-  // Use otherAmountOriginal if available (which is the original amount before pro-rata adjustment)
-  // Otherwise fall back to otherAmount
-  const remainingOther = scenario.otherAmountOriginal 
+
+  // Remaining other for truly new investors (after ALL pro-rata)
+  const remainingOther = scenario.otherAmountOriginal
     ? scenario.otherAmountOriginal - totalProRataAmount
     : scenario.otherAmount
-  
+
+  // Display values when investor is combined with a prior investor
+  const displayInvestorAmount = combinedInvestor
+    ? combinedInvestor.totalNewInvestment
+    : scenario.investorAmount
+  const displayInvestorOwnership = combinedInvestor
+    ? combinedInvestor.totalOwnership
+    : scenario.investorPercent
+
+  // "Other" amount for display - when combined, exclude matched investor's pro-rata
+  const displayOtherAmount = combinedInvestor
+    ? (scenario.otherAmountOriginal || scenario.otherAmount) - (combinedInvestor.proRataAmount || 0)
+    : (scenario.otherAmountOriginal || scenario.otherAmount)
+
+  // Pro-rata investors to show under Other (exclude combined investor)
+  const proRataInvestorsForDisplay = combinedInvestor
+    ? (scenario.priorInvestors || []).filter(inv => inv.proRataAmount > 0 && inv.id !== combinedInvestor.id)
+    : (scenario.priorInvestors || []).filter(inv => inv.proRataAmount > 0)
+  const displayProRataTotal = proRataInvestorsForDisplay.reduce((sum, inv) => sum + (inv.proRataAmount || 0), 0)
+
+  // Prior investors for display (exclude combined investor)
+  const displayPriorInvestors = combinedInvestor
+    ? (scenario.priorInvestors || []).filter(inv => inv.id !== combinedInvestor.id)
+    : (scenario.priorInvestors || [])
+
   // Group founders and calculate total
-  const foundersTotal = scenario.founders 
+  const foundersTotal = scenario.founders
     ? scenario.founders.reduce((sum, founder) => sum + founder.postRoundPercent, 0)
     : (scenario.preRoundFounderPercent || 0)
-  
-  // Group prior investors and calculate total  
-  const priorInvestorsTotal = scenario.priorInvestors
-    ? scenario.priorInvestors.reduce((sum, inv) => sum + inv.postRoundPercent, 0)
-    : 0
-    
+
+  // Group prior investors and calculate total (using display list)
+  const priorInvestorsTotal = displayPriorInvestors.reduce((sum, inv) => sum + inv.postRoundPercent, 0)
+
   // Calculate unknown/other ownership lost
-  // Pre-round unknown ownership = unknown post-round ownership / (1 - total new ownership %)
   const totalNewOwnership = scenario.roundPercent / 100
-  const unknownPreRound = scenario.unknownOwnership > 0 
+  const unknownPreRound = scenario.unknownOwnership > 0
     ? scenario.unknownOwnership / (1 - totalNewOwnership)
     : 0
-  const unknownOwnershipLost = unknownPreRound > 0 
+  const unknownOwnershipLost = unknownPreRound > 0
     ? unknownPreRound - scenario.unknownOwnership
     : 0
     
@@ -160,25 +183,23 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
         {!collapsed.newRound && (
           <>
             <div className="table-row sub-row">
-              <div className="label">├─ {investorName}</div>
-              <div className="amount amount-positive">+{formatDollar(scenario.investorAmount)}</div>
-              <div className="percent">{formatPercent(scenario.investorPercent)}</div>
+              <div className="label">├─ {investorName}{combinedInvestor ? ' (total)' : ''}</div>
+              <div className="amount amount-positive">+{formatDollar(displayInvestorAmount)}</div>
+              <div className="percent">{formatPercent(displayInvestorOwnership)}</div>
             </div>
         
         {showAdvanced ? (
           <>
             <div className="table-row sub-row">
               <div className="label">└─ Other</div>
-              <div className="amount amount-positive">+{formatDollar(scenario.otherAmountOriginal || scenario.otherAmount)}</div>
-              <div className="percent">{formatPercent(((scenario.otherAmountOriginal || scenario.otherAmount) / scenario.postMoneyVal) * 100)}</div>
+              <div className="amount amount-positive">+{formatDollar(displayOtherAmount)}</div>
+              <div className="percent">{formatPercent((displayOtherAmount / scenario.postMoneyVal) * 100)}</div>
             </div>
-            
-            {/* Pro-rata breakdown in advanced mode */}
-            {totalProRataAmount > 0 && (
+
+            {/* Pro-rata breakdown in advanced mode (exclude combined investor) */}
+            {displayProRataTotal > 0 && (
               <>
-                {scenario.priorInvestors && scenario.priorInvestors
-                  .filter(inv => inv.proRataAmount > 0)
-                  .map((investor, idx, arr) => (
+                {proRataInvestorsForDisplay.map((investor, idx, arr) => (
                     <div key={investor.id || idx} className="table-row sub-sub-row">
                       <div className="label">    {remainingOther > 0.01 ? '├─' : (idx === arr.length - 1 ? '└─' : '├─')} {investor.name} (pro-rata)</div>
                       <div className="amount amount-positive">+{formatDollar(investor.proRataAmount)}</div>
@@ -242,11 +263,11 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
           )
         )}
         
-        {/* Prior Investors & Unknown section */}
-        {showAdvanced && (scenario.priorInvestors?.length > 0 || scenario.unknownOwnership > 0.01) && (
+        {/* Prior Investors & Unknown section (exclude combined investor) */}
+        {showAdvanced && (displayPriorInvestors.length > 0 || scenario.unknownOwnership > 0.01) && (
           <>
             {/* Prior Investors header row */}
-            <div 
+            <div
               className="table-row header-row clickable"
               onClick={() => toggleCollapse('priorInvestors')}
             >
@@ -259,12 +280,12 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
               </div>
               <div className="percent percent-bold">{formatPercent(priorInvestorsTotal + (scenario.unknownOwnership || 0))}</div>
             </div>
-            
-            {/* Individual prior investors */}
+
+            {/* Individual prior investors (excluding combined investor) */}
             {!collapsed.priorInvestors && (
               <>
-                {scenario.priorInvestors && scenario.priorInvestors.map((investor, idx) => {
-                  const isLast = idx === scenario.priorInvestors.length - 1 && scenario.unknownOwnership <= 0.01
+                {displayPriorInvestors.map((investor, idx) => {
+                  const isLast = idx === displayPriorInvestors.length - 1 && scenario.unknownOwnership <= 0.01
                   return (
                     <div key={investor.id || idx} className="table-row sub-row">
                       <div className="label">{isLast ? '└─' : '├─'} {investor.name}</div>
@@ -279,7 +300,7 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
                     </div>
                   )
                 })}
-                
+
                 {/* Unknown/Other ownership */}
                 {scenario.unknownOwnership > 0.01 && (
                   <div className="table-row sub-row">

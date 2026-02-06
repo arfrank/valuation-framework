@@ -297,7 +297,34 @@ export function calculateEnhancedScenario(inputs) {
   
   // Calculate unknown ownership (what's not accounted for)
   const unknownOwnership = Math.round((100 - totalAccountedOwnership) * 100) / 100
-  
+
+  // Detect if investorName matches a prior investor - combine them in results
+  const matchedPriorInvestor = postRoundPriorInvestors.find(inv => inv.name === investorName)
+  let combinedInvestor = null
+
+  if (matchedPriorInvestor) {
+    // Apply post-close ESOP dilution to investor's round ownership for consistency
+    let adjustedInvestorRoundPercent = investorPercent
+    if (esopCalc.esopIncreasePostClose > 0) {
+      adjustedInvestorRoundPercent = Math.round(investorPercent * (100 - esopCalc.esopIncreasePostClose) / 100 * 100) / 100
+    }
+
+    combinedInvestor = {
+      id: matchedPriorInvestor.id,
+      name: investorName,
+      // Total new money this round (investor portion + pro-rata)
+      totalNewInvestment: Math.round((adjustedInvestorPortion + (matchedPriorInvestor.proRataAmount || 0)) * 100) / 100,
+      // Total post-round ownership (new round ownership + diluted prior ownership including pro-rata)
+      totalOwnership: Math.round((adjustedInvestorRoundPercent + matchedPriorInvestor.postRoundPercent) * 100) / 100,
+      // Breakdown components
+      investorPortion: adjustedInvestorPortion,
+      proRataAmount: matchedPriorInvestor.proRataAmount || 0,
+      investorRoundPercent: adjustedInvestorRoundPercent,
+      priorDilutedPercent: matchedPriorInvestor.postRoundPercent,
+      priorOriginalPercent: matchedPriorInvestor.ownershipPercent,
+    }
+  }
+
   return {
     // Basic valuation info
     postMoneyVal: postMoneyVal || 13,
@@ -343,6 +370,7 @@ export function calculateEnhancedScenario(inputs) {
     // Multi-party ownership results
     priorInvestors: postRoundPriorInvestors || [],
     founders: postRoundFounders || [],
+    combinedInvestor: combinedInvestor,
     
     // Legacy compatibility (aggregate founder data) - ensure no undefined
     postRoundFounderPercent: Math.round((postRoundFounders.reduce((sum, f) => sum + (f.postRoundPercent || 0), 0)) * 100) / 100,
