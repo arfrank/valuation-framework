@@ -291,7 +291,7 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
                       <div className="label">{isLast ? '└─' : '├─'} {investor.name}</div>
                       <div className="amount">
                         {investor.proRataAmount > 0 ? (
-                          <span className="amount-neutral">pro-rata above</span>
+                          <span className="amount-positive">+{formatDollar(investor.proRataAmount)} (pro-rata)</span>
                         ) : (
                           <span className="amount-negative">-{investor.dilution.toFixed(1)}%</span>
                         )}
