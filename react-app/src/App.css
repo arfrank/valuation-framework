@@ -261,7 +261,6 @@ body.geometric-background-active .app {
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 1.5rem;
   width: 100%;
-  padding: 0 1.5rem;
 }
 
 /* Input Form */
@@ -1887,66 +1886,247 @@ input.investor-name-input:focus, input.founder-name-input:focus {
   .app-main {
     padding: 1rem;
   }
-  
+
   .tabs-container {
     flex-direction: column;
   }
-  
+
   .tab {
     width: 100%;
     border-right: none;
     border-bottom: 1px solid #dee2e6;
+    min-width: unset;
   }
-  
+
   .tab:last-of-type {
     border-bottom: none;
   }
-  
+
   .top-row {
     grid-template-columns: 1fr;
     gap: 1.5rem;
     margin-bottom: 1.5rem;
   }
-  
+
   .scenarios-rows {
     grid-template-columns: 1fr;
     gap: 1rem;
+    padding: 0;
   }
-  
+
   .form-header {
     flex-direction: column;
     gap: 1rem;
     align-items: flex-start;
   }
+
+  /* Header controls stack on mobile */
+  .header-controls {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  /* Table columns: give party name more room */
+  .table-header, .table-row {
+    grid-template-columns: 1.4fr 1fr 0.8fr;
+    gap: 0.4rem;
+  }
+
+  .table-row.sub-row {
+    padding-left: 0.75rem;
+  }
+
+  .table-row.sub-sub-row {
+    padding-left: 1.25rem;
+  }
+
+  /* Tighter scenario card spacing */
+  .scenario-header {
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+  }
+
+  .scenario-title {
+    font-size: 0.9rem;
+  }
+
+  /* Valuation footer stacks better */
+  .valuation-footer {
+    flex-wrap: wrap;
+  }
+
+  .valuation-items {
+    gap: 0.5rem;
+  }
+
+  .valuation-item .value {
+    font-size: 0.8rem;
+  }
+
+  /* Form inputs */
+  .form-input-wrapper {
+    min-width: 0;
+  }
+
+  /* Advanced section tighter */
+  .advanced-section {
+    padding: 0.65rem;
+  }
+
+  .safe-inputs {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 480px) {
   .app-header {
-    padding: 1rem;
+    padding: 0.75rem 1rem;
   }
-  
+
   .app-header h1 {
     font-size: 1.5rem;
   }
-  
+
+  .logo-title {
+    font-size: 1.3rem;
+  }
+
+  .logo-subtitle {
+    font-size: 0.6rem;
+    letter-spacing: 1px;
+  }
+
   .app-main {
-    padding: 0.75rem;
+    padding: 0.5rem;
   }
-  
+
   .input-form {
-    padding: 1rem;
-  }
-  
-  .scenario-card {
     padding: 0.75rem;
+    border-radius: 8px;
   }
-  
+
+  .scenario-card {
+    padding: 0.65rem;
+    border-radius: 8px;
+  }
+
   .top-row {
-    gap: 1rem;
-    margin-bottom: 1rem;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
   }
-  
+
   .scenarios-rows {
     gap: 0.75rem;
+  }
+
+  /* Even tighter table on small phones */
+  .table-header, .table-row {
+    grid-template-columns: 1.5fr 1fr 0.7fr;
+    gap: 0.25rem;
+    padding: 0.35rem 0;
+  }
+
+  .table-header {
+    font-size: 0.6rem;
+    letter-spacing: 0.5px;
+  }
+
+  .table-row {
+    font-size: 0.8rem;
+  }
+
+  .table-row.sub-row {
+    font-size: 0.75rem;
+    padding-left: 0.5rem;
+  }
+
+  .table-row.sub-sub-row {
+    font-size: 0.72rem;
+    padding-left: 1rem;
+  }
+
+  .table-row.header-row {
+    margin: 0 -0.65rem;
+    padding-left: 0.65rem;
+    padding-right: 0.65rem;
+  }
+
+  /* Smaller amounts/percentages on mobile */
+  .amount, .percent {
+    font-size: 0.78rem;
+  }
+
+  .percent-bold {
+    font-size: 0.82rem;
+  }
+
+  /* Smaller valuation footer */
+  .valuation-item {
+    padding: 0.35rem 0.4rem;
+  }
+
+  .valuation-item .label {
+    font-size: 0.55rem;
+    letter-spacing: 0.5px;
+  }
+
+  .valuation-item .value {
+    font-size: 0.72rem;
+  }
+
+  /* Company tabs tighter */
+  .tab {
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+  }
+
+  .add-company-btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+  }
+
+  /* Prior investor / founder cards tighter */
+  .investor-row, .founder-row {
+    padding: 0.65rem;
+  }
+
+  .safe-row {
+    padding: 0.65rem;
+  }
+
+  /* ESOP section tighter */
+  .esop-section .input-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .esop-timing-section {
+    padding: 0.65rem;
+  }
+
+  /* Pro-rata explanation and notes smaller */
+  .pro-rata-explanation, .founders-note {
+    font-size: 0.78rem;
+    padding: 0.5rem;
+  }
+
+  /* Ownership summary */
+  .ownership-summary {
+    font-size: 0.78rem;
+    padding: 0.4rem 0.6rem;
+  }
+
+  /* Section headers */
+  .section-title-row {
+    gap: 0.5rem;
+  }
+
+  .section-label {
+    font-size: 0.82rem;
+  }
+
+  .add-investor-btn, .add-founder-btn, .add-safe-btn {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.72rem;
   }
 }
