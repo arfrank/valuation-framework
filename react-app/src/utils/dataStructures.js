@@ -15,7 +15,8 @@ export function createPriorInvestor(name = '', ownershipPercent = 0, hasProRataR
     id: Date.now() + Math.random(), // Unique ID for React keys
     name: name.trim(),
     ownershipPercent: Math.max(0, Number(ownershipPercent) || 0),
-    hasProRataRights: Boolean(hasProRataRights)
+    hasProRataRights: Boolean(hasProRataRights),
+    proRataOverride: null // null = use calculated amount, number = custom allocation in $M
   }
 }
 

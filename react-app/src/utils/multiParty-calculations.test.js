@@ -389,6 +389,143 @@ describe('Multi-Party Calculations - Multiple Founders', () => {
 
   })
 
+  describe('Pro-rata allocation overrides', () => {
+    const baseInputs = {
+      postMoneyVal: 20,
+      roundSize: 5,
+      investorPortion: 3,
+      otherPortion: 2,
+      showAdvanced: true,
+      founders: [
+        { id: 1, name: 'CEO', ownershipPercent: 60 }
+      ],
+      safes: [],
+      currentEsopPercent: 0,
+      targetEsopPercent: 0
+    }
+
+    it('should use calculated pro-rata when no override is set', () => {
+      const inputs = {
+        ...baseInputs,
+        priorInvestors: [
+          { id: 1, name: 'Seed VC', ownershipPercent: 20, hasProRataRights: true, proRataOverride: null }
+        ]
+      }
+
+      const result = calculateEnhancedScenario(inputs)
+
+      // Pro-rata = 20% of $5M = $1M
+      expect(result.totalProRataAmount).toBeCloseTo(1, 2)
+      expect(result.otherAmount).toBeCloseTo(1, 2) // $2M other - $1M pro-rata
+    })
+
+    it('should use override amount when proRataOverride is set', () => {
+      const inputs = {
+        ...baseInputs,
+        priorInvestors: [
+          { id: 1, name: 'Seed VC', ownershipPercent: 20, hasProRataRights: true, proRataOverride: 0.5 }
+        ]
+      }
+
+      const result = calculateEnhancedScenario(inputs)
+
+      // Override: $0.5M instead of calculated $1M
+      expect(result.totalProRataAmount).toBeCloseTo(0.5, 2)
+      expect(result.otherAmount).toBeCloseTo(1.5, 2) // $2M other - $0.5M pro-rata
+    })
+
+    it('should allow taking more than calculated pro-rata', () => {
+      const inputs = {
+        ...baseInputs,
+        priorInvestors: [
+          { id: 1, name: 'Seed VC', ownershipPercent: 20, hasProRataRights: true, proRataOverride: 1.5 }
+        ]
+      }
+
+      const result = calculateEnhancedScenario(inputs)
+
+      // Override: $1.5M instead of calculated $1M
+      expect(result.totalProRataAmount).toBeCloseTo(1.5, 2)
+      expect(result.otherAmount).toBeCloseTo(0.5, 2) // $2M other - $1.5M pro-rata
+    })
+
+    it('should allow override of zero (investor declines pro-rata)', () => {
+      const inputs = {
+        ...baseInputs,
+        priorInvestors: [
+          { id: 1, name: 'Seed VC', ownershipPercent: 20, hasProRataRights: true, proRataOverride: 0 }
+        ]
+      }
+
+      const result = calculateEnhancedScenario(inputs)
+
+      // Override: $0M - investor declines
+      expect(result.totalProRataAmount).toBe(0)
+      expect(result.otherAmount).toBeCloseTo(2, 2) // Full other portion remains
+    })
+
+    it('should error when override exceeds other portion', () => {
+      const inputs = {
+        ...baseInputs,
+        priorInvestors: [
+          { id: 1, name: 'Seed VC', ownershipPercent: 20, hasProRataRights: true, proRataOverride: 2.5 }
+        ]
+      }
+
+      const result = calculateEnhancedScenario(inputs)
+
+      // Override: $2.5M exceeds $2M other portion
+      expect(result.error).toBe(true)
+      expect(result.errorMessage).toContain('exceeds available')
+    })
+
+    it('should handle multiple investors with mixed overrides', () => {
+      const inputs = {
+        ...baseInputs,
+        otherPortion: 2,
+        priorInvestors: [
+          { id: 1, name: 'Seed VC', ownershipPercent: 20, hasProRataRights: true, proRataOverride: 0.3 },
+          { id: 2, name: 'Angel', ownershipPercent: 10, hasProRataRights: true, proRataOverride: null }
+        ],
+        founders: [
+          { id: 1, name: 'CEO', ownershipPercent: 50 }
+        ]
+      }
+
+      const result = calculateEnhancedScenario(inputs)
+
+      // Seed VC: override $0.3M (calculated would be $1M)
+      // Angel: calculated 10% of $5M = $0.5M
+      expect(result.totalProRataAmount).toBeCloseTo(0.8, 2)
+      expect(result.otherAmount).toBeCloseTo(1.2, 2) // $2M - $0.8M
+    })
+
+    it('should include isOverridden flag in pro-rata details', () => {
+      const inputs = {
+        ...baseInputs,
+        priorInvestors: [
+          { id: 1, name: 'Seed VC', ownershipPercent: 20, hasProRataRights: true, proRataOverride: 0.5 },
+          { id: 2, name: 'Angel', ownershipPercent: 10, hasProRataRights: true, proRataOverride: null }
+        ],
+        founders: [
+          { id: 1, name: 'CEO', ownershipPercent: 50 }
+        ]
+      }
+
+      const result = calculateEnhancedScenario(inputs)
+
+      const seedDetail = result.proRataDetails.find(d => d.name === 'Seed VC')
+      const angelDetail = result.proRataDetails.find(d => d.name === 'Angel')
+
+      expect(seedDetail.isOverridden).toBe(true)
+      expect(seedDetail.calculatedProRataAmount).toBeCloseTo(1, 2) // What it would have been
+      expect(seedDetail.proRataAmount).toBeCloseTo(0.5, 2) // What was actually used
+
+      expect(angelDetail.isOverridden).toBe(false)
+      expect(angelDetail.proRataAmount).toBeCloseTo(0.5, 2) // Calculated: 10% of $5M
+    })
+  })
+
   describe('showAdvanced flag behavior', () => {
     it('should ignore advanced inputs when showAdvanced is false', () => {
       const inputs = {

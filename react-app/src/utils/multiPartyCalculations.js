@@ -22,19 +22,24 @@ function calculateProRataAllocations(priorInvestors, roundSize) {
   
   priorInvestors.forEach(investor => {
     if (investor.hasProRataRights && investor.ownershipPercent > 0) {
-      // Pro-rata amount = (their ownership % / 100) * round size
-      const proRataAmount = Math.round((investor.ownershipPercent / 100) * roundSize * 100) / 100
+      // Pro-rata amount: use override if set, otherwise calculate from ownership %
+      const calculatedAmount = Math.round((investor.ownershipPercent / 100) * roundSize * 100) / 100
+      const proRataAmount = (investor.proRataOverride != null && investor.proRataOverride >= 0)
+        ? Math.round(investor.proRataOverride * 100) / 100
+        : calculatedAmount
       const proRataPercent = Math.round((proRataAmount / roundSize) * 10000) / 100
-      
+
       proRataResults.push({
         id: investor.id,
         name: investor.name,
         preRoundOwnership: investor.ownershipPercent,
         proRataAmount,
+        calculatedProRataAmount: calculatedAmount,
         proRataPercent,
-        hasRights: true
+        hasRights: true,
+        isOverridden: investor.proRataOverride != null && investor.proRataOverride >= 0
       })
-      
+
       totalProRataAmount += proRataAmount
       totalProRataPercent += proRataPercent
     } else {
@@ -44,8 +49,10 @@ function calculateProRataAllocations(priorInvestors, roundSize) {
         name: investor.name,
         preRoundOwnership: investor.ownershipPercent,
         proRataAmount: 0,
+        calculatedProRataAmount: 0,
         proRataPercent: 0,
-        hasRights: investor.hasProRataRights
+        hasRights: investor.hasProRataRights,
+        isOverridden: false
       })
     }
   })

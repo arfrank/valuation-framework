@@ -82,6 +82,14 @@ const InputForm = ({ company, onUpdate }) => {
         newValues.otherPortion = Math.round(Math.max(0, values.roundSize - numValue) * 100) / 100
       }
     }
+
+    // When other portion is edited directly, sync investor portion
+    if (field === 'otherPortion') {
+      // Clamp to round size
+      const clampedOther = Math.min(numValue, values.roundSize)
+      newValues.otherPortion = Math.round(Math.max(0, clampedOther) * 100) / 100
+      newValues.investorPortion = Math.round(Math.max(0, values.roundSize - newValues.otherPortion) * 100) / 100
+    }
     
     
     setValues(newValues)
@@ -235,6 +243,7 @@ const InputForm = ({ company, onUpdate }) => {
           suffix="M"
           step="0.01"
           min="0"
+          max={values.roundSize}
         />
       </div>
 
@@ -370,9 +379,10 @@ const InputForm = ({ company, onUpdate }) => {
             ))}
           </div>
 
-          <PriorInvestorsSection 
+          <PriorInvestorsSection
             priorInvestors={values.priorInvestors || []}
             onUpdate={handlePriorInvestorsUpdate}
+            roundSize={values.roundSize}
           />
 
           <FoundersSection 
