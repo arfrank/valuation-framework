@@ -400,7 +400,7 @@ const InputForm = ({ company, onUpdate }) => {
                 value={values.currentEsopPercent}
                 onChange={(value) => handleChange('currentEsopPercent', value)}
                 suffix="%"
-                step="1"
+                step="0.01"
                 min="0"
                 max="100"
                 clearable={true}
@@ -412,7 +412,7 @@ const InputForm = ({ company, onUpdate }) => {
                 value={values.targetEsopPercent}
                 onChange={(value) => handleChange('targetEsopPercent', value)}
                 suffix="%"
-                step="1"
+                step="0.01"
                 min="0"
                 max="100"
                 clearable={true}

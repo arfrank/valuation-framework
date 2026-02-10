@@ -51,7 +51,7 @@ function PriorInvestorsSection({ priorInvestors = [], onUpdate, roundSize = 0 })
 
   const getCalculatedProRata = (investor) => {
     if (!investor.ownershipPercent || !roundSize) return 0
-    return Math.round((investor.ownershipPercent / 100) * roundSize * 100) / 100
+    return (investor.ownershipPercent / 100) * roundSize
   }
 
   const totalOwnership = calculateTotalOwnership(priorInvestors)
@@ -153,7 +153,7 @@ function PriorInvestorsSection({ priorInvestors = [], onUpdate, roundSize = 0 })
                     {hasOverride && (
                       <div className="pro-rata-hint">
                         <span className="hint-text">
-                          Pro-rata right: ${calculatedProRata.toFixed(2)}M
+                          Pro-rata right: ${parseFloat(calculatedProRata.toPrecision(10))}M
                           {investor.proRataOverride < calculatedProRata
                             ? ` (taking less)`
                             : investor.proRataOverride > calculatedProRata
