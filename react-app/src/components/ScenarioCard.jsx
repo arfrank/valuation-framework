@@ -132,6 +132,12 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
   // Group prior investors and calculate total (using display list)
   const priorInvestorsTotal = displayPriorInvestors.reduce((sum, inv) => sum + inv.postRoundPercent, 0)
 
+  // Compute Prior Investors + Unknown as remainder so section totals sum to exactly 100%
+  // (avoids double-counting pro-rata ownership in both New Round and Prior Investors)
+  const adjustedPriorAndUnknownTotal = Math.max(0,
+    100 - scenario.roundPercent - (scenario.totalSafePercent || 0) - foundersTotal - (scenario.finalEsopPercent || 0)
+  )
+
   // Calculate unknown/other ownership lost using pre-round value from engine
   const unknownPreRound = scenario.preRoundUnknownPercent || 0
   const unknownOwnershipLost = unknownPreRound > 0
@@ -275,14 +281,15 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
               <div className="amount amount-negative">
                 {/*-{(priorInvestorsTotalDilution + unknownOwnershipLost).toFixed(1)}%*/}
               </div>
-              <div className="percent percent-bold">{formatPercent(priorInvestorsTotal + (scenario.unknownOwnership || 0))}</div>
+              <div className="percent percent-bold">{formatPercent(adjustedPriorAndUnknownTotal)}</div>
             </div>
 
             {/* Individual prior investors (excluding combined investor) */}
             {!collapsed.priorInvestors && (
               <>
                 {displayPriorInvestors.map((investor, idx) => {
-                  const isLast = idx === displayPriorInvestors.length - 1 && scenario.unknownOwnership <= 0.01
+                  const hasCombinedPrior = combinedInvestor && combinedInvestor.priorDilutedPercent > 0.01
+                  const isLast = idx === displayPriorInvestors.length - 1 && scenario.unknownOwnership <= 0.01 && !hasCombinedPrior
                   return (
                     <div key={investor.id || idx} className="table-row sub-row">
                       <div className="label">{isLast ? '└─' : '├─'} {investor.name}</div>
@@ -297,6 +304,17 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
                     </div>
                   )
                 })}
+
+                {/* Combined investor's diluted prior equity */}
+                {combinedInvestor && combinedInvestor.priorDilutedPercent > 0.01 && (
+                  <div className="table-row sub-row">
+                    <div className="label">{scenario.unknownOwnership > 0.01 ? '├─' : '└─'} {investorName} (prior)</div>
+                    <div className="amount amount-negative">
+                      -{(combinedInvestor.priorOriginalPercent - combinedInvestor.priorDilutedPercent).toFixed(1)}%
+                    </div>
+                    <div className="percent">{formatPercent(combinedInvestor.priorDilutedPercent)}</div>
+                  </div>
+                )}
 
                 {/* Unknown/Other ownership */}
                 {scenario.unknownOwnership > 0.01 && (
