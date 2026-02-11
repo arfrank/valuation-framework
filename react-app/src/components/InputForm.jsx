@@ -395,7 +395,7 @@ const InputForm = ({ company, onUpdate }) => {
             
             <div className="input-grid">
               <FormInput
-                label="Current ESOP Available"
+                label="Current ESOP"
                 type="number"
                 value={values.currentEsopPercent}
                 onChange={(value) => handleChange('currentEsopPercent', value)}
@@ -407,7 +407,7 @@ const InputForm = ({ company, onUpdate }) => {
               />
 
               <FormInput
-                label="Target Post-Round ESOP"
+                label="Target ESOP"
                 type="number"
                 value={values.targetEsopPercent}
                 onChange={(value) => handleChange('targetEsopPercent', value)}

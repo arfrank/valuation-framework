@@ -1402,6 +1402,22 @@ body.geometric-background-active .app {
   padding-left: 80px;
 }
 
+.esop-section .input-grid .form-input-label {
+  max-width: 80px;
+}
+
+.esop-section .input-grid .form-input-field {
+  padding-left: 95px;
+}
+
+.pro-rata-allocation .form-input-label {
+  max-width: 75px;
+}
+
+.pro-rata-allocation .form-input-field {
+  padding-left: 90px;
+}
+
 /* Responsive adjustments for form inputs */
 @media (max-width: 768px) {
   .form-input-label {
@@ -1668,7 +1684,7 @@ input.investor-name-input:focus, input.founder-name-input:focus {
 }
 
 .pro-rata-allocation-row {
-  max-width: 200px;
+  max-width: 250px;
 }
 
 .pro-rata-hint {
