@@ -5,6 +5,12 @@
 
 import { migrateLegacyCompany, validateCompanyData } from './dataStructures'
 
+// Use 6 decimal places internally for percentages so the UI can display up to 4
+const P = 1e6
+function rp(v) { return Math.round(v * P) / P }           // round a percentage value
+function r2p(ratio) { return Math.round(ratio * 100 * P) / P } // ratio (0-1) → percentage
+function r$(v) { return Math.round(v * 100) / 100 }        // round a dollar value to cents
+
 /**
  * Calculate pro-rata allocation for prior investors with pro-rata rights
  * @param {Array} priorInvestors - Array of prior investor objects
@@ -23,11 +29,11 @@ function calculateProRataAllocations(priorInvestors, roundSize) {
   priorInvestors.forEach(investor => {
     if (investor.hasProRataRights && investor.ownershipPercent > 0) {
       // Pro-rata amount: use override if set, otherwise calculate from ownership %
-      const calculatedAmount = Math.round((investor.ownershipPercent / 100) * roundSize * 100) / 100
+      const calculatedAmount = r$((investor.ownershipPercent / 100) * roundSize)
       const proRataAmount = (investor.proRataOverride != null && investor.proRataOverride >= 0)
-        ? Math.round(investor.proRataOverride * 100) / 100
+        ? r$(investor.proRataOverride)
         : calculatedAmount
-      const proRataPercent = Math.round((proRataAmount / roundSize) * 10000) / 100
+      const proRataPercent = r2p(proRataAmount / roundSize)
 
       proRataResults.push({
         id: investor.id,
@@ -59,8 +65,8 @@ function calculateProRataAllocations(priorInvestors, roundSize) {
   
   return {
     proRataResults,
-    totalProRataAmount: Math.round(totalProRataAmount * 100) / 100,
-    totalProRataPercent: Math.round(totalProRataPercent * 100) / 100
+    totalProRataAmount: r$(totalProRataAmount),
+    totalProRataPercent: rp(totalProRataPercent)
   }
 }
 
@@ -90,7 +96,7 @@ function calculateSafeConversions(safes, preMoneyVal) {
         }
         
         if (conversionPrice > 0) {
-          const safePercent = Math.round((safe.amount / conversionPrice) * 10000) / 100
+          const safePercent = r2p(safe.amount / conversionPrice)
           
           if (safePercent <= 95) {
             totalSafePercent += safePercent
@@ -102,7 +108,7 @@ function calculateSafeConversions(safes, preMoneyVal) {
               amount: safe.amount,
               cap: safe.cap,
               discount: safe.discount,
-              conversionPrice: Math.round(conversionPrice * 100) / 100,
+              conversionPrice: r$(conversionPrice),
               percent: safePercent
             })
           }
@@ -112,8 +118,8 @@ function calculateSafeConversions(safes, preMoneyVal) {
   }
   
   return {
-    totalSafePercent: Math.round(totalSafePercent * 100) / 100,
-    totalSafeAmount: Math.round(totalSafeAmount * 100) / 100,
+    totalSafePercent: rp(totalSafePercent),
+    totalSafeAmount: r$(totalSafeAmount),
     safeDetails
   }
 }
@@ -132,7 +138,7 @@ function calculateEsopEffects(currentEsopPercent, targetEsopPercent, esopTiming,
   let finalEsopPercent = targetEsopPercent
 
   if (targetEsopPercent > 0) {
-    const naturalDilutedEsop = Math.round(currentEsopPercent * (100 - baseDilutionPercent) / 100 * 100) / 100
+    const naturalDilutedEsop = rp(currentEsopPercent * (100 - baseDilutionPercent) / 100)
 
     if (targetEsopPercent > naturalDilutedEsop) {
       const rawIncrease = targetEsopPercent - naturalDilutedEsop
@@ -142,7 +148,7 @@ function calculateEsopEffects(currentEsopPercent, targetEsopPercent, esopTiming,
         // Solve: currentEsop * (100 - baseDilution - X) / 100 + X = target
         const denominator = 1 - currentEsopPercent / 100
         esopIncrease = denominator > 0.01
-          ? Math.round(rawIncrease / denominator * 100) / 100
+          ? rp(rawIncrease / denominator)
           : rawIncrease
         esopIncreasePreClose = esopIncrease
       } else {
@@ -150,7 +156,7 @@ function calculateEsopEffects(currentEsopPercent, targetEsopPercent, esopTiming,
         // Solve: naturalDiluted * (100 - X) / 100 + X = target
         const denominator = 1 - naturalDilutedEsop / 100
         esopIncrease = denominator > 0.01
-          ? Math.round(rawIncrease / denominator * 100) / 100
+          ? rp(rawIncrease / denominator)
           : rawIncrease
         esopIncreasePostClose = esopIncrease
       }
@@ -162,7 +168,7 @@ function calculateEsopEffects(currentEsopPercent, targetEsopPercent, esopTiming,
       esopIncreasePostClose = Math.min(esopIncreasePostClose, maxIncrease)
     }
   } else if (targetEsopPercent === 0 && currentEsopPercent > 0) {
-    finalEsopPercent = Math.round(currentEsopPercent * (100 - baseDilutionPercent) / 100 * 100) / 100
+    finalEsopPercent = rp(currentEsopPercent * (100 - baseDilutionPercent) / 100)
   }
 
   return {
@@ -231,7 +237,7 @@ export function calculateEnhancedScenario(inputs) {
     return null
   }
   
-  const preMoneyVal = Math.round((postMoneyVal - roundSize) * 100) / 100
+  const preMoneyVal = r$(postMoneyVal - roundSize)
   
   // Calculate pro-rata allocations for prior investors (using scaled values)
   // If a prior investor matches the lead investor name, skip their pro-rata —
@@ -260,15 +266,15 @@ export function calculateEnhancedScenario(inputs) {
   
   // Adjust investor portions - investor stays the same, other is reduced by pro-rata
   const adjustedInvestorPortion = investorPortion
-  const adjustedOtherPortion = Math.round((otherPortion - actualProRataAmount) * 100) / 100
+  const adjustedOtherPortion = r$(otherPortion - actualProRataAmount)
   
   // Calculate SAFE conversions
   const safeCalc = calculateSafeConversions(effectiveSafes, preMoneyVal)
   
   // Calculate ownership percentages on post-money basis
-  const roundPercent = Math.round((roundSize / postMoneyVal) * 10000) / 100
-  let investorPercent = Math.round((adjustedInvestorPortion / postMoneyVal) * 10000) / 100
-  let otherPercent = Math.round((adjustedOtherPortion / postMoneyVal) * 10000) / 100
+  const roundPercent = r2p(roundSize / postMoneyVal)
+  let investorPercent = r2p(adjustedInvestorPortion / postMoneyVal)
+  let otherPercent = r2p(adjustedOtherPortion / postMoneyVal)
 
   // Calculate ESOP effects — pass round + SAFEs as the base dilution
   const baseDilutionPercent = roundPercent + safeCalc.totalSafePercent
@@ -277,10 +283,10 @@ export function calculateEnhancedScenario(inputs) {
   // Adjust round percentage for post-close ESOP dilution
   let finalRoundPercent = roundPercent
   if (esopCalc.esopIncreasePostClose > 0) {
-    finalRoundPercent = Math.round(roundPercent * (100 - esopCalc.esopIncreasePostClose) / 100 * 100) / 100
+    finalRoundPercent = rp(roundPercent * (100 - esopCalc.esopIncreasePostClose) / 100)
     // Also adjust investor/other sub-percentages so they sum to finalRoundPercent
-    investorPercent = Math.round(investorPercent * (100 - esopCalc.esopIncreasePostClose) / 100 * 100) / 100
-    otherPercent = Math.round(otherPercent * (100 - esopCalc.esopIncreasePostClose) / 100 * 100) / 100
+    investorPercent = rp(investorPercent * (100 - esopCalc.esopIncreasePostClose) / 100)
+    otherPercent = rp(otherPercent * (100 - esopCalc.esopIncreasePostClose) / 100)
   }
 
   // Calculate post-round ownership for each stakeholder group
@@ -291,42 +297,42 @@ export function calculateEnhancedScenario(inputs) {
   // Calculate post-round ownership for prior investors (with pro-rata)
   const postRoundPriorInvestors = scaledPriorInvestors.map(investor => {
     const preRoundPercent = investor.ownershipPercent
-    let postRoundPercent = Math.round(preRoundPercent * (100 - totalNewOwnership) / 100 * 100) / 100
-    
+    let postRoundPercent = rp(preRoundPercent * (100 - totalNewOwnership) / 100)
+
     // Add pro-rata participation
     const proRataEntry = proRataCalc.proRataResults.find(pr => pr.id === investor.id)
     if (proRataEntry && proRataEntry.proRataAmount > 0) {
-      const proRataOwnershipPercent = Math.round((proRataEntry.proRataAmount / postMoneyVal) * 10000) / 100
+      const proRataOwnershipPercent = r2p(proRataEntry.proRataAmount / postMoneyVal)
       postRoundPercent += proRataOwnershipPercent
     }
-    
+
     // Apply post-close ESOP dilution
     if (esopCalc.esopIncreasePostClose > 0) {
-      postRoundPercent = Math.round(postRoundPercent * (100 - esopCalc.esopIncreasePostClose) / 100 * 100) / 100
+      postRoundPercent = rp(postRoundPercent * (100 - esopCalc.esopIncreasePostClose) / 100)
     }
-    
+
     return {
       ...investor,
-      postRoundPercent: Math.round(postRoundPercent * 100) / 100,
+      postRoundPercent: rp(postRoundPercent),
       proRataAmount: proRataEntry ? proRataEntry.proRataAmount : 0,
-      dilution: Math.round((preRoundPercent - postRoundPercent) * 100) / 100
+      dilution: rp(preRoundPercent - postRoundPercent)
     }
   })
   
   // Calculate post-round ownership for founders
   const postRoundFounders = scaledFounders.map(founder => {
     const preRoundPercent = founder.ownershipPercent
-    let postRoundPercent = Math.round(preRoundPercent * (100 - totalNewOwnership) / 100 * 100) / 100
-    
+    let postRoundPercent = rp(preRoundPercent * (100 - totalNewOwnership) / 100)
+
     // Apply post-close ESOP dilution
     if (esopCalc.esopIncreasePostClose > 0) {
-      postRoundPercent = Math.round(postRoundPercent * (100 - esopCalc.esopIncreasePostClose) / 100 * 100) / 100
+      postRoundPercent = rp(postRoundPercent * (100 - esopCalc.esopIncreasePostClose) / 100)
     }
-    
+
     return {
       ...founder,
-      postRoundPercent: Math.round(postRoundPercent * 100) / 100,
-      dilution: Math.round((preRoundPercent - postRoundPercent) * 100) / 100
+      postRoundPercent: rp(postRoundPercent),
+      dilution: rp(preRoundPercent - postRoundPercent)
     }
   })
   
@@ -336,9 +342,9 @@ export function calculateEnhancedScenario(inputs) {
 
   // Pro-rata ownership is already included in roundPercent (since pro-rata money is part of the round)
   // AND in each prior investor's postRoundPercent. Subtract to avoid double-counting.
-  let proRataOwnershipInRound = Math.round((actualProRataAmount / postMoneyVal) * 10000) / 100
+  let proRataOwnershipInRound = r2p(actualProRataAmount / postMoneyVal)
   if (esopCalc.esopIncreasePostClose > 0) {
-    proRataOwnershipInRound = Math.round(proRataOwnershipInRound * (100 - esopCalc.esopIncreasePostClose) / 100 * 100) / 100
+    proRataOwnershipInRound = rp(proRataOwnershipInRound * (100 - esopCalc.esopIncreasePostClose) / 100)
   }
 
   const totalAccountedOwnership = finalRoundPercent + safeCalc.totalSafePercent
@@ -346,13 +352,13 @@ export function calculateEnhancedScenario(inputs) {
     - proRataOwnershipInRound
 
   // Calculate unknown ownership (what's not accounted for)
-  const unknownOwnership = Math.round((100 - totalAccountedOwnership) * 100) / 100
+  const unknownOwnership = rp(100 - totalAccountedOwnership)
 
   // Calculate pre-round unknown ownership directly (avoids lossy back-calculation)
   const preRoundTrackedOwnership = (scaledPriorInvestors.reduce((sum, inv) => sum + (inv.ownershipPercent || 0), 0))
     + (scaledFounders.reduce((sum, f) => sum + (f.ownershipPercent || 0), 0))
     + effectiveCurrentEsopPercent
-  const preRoundUnknownPercent = Math.max(0, Math.round((100 - preRoundTrackedOwnership) * 100) / 100)
+  const preRoundUnknownPercent = Math.max(0, rp(100 - preRoundTrackedOwnership))
 
   // Detect if investorName matches a prior investor - combine them in results
   const matchedPriorInvestor = postRoundPriorInvestors.find(inv => inv.name === investorName)
@@ -364,9 +370,9 @@ export function calculateEnhancedScenario(inputs) {
       id: matchedPriorInvestor.id,
       name: investorName,
       // Total new money this round (investor portion + pro-rata)
-      totalNewInvestment: Math.round((adjustedInvestorPortion + (matchedPriorInvestor.proRataAmount || 0)) * 100) / 100,
+      totalNewInvestment: r$(adjustedInvestorPortion + (matchedPriorInvestor.proRataAmount || 0)),
       // Total post-round ownership (new round ownership + diluted prior ownership including pro-rata)
-      totalOwnership: Math.round((investorPercent + matchedPriorInvestor.postRoundPercent) * 100) / 100,
+      totalOwnership: rp(investorPercent + matchedPriorInvestor.postRoundPercent),
       // Breakdown components
       investorPortion: adjustedInvestorPortion,
       proRataAmount: matchedPriorInvestor.proRataAmount || 0,
@@ -398,9 +404,9 @@ export function calculateEnhancedScenario(inputs) {
     
     // Pro-rata details
     totalProRataAmount: actualProRataAmount || 0,
-    totalProRataPercent: Math.round((actualProRataAmount / postMoneyVal) * 10000) / 100,
+    totalProRataPercent: r2p(actualProRataAmount / postMoneyVal),
     proRataAmount: actualProRataAmount || 0,
-    proRataPercent: Math.round((actualProRataAmount / postMoneyVal) * 10000) / 100,
+    proRataPercent: r2p(actualProRataAmount / postMoneyVal),
     proRataDetails: proRataCalc.proRataResults || [],
     
     // SAFE details
@@ -424,12 +430,12 @@ export function calculateEnhancedScenario(inputs) {
     combinedInvestor: combinedInvestor,
     
     // Legacy compatibility (aggregate founder data) - ensure no undefined
-    postRoundFounderPercent: Math.round((postRoundFounders.reduce((sum, f) => sum + (f.postRoundPercent || 0), 0)) * 100) / 100,
-    preRoundFounderPercent: Math.round((scaledFounders.reduce((sum, f) => sum + (f.ownershipPercent || 0), 0)) * 100) / 100,
-    founderDilution: Math.round((scaledFounders.reduce((sum, f) => sum + (f.ownershipPercent || 0), 0) - postRoundFounders.reduce((sum, f) => sum + (f.postRoundPercent || 0), 0)) * 100) / 100,
-    
+    postRoundFounderPercent: rp(postRoundFounders.reduce((sum, f) => sum + (f.postRoundPercent || 0), 0)),
+    preRoundFounderPercent: rp(scaledFounders.reduce((sum, f) => sum + (f.ownershipPercent || 0), 0)),
+    founderDilution: rp(scaledFounders.reduce((sum, f) => sum + (f.ownershipPercent || 0), 0) - postRoundFounders.reduce((sum, f) => sum + (f.postRoundPercent || 0), 0)),
+
     // Total verification and unknown ownership
-    totalOwnership: Math.round(totalAccountedOwnership * 100) / 100,
+    totalOwnership: rp(totalAccountedOwnership),
     unknownOwnership: unknownOwnership,
     preRoundUnknownPercent: preRoundUnknownPercent
   }
@@ -473,10 +479,10 @@ export function calculateEnhancedScenarios(company) {
   ]
   
   scenarioVariations.forEach((variation, _index) => {
-    const adjustedPostMoney = Math.round(company.postMoneyVal * variation.multiplier * 100) / 100
-    const adjustedRoundSize = Math.round(company.roundSize * variation.roundMultiplier * 100) / 100
-    const adjustedInvestorPortion = Math.round(company.investorPortion * variation.roundMultiplier * 100) / 100
-    const adjustedOtherPortion = Math.round((adjustedRoundSize - adjustedInvestorPortion) * 100) / 100
+    const adjustedPostMoney = r$(company.postMoneyVal * variation.multiplier)
+    const adjustedRoundSize = r$(company.roundSize * variation.roundMultiplier)
+    const adjustedInvestorPortion = r$(company.investorPortion * variation.roundMultiplier)
+    const adjustedOtherPortion = r$(adjustedRoundSize - adjustedInvestorPortion)
     
     const scenarioInputs = {
       ...company,
