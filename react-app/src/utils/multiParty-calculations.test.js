@@ -623,3 +623,610 @@ describe('Multi-Party Calculations - Multiple Founders', () => {
     })
   })
 })
+
+/**
+ * Hand-computed scenario verification tests
+ *
+ * Each scenario below has every expected value derived from first principles
+ * with exact intermediate steps shown in comments. These serve as regression
+ * tests for the core math: dilution, pro-rata, ESOP self-dilution, SAFEs,
+ * combined investors, and the totalOwnership accounting identity.
+ */
+describe('Hand-computed scenario verification', () => {
+
+  describe('Scenario 1: Simple round, no advanced features', () => {
+    // $100M post, $20M round, no founders/investors/ESOP
+    const inputs = {
+      postMoneyVal: 100, roundSize: 20,
+      investorPortion: 15, otherPortion: 5,
+      showAdvanced: true,
+      priorInvestors: [], founders: [], safes: [],
+      currentEsopPercent: 0, targetEsopPercent: 0
+    }
+
+    it('should calculate basic round percentages', () => {
+      const r = calculateEnhancedScenario(inputs)
+      expect(r.preMoneyVal).toBe(80)
+      expect(r.roundPercent).toBe(20)
+      expect(r.investorPercent).toBe(15)
+      expect(r.otherPercent).toBe(5)
+    })
+
+    it('should assign all non-round ownership to unknown', () => {
+      const r = calculateEnhancedScenario(inputs)
+      expect(r.unknownOwnership).toBe(80)
+      expect(r.preRoundUnknownPercent).toBe(100)
+      expect(r.totalOwnership).toBe(20)
+    })
+  })
+
+  describe('Scenario 2: Two founders, simple dilution', () => {
+    // $100M post, $20M round (20%), two founders summing to 100%
+    // Dilution factor: (100-20)/100 = 0.80
+    // Alice: 60*0.80=48, Bob: 40*0.80=32
+    const inputs = {
+      postMoneyVal: 100, roundSize: 20,
+      investorPortion: 15, otherPortion: 5,
+      showAdvanced: true,
+      priorInvestors: [],
+      founders: [
+        { id: 1, name: 'Alice', ownershipPercent: 60 },
+        { id: 2, name: 'Bob', ownershipPercent: 40 }
+      ],
+      safes: [],
+      currentEsopPercent: 0, targetEsopPercent: 0
+    }
+
+    it('should dilute founders proportionally', () => {
+      const r = calculateEnhancedScenario(inputs)
+      const alice = r.founders.find(f => f.name === 'Alice')
+      const bob = r.founders.find(f => f.name === 'Bob')
+      expect(alice.postRoundPercent).toBe(48)
+      expect(bob.postRoundPercent).toBe(32)
+      expect(alice.dilution).toBe(12) // 60-48
+      expect(bob.dilution).toBe(8)    // 40-32
+    })
+
+    it('should sum to exactly 100%', () => {
+      const r = calculateEnhancedScenario(inputs)
+      // 20 (round) + 48 (Alice) + 32 (Bob) = 100
+      expect(r.totalOwnership).toBe(100)
+      expect(r.unknownOwnership).toBe(0)
+      expect(r.preRoundUnknownPercent).toBe(0)
+    })
+  })
+
+  describe('Scenario 3: Prior investor with calculated pro-rata', () => {
+    // $100M post, $20M round, Seed Fund owns 20% with pro-rata
+    // Pro-rata = 20% × $20M = $4M, adjustedOther = $8M-$4M = $4M
+    // roundPercent=20%, dilution factor = 0.80
+    // Seed: 20*0.80=16 diluted + 4/100=4% pro-rata = 20%
+    // Alice: 50*0.80=40, Bob: 30*0.80=24
+    // proRataInRound = 4%, total = 20+20+40+24-4 = 100
+    const inputs = {
+      postMoneyVal: 100, roundSize: 20,
+      investorPortion: 12, otherPortion: 8,
+      showAdvanced: true,
+      priorInvestors: [
+        { id: 1, name: 'Seed Fund', ownershipPercent: 20, hasProRataRights: true, proRataOverride: null }
+      ],
+      founders: [
+        { id: 1, name: 'Alice', ownershipPercent: 50 },
+        { id: 2, name: 'Bob', ownershipPercent: 30 }
+      ],
+      safes: [],
+      currentEsopPercent: 0, targetEsopPercent: 0
+    }
+
+    it('should calculate pro-rata as ownership% × roundSize', () => {
+      const r = calculateEnhancedScenario(inputs)
+      expect(r.totalProRataAmount).toBe(4)
+      expect(r.otherAmount).toBe(4) // $8M-$4M
+    })
+
+    it('should give prior investor diluted + pro-rata ownership', () => {
+      const r = calculateEnhancedScenario(inputs)
+      const seed = r.priorInvestors.find(i => i.name === 'Seed Fund')
+      expect(seed.postRoundPercent).toBe(20)  // 16+4
+      expect(seed.proRataAmount).toBe(4)
+    })
+
+    it('should dilute founders and sum to 100%', () => {
+      const r = calculateEnhancedScenario(inputs)
+      const alice = r.founders.find(f => f.name === 'Alice')
+      const bob = r.founders.find(f => f.name === 'Bob')
+      expect(alice.postRoundPercent).toBe(40)
+      expect(bob.postRoundPercent).toBe(24)
+      expect(r.totalOwnership).toBe(100)
+      expect(r.unknownOwnership).toBe(0)
+    })
+  })
+
+  describe('Scenario 4: Pro-rata override (taking less)', () => {
+    // Same as Scenario 3 but override $2M instead of calculated $4M
+    // Seed: 20*0.80=16 diluted + 2/100=2% pro-rata = 18%
+    // adjustedOther = $8M-$2M = $6M
+    // proRataInRound = 2%, total = 20+18+40+24-2 = 100
+    const inputs = {
+      postMoneyVal: 100, roundSize: 20,
+      investorPortion: 12, otherPortion: 8,
+      showAdvanced: true,
+      priorInvestors: [
+        { id: 1, name: 'Seed Fund', ownershipPercent: 20, hasProRataRights: true, proRataOverride: 2 }
+      ],
+      founders: [
+        { id: 1, name: 'Alice', ownershipPercent: 50 },
+        { id: 2, name: 'Bob', ownershipPercent: 30 }
+      ],
+      safes: [],
+      currentEsopPercent: 0, targetEsopPercent: 0
+    }
+
+    it('should use override instead of calculated pro-rata', () => {
+      const r = calculateEnhancedScenario(inputs)
+      expect(r.totalProRataAmount).toBe(2)
+      expect(r.otherAmount).toBe(6)
+    })
+
+    it('should reflect reduced pro-rata in investor ownership', () => {
+      const r = calculateEnhancedScenario(inputs)
+      const seed = r.priorInvestors.find(i => i.name === 'Seed Fund')
+      expect(seed.postRoundPercent).toBe(18) // 16+2
+      expect(r.totalOwnership).toBe(100)
+    })
+  })
+
+  describe('Scenario 5: Pre-close ESOP increase with self-dilution', () => {
+    // $100M post, $20M round (20%), ESOP 10%→15% pre-close
+    // naturalDiluted = 10*(100-20)/100 = 8%
+    // rawIncrease = 15-8 = 7
+    // Self-dilution: increase = 7/(1-10/100) = 7/0.9 = 7.78
+    // Verify: 10*(100-20-7.78)/100 + 7.78 = 10*72.22/100+7.78 = 7.222+7.78 = 15.002 ≈ 15 ✓
+    // totalNewOwnership = 20+7.78 = 27.78
+    // Alice: 60*72.22/100 = 43.33, Bob: 30*72.22/100 = 21.67
+    // Total: 20+43.33+21.67+15 = 100
+    const inputs = {
+      postMoneyVal: 100, roundSize: 20,
+      investorPortion: 15, otherPortion: 5,
+      showAdvanced: true,
+      priorInvestors: [],
+      founders: [
+        { id: 1, name: 'Alice', ownershipPercent: 60 },
+        { id: 2, name: 'Bob', ownershipPercent: 30 }
+      ],
+      safes: [],
+      currentEsopPercent: 10, targetEsopPercent: 15,
+      esopTiming: 'pre-close'
+    }
+
+    it('should account for ESOP self-dilution', () => {
+      const r = calculateEnhancedScenario(inputs)
+      expect(r.esopIncrease).toBeCloseTo(7.78, 1)
+      expect(r.esopIncreasePreClose).toBeCloseTo(7.78, 1)
+      expect(r.esopIncreasePostClose).toBe(0)
+      expect(r.finalEsopPercent).toBe(15)
+    })
+
+    it('should dilute founders by round + ESOP increase', () => {
+      const r = calculateEnhancedScenario(inputs)
+      const alice = r.founders.find(f => f.name === 'Alice')
+      const bob = r.founders.find(f => f.name === 'Bob')
+      // totalNewOwnership = 20+7.78 = 27.78, remaining = 72.22%
+      expect(alice.postRoundPercent).toBeCloseTo(43.33, 1)
+      expect(bob.postRoundPercent).toBeCloseTo(21.67, 1)
+    })
+
+    it('should not adjust the round percentage (pre-close)', () => {
+      const r = calculateEnhancedScenario(inputs)
+      expect(r.roundPercent).toBe(20) // unchanged for pre-close
+      expect(r.investorPercent).toBe(15)
+      expect(r.otherPercent).toBe(5)
+    })
+
+    it('should sum to 100%', () => {
+      const r = calculateEnhancedScenario(inputs)
+      expect(r.totalOwnership).toBeCloseTo(100, 0)
+    })
+  })
+
+  describe('Scenario 6: Post-close ESOP increase', () => {
+    // Same setup as Scenario 5 but post-close timing
+    // naturalDiluted = 10*80/100 = 8%
+    // rawIncrease = 15-8 = 7, denominator = 1-8/100 = 0.92
+    // esopIncrease = 7/0.92 = 7.61
+    // Verify: 8*(100-7.61)/100+7.61 = 8*92.39/100+7.61 = 7.3912+7.61 = 15.001 ≈ 15 ✓
+    // totalNewOwnership = 20 (no pre-close ESOP)
+    // First dilute by round: Alice=48, Bob=24
+    // Then dilute by post-close ESOP (7.61%):
+    //   Alice: 48*92.39/100 = 44.35, Bob: 24*92.39/100 = 22.17
+    // finalRoundPercent = 20*92.39/100 = 18.48
+    //   investorPercent = 15*92.39/100 = 13.86
+    //   otherPercent = 5*92.39/100 = 4.62
+    // Total: 18.48+44.35+22.17+15 = 100
+    const inputs = {
+      postMoneyVal: 100, roundSize: 20,
+      investorPortion: 15, otherPortion: 5,
+      showAdvanced: true,
+      priorInvestors: [],
+      founders: [
+        { id: 1, name: 'Alice', ownershipPercent: 60 },
+        { id: 2, name: 'Bob', ownershipPercent: 30 }
+      ],
+      safes: [],
+      currentEsopPercent: 10, targetEsopPercent: 15,
+      esopTiming: 'post-close'
+    }
+
+    it('should calculate post-close ESOP with self-dilution', () => {
+      const r = calculateEnhancedScenario(inputs)
+      expect(r.esopIncrease).toBeCloseTo(7.61, 1)
+      expect(r.esopIncreasePreClose).toBe(0)
+      expect(r.esopIncreasePostClose).toBeCloseTo(7.61, 1)
+      expect(r.finalEsopPercent).toBe(15)
+    })
+
+    it('should reduce round percentage for post-close ESOP', () => {
+      const r = calculateEnhancedScenario(inputs)
+      expect(r.roundPercent).toBeCloseTo(18.48, 1)
+      expect(r.investorPercent).toBeCloseTo(13.86, 1)
+      expect(r.otherPercent).toBeCloseTo(4.62, 1)
+      // Sub-percentages should sum to round
+      expect(r.investorPercent + r.otherPercent).toBeCloseTo(r.roundPercent, 1)
+    })
+
+    it('should double-dilute founders (round then ESOP)', () => {
+      const r = calculateEnhancedScenario(inputs)
+      const alice = r.founders.find(f => f.name === 'Alice')
+      const bob = r.founders.find(f => f.name === 'Bob')
+      expect(alice.postRoundPercent).toBeCloseTo(44.35, 1)
+      expect(bob.postRoundPercent).toBeCloseTo(22.17, 1)
+    })
+
+    it('should sum to 100%', () => {
+      const r = calculateEnhancedScenario(inputs)
+      expect(r.totalOwnership).toBeCloseTo(100, 0)
+    })
+  })
+
+  describe('Scenario 7: Combined investor (lead matches prior)', () => {
+    // $100M post, $20M round, lead=ACME, prior investor ACME (15%)
+    // Since names match, ACME's pro-rata is skipped (handled via round portion)
+    // proRata = $0, adjustedOther = $5M
+    // ACME diluted: 15*80/100 = 12%
+    // combinedInvestor: investorPercent(15) + diluted(12) = 27%
+    // Alice: 55*80/100=44, Bob: 30*80/100=24
+    // Total: 20+12+44+24 = 100
+    const inputs = {
+      postMoneyVal: 100, roundSize: 20,
+      investorPortion: 15, otherPortion: 5,
+      investorName: 'ACME',
+      showAdvanced: true,
+      priorInvestors: [
+        { id: 1, name: 'ACME', ownershipPercent: 15, hasProRataRights: true, proRataOverride: null }
+      ],
+      founders: [
+        { id: 1, name: 'Alice', ownershipPercent: 55 },
+        { id: 2, name: 'Bob', ownershipPercent: 30 }
+      ],
+      safes: [],
+      currentEsopPercent: 0, targetEsopPercent: 0
+    }
+
+    it('should skip pro-rata for lead investor matching prior investor', () => {
+      const r = calculateEnhancedScenario(inputs)
+      expect(r.totalProRataAmount).toBe(0)
+      expect(r.otherAmount).toBe(5)
+    })
+
+    it('should create combined investor with merged ownership', () => {
+      const r = calculateEnhancedScenario(inputs)
+      expect(r.combinedInvestor).not.toBeNull()
+      expect(r.combinedInvestor.name).toBe('ACME')
+      expect(r.combinedInvestor.totalOwnership).toBe(27) // 15+12
+      expect(r.combinedInvestor.investorRoundPercent).toBe(15)
+      expect(r.combinedInvestor.priorDilutedPercent).toBe(12)
+    })
+
+    it('should sum to 100%', () => {
+      const r = calculateEnhancedScenario(inputs)
+      expect(r.totalOwnership).toBe(100)
+      expect(r.unknownOwnership).toBe(0)
+    })
+  })
+
+  describe('Scenario 8: SAFE conversion with founders', () => {
+    // $100M post, $20M round, SAFE: $5M at $80M cap
+    // preMoneyVal = 80, conversionPrice = min(80,80) = 80
+    // safePercent = 5/80*100 = 6.25%
+    // totalNewOwnership = 20+6.25 = 26.25%
+    // Alice: 60*73.75/100 = 44.25, Bob: 30*73.75/100 = 22.13
+    // preRoundUnknown = 100-60-30 = 10%
+    // totalAccounted = 20+6.25+44.25+22.13 = 92.63
+    // unknownOwnership = 7.37
+    const inputs = {
+      postMoneyVal: 100, roundSize: 20,
+      investorPortion: 15, otherPortion: 5,
+      showAdvanced: true,
+      priorInvestors: [],
+      founders: [
+        { id: 1, name: 'Alice', ownershipPercent: 60 },
+        { id: 2, name: 'Bob', ownershipPercent: 30 }
+      ],
+      safes: [
+        { id: 1, amount: 5, cap: 80, discount: 0 }
+      ],
+      currentEsopPercent: 0, targetEsopPercent: 0
+    }
+
+    it('should convert SAFE at cap valuation', () => {
+      const r = calculateEnhancedScenario(inputs)
+      expect(r.totalSafePercent).toBe(6.25)
+      expect(r.safeDetails[0].conversionPrice).toBe(80)
+    })
+
+    it('should dilute founders by round + SAFE', () => {
+      const r = calculateEnhancedScenario(inputs)
+      const alice = r.founders.find(f => f.name === 'Alice')
+      const bob = r.founders.find(f => f.name === 'Bob')
+      // 60*73.75/100=44.25, 30*73.75/100=22.125→22.13
+      expect(alice.postRoundPercent).toBe(44.25)
+      expect(bob.postRoundPercent).toBeCloseTo(22.13, 1)
+    })
+
+    it('should correctly compute unknown ownership', () => {
+      const r = calculateEnhancedScenario(inputs)
+      expect(r.preRoundUnknownPercent).toBe(10) // 100-60-30
+      expect(r.totalOwnership + r.unknownOwnership).toBeCloseTo(100, 1)
+    })
+  })
+
+  describe('Scenario 9: ESOP self-dilution regression test', () => {
+    // This scenario specifically validates the self-dilution bug fix.
+    // With 20% current ESOP and 25% target, the naive formula (target-diluted)
+    // would give 10%, but the correct formula accounts for the existing pool
+    // itself being diluted by the increase.
+    //
+    // Naive (WRONG):  increase = 25-15 = 10, result: 20*(100-25-10)/100+10 = 23 ≠ 25
+    // Correct:        increase = 10/(1-20/100) = 10/0.8 = 12.5
+    //                 result: 20*(100-25-12.5)/100+12.5 = 20*62.5/100+12.5 = 12.5+12.5 = 25 ✓
+    //
+    // totalNewOwnership = 25+12.5 = 37.5
+    // Founder: 80*62.5/100 = 50
+    // Total: 25+25+50 = 100
+    const inputs = {
+      postMoneyVal: 100, roundSize: 25,
+      investorPortion: 20, otherPortion: 5,
+      showAdvanced: true,
+      priorInvestors: [],
+      founders: [
+        { id: 1, name: 'Founder', ownershipPercent: 80 }
+      ],
+      safes: [],
+      currentEsopPercent: 20, targetEsopPercent: 25,
+      esopTiming: 'pre-close'
+    }
+
+    it('should require larger increase than naive formula', () => {
+      const r = calculateEnhancedScenario(inputs)
+      // Correct: 12.5, not the naive 10
+      expect(r.esopIncrease).toBe(12.5)
+      expect(r.finalEsopPercent).toBe(25)
+    })
+
+    it('should correctly dilute founder with larger ESOP increase', () => {
+      const r = calculateEnhancedScenario(inputs)
+      // 80*(100-37.5)/100 = 80*62.5/100 = 50
+      expect(r.founders[0].postRoundPercent).toBe(50)
+    })
+
+    it('should sum to exactly 100%', () => {
+      const r = calculateEnhancedScenario(inputs)
+      // 25 (round) + 25 (ESOP) + 50 (Founder) = 100
+      expect(r.totalOwnership).toBe(100)
+    })
+  })
+
+  describe('Scenario 10: Multiple prior investors with mixed pro-rata', () => {
+    // $100M post, $25M round (25%)
+    // Seed Fund: 10%, pro-rata calculated = 10%×$25M = $2.5M
+    // Angel Group: 5%, pro-rata override $1M (calc would be $1.25M)
+    // Strategic: 8%, no pro-rata
+    // totalProRata = $2.5+$1 = $3.5M, adjustedOther = $10-$3.5 = $6.5M
+    //
+    // Dilution factor: 75%
+    // Seed: 10*0.75=7.5 + 2.5/100=2.5% = 10%
+    // Angel: 5*0.75=3.75 + 1/100=1% = 4.75%
+    // Strategic: 8*0.75=6%
+    // CEO: 45*0.75=33.75, CTO: 32*0.75=24
+    // proRataInRound = 3.5%, total = 25+10+4.75+6+33.75+24-3.5 = 100
+    const inputs = {
+      postMoneyVal: 100, roundSize: 25,
+      investorPortion: 15, otherPortion: 10,
+      showAdvanced: true,
+      priorInvestors: [
+        { id: 1, name: 'Seed Fund', ownershipPercent: 10, hasProRataRights: true, proRataOverride: null },
+        { id: 2, name: 'Angel Group', ownershipPercent: 5, hasProRataRights: true, proRataOverride: 1 },
+        { id: 3, name: 'Strategic', ownershipPercent: 8, hasProRataRights: false }
+      ],
+      founders: [
+        { id: 1, name: 'CEO', ownershipPercent: 45 },
+        { id: 2, name: 'CTO', ownershipPercent: 32 }
+      ],
+      safes: [],
+      currentEsopPercent: 0, targetEsopPercent: 0
+    }
+
+    it('should calculate mixed pro-rata correctly', () => {
+      const r = calculateEnhancedScenario(inputs)
+      expect(r.totalProRataAmount).toBe(3.5)
+      expect(r.otherAmount).toBe(6.5)
+    })
+
+    it('should give each investor correct post-round ownership', () => {
+      const r = calculateEnhancedScenario(inputs)
+      const seed = r.priorInvestors.find(i => i.name === 'Seed Fund')
+      const angel = r.priorInvestors.find(i => i.name === 'Angel Group')
+      const strategic = r.priorInvestors.find(i => i.name === 'Strategic')
+      expect(seed.postRoundPercent).toBe(10)      // 7.5+2.5
+      expect(angel.postRoundPercent).toBe(4.75)    // 3.75+1
+      expect(strategic.postRoundPercent).toBe(6)    // 6+0
+    })
+
+    it('should include override flag in pro-rata details', () => {
+      const r = calculateEnhancedScenario(inputs)
+      const seedDetail = r.proRataDetails.find(d => d.name === 'Seed Fund')
+      const angelDetail = r.proRataDetails.find(d => d.name === 'Angel Group')
+      expect(seedDetail.isOverridden).toBe(false)
+      expect(angelDetail.isOverridden).toBe(true)
+      expect(angelDetail.calculatedProRataAmount).toBe(1.25)
+      expect(angelDetail.proRataAmount).toBe(1)
+    })
+
+    it('should dilute founders and sum to 100%', () => {
+      const r = calculateEnhancedScenario(inputs)
+      const ceo = r.founders.find(f => f.name === 'CEO')
+      const cto = r.founders.find(f => f.name === 'CTO')
+      expect(ceo.postRoundPercent).toBe(33.75)
+      expect(cto.postRoundPercent).toBe(24)
+      expect(r.totalOwnership).toBe(100)
+      expect(r.unknownOwnership).toBe(0)
+    })
+  })
+
+  describe('Scenario 11: Pro-rata + pre-close ESOP + unknown holders', () => {
+    // $200M post, $40M round, Series A 20% with $6M override
+    // Founders: Alice=35%, Bob=25%, ESOP 8%→12% pre-close
+    // preRoundUnknown = 100-20-35-25-8 = 12%
+    //
+    // proRata = $6M override (calc=$8M), adjustedOther = $15M-$6M = $9M
+    // roundPercent = 40/200 = 20%, investorPercent = 25/200 = 12.5%
+    // otherPercent = 9/200 = 4.5%
+    //
+    // baseDilution = 20%, naturalDilutedEsop = 8*80/100 = 6.4%
+    // rawIncrease = 12-6.4 = 5.6, denom = 1-8/100 = 0.92
+    // esopIncrease = 5.6/0.92 = 6.09 (rounded)
+    // totalNewOwnership = 20+6.09 = 26.09
+    //
+    // Series A: 20*(100-26.09)/100 = 14.78, + 6/200*100 = 3% → 17.78
+    // Alice: 35*73.91/100 = 25.87, Bob: 25*73.91/100 = 18.48
+    // proRataInRound = 3%
+    // totalAccounted = 20+17.78+25.87+18.48+12-3 = 91.13
+    // unknownOwnership = 8.87
+    const inputs = {
+      postMoneyVal: 200, roundSize: 40,
+      investorPortion: 25, otherPortion: 15,
+      showAdvanced: true,
+      priorInvestors: [
+        { id: 1, name: 'Series A', ownershipPercent: 20, hasProRataRights: true, proRataOverride: 6 }
+      ],
+      founders: [
+        { id: 1, name: 'Alice', ownershipPercent: 35 },
+        { id: 2, name: 'Bob', ownershipPercent: 25 }
+      ],
+      safes: [],
+      currentEsopPercent: 8, targetEsopPercent: 12,
+      esopTiming: 'pre-close'
+    }
+
+    it('should calculate ESOP increase with self-dilution', () => {
+      const r = calculateEnhancedScenario(inputs)
+      expect(r.esopIncrease).toBeCloseTo(6.09, 1)
+      expect(r.finalEsopPercent).toBe(12)
+    })
+
+    it('should handle pro-rata override and adjust other portion', () => {
+      const r = calculateEnhancedScenario(inputs)
+      expect(r.totalProRataAmount).toBe(6)
+      expect(r.otherAmount).toBe(9)
+    })
+
+    it('should give Series A correct post-round ownership', () => {
+      const r = calculateEnhancedScenario(inputs)
+      const seriesA = r.priorInvestors.find(i => i.name === 'Series A')
+      // Diluted: 20*(100-26.09)/100 ≈ 14.78, proRata: 6/200*100=3%, total ≈ 17.78
+      expect(seriesA.postRoundPercent).toBeCloseTo(17.78, 0)
+    })
+
+    it('should correctly track pre-round unknown ownership', () => {
+      const r = calculateEnhancedScenario(inputs)
+      expect(r.preRoundUnknownPercent).toBe(12) // 100-20-35-25-8
+      // Unknown gets diluted along with everyone else
+      expect(r.unknownOwnership).toBeGreaterThan(0)
+      expect(r.unknownOwnership).toBeLessThan(12) // diluted from 12
+    })
+
+    it('should have total + unknown = 100', () => {
+      const r = calculateEnhancedScenario(inputs)
+      expect(r.totalOwnership + r.unknownOwnership).toBeCloseTo(100, 1)
+    })
+  })
+
+  describe('Scenario 12: Post-close ESOP with prior investor pro-rata', () => {
+    // $100M post, $25M round, Seed 10% pro-rata
+    // Founders: CEO=50%, CTO=30%, ESOP 5%→10% post-close
+    //
+    // proRata = 10%×$25M = $2.5M, adjustedOther = $10M-$2.5M = $7.5M
+    // roundPercent = 25%, investorPercent = 15%
+    // otherPercent = 7.5/100*100 = 7.5%
+    //
+    // baseDilution = 25%, naturalDilutedEsop = 5*75/100 = 3.75
+    // rawIncrease = 10-3.75 = 6.25, denom = 1-3.75/100 = 0.9625
+    // esopIncrease = 6.25/0.9625 = 6.49 (rounded)
+    // esopIncreasePostClose = 6.49
+    //
+    // totalNewOwnership = 25 (post-close ESOP doesn't go in totalNew)
+    // Before post-close ESOP:
+    //   Seed: 10*75/100=7.5, +proRata 2.5%=10
+    //   CEO: 50*75/100=37.5, CTO: 30*75/100=22.5
+    // Apply post-close ESOP (factor: (100-6.49)/100 = 0.9351):
+    //   finalRound = 25*0.9351 = 23.38
+    //   investorPercent = 15*0.9351 = 14.03
+    //   otherPercent = 7.5*0.9351 = 7.01
+    //   Seed: 10*0.9351 = 9.35
+    //   CEO: 37.5*0.9351 = 35.07
+    //   CTO: 22.5*0.9351 = 21.04
+    const inputs = {
+      postMoneyVal: 100, roundSize: 25,
+      investorPortion: 15, otherPortion: 10,
+      showAdvanced: true,
+      priorInvestors: [
+        { id: 1, name: 'Seed', ownershipPercent: 10, hasProRataRights: true, proRataOverride: null }
+      ],
+      founders: [
+        { id: 1, name: 'CEO', ownershipPercent: 50 },
+        { id: 2, name: 'CTO', ownershipPercent: 30 }
+      ],
+      safes: [],
+      currentEsopPercent: 5, targetEsopPercent: 10,
+      esopTiming: 'post-close'
+    }
+
+    it('should calculate post-close ESOP increase correctly', () => {
+      const r = calculateEnhancedScenario(inputs)
+      expect(r.esopIncreasePostClose).toBeCloseTo(6.49, 1)
+      expect(r.finalEsopPercent).toBe(10)
+    })
+
+    it('should reduce round percent for post-close ESOP', () => {
+      const r = calculateEnhancedScenario(inputs)
+      // roundPercent = 25*(100-6.49)/100 ≈ 23.38
+      expect(r.roundPercent).toBeCloseTo(23.38, 0)
+      // investorPercent + otherPercent < roundPercent because pro-rata
+      // is also part of the round. investorPercent ≈ 14.03, otherPercent ≈ 7.01
+      expect(r.investorPercent).toBeCloseTo(14.03, 0)
+      expect(r.otherPercent).toBeCloseTo(7.01, 0)
+    })
+
+    it('should apply post-close ESOP to prior investor', () => {
+      const r = calculateEnhancedScenario(inputs)
+      const seed = r.priorInvestors.find(i => i.name === 'Seed')
+      // 10% diluted + 2.5% pro-rata = ~10%, then post-close ESOP → ~9.35
+      expect(seed.postRoundPercent).toBeCloseTo(9.35, 0)
+    })
+
+    it('should have total + unknown ≈ 100', () => {
+      const r = calculateEnhancedScenario(inputs)
+      expect(r.totalOwnership + r.unknownOwnership).toBeCloseTo(100, 0)
+    })
+  })
+})
