@@ -132,13 +132,10 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
   // Group prior investors and calculate total (using display list)
   const priorInvestorsTotal = displayPriorInvestors.reduce((sum, inv) => sum + inv.postRoundPercent, 0)
 
-  // Calculate unknown/other ownership lost
-  const totalNewOwnership = scenario.roundPercent / 100
-  const unknownPreRound = scenario.unknownOwnership > 0
-    ? scenario.unknownOwnership / (1 - totalNewOwnership)
-    : 0
+  // Calculate unknown/other ownership lost using pre-round value from engine
+  const unknownPreRound = scenario.preRoundUnknownPercent || 0
   const unknownOwnershipLost = unknownPreRound > 0
-    ? unknownPreRound - scenario.unknownOwnership
+    ? unknownPreRound - (scenario.unknownOwnership || 0)
     : 0
     
 
@@ -367,7 +364,7 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
                 return <span className='amount-neutral'>—</span>
               })()}
             </div>
-            <div className="percent percent-bold">{scenario.finalEsopPercent.toFixed(1)}%</div>
+            <div className="percent percent-bold">{formatPercent(scenario.finalEsopPercent)}</div>
           </div>
         )}
         

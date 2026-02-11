@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { createPriorInvestor, calculateTotalOwnership } from '../utils/dataStructures'
 import FormInput from './FormInput'
 
-function PriorInvestorsSection({ priorInvestors = [], onUpdate, roundSize = 0 }) {
+function PriorInvestorsSection({ priorInvestors = [], onUpdate, roundSize = 0, investorName = '' }) {
   const [expandedInvestor, setExpandedInvestor] = useState(null)
 
   const addPriorInvestor = () => {
@@ -137,40 +137,48 @@ function PriorInvestorsSection({ priorInvestors = [], onUpdate, roundSize = 0 })
 
                 {/* Show allocation field when pro-rata is enabled and they have ownership */}
                 {investor.hasProRataRights && investor.ownershipPercent > 0 && roundSize > 0 && (
-                  <div className="pro-rata-allocation">
-                    <div className="pro-rata-allocation-row">
-                      <FormInput
-                        label="Allocation"
-                        type="number"
-                        value={displayAmount}
-                        onChange={(value) => updateInvestor(investor.id, 'proRataOverride', value)}
-                        prefix="$"
-                        suffix="M"
-                        step="0.01"
-                        min="0"
-                      />
+                  investor.name === investorName ? (
+                    <div className="pro-rata-hint">
+                      <span className="hint-text">
+                        Pro-rata handled via {investorName} round portion
+                      </span>
                     </div>
-                    {hasOverride && (
-                      <div className="pro-rata-hint">
-                        <span className="hint-text">
-                          Pro-rata right: ${parseFloat(calculatedProRata.toPrecision(10))}M
-                          {investor.proRataOverride < calculatedProRata
-                            ? ` (taking less)`
-                            : investor.proRataOverride > calculatedProRata
-                              ? ` (taking more)`
-                              : ''}
-                        </span>
-                        <button
-                          type="button"
-                          className="reset-pro-rata-btn"
-                          onClick={() => updateInvestor(investor.id, 'proRataOverride', null)}
-                          title="Reset to calculated pro-rata"
-                        >
-                          reset
-                        </button>
+                  ) : (
+                    <div className="pro-rata-allocation">
+                      <div className="pro-rata-allocation-row">
+                        <FormInput
+                          label="Allocation"
+                          type="number"
+                          value={displayAmount}
+                          onChange={(value) => updateInvestor(investor.id, 'proRataOverride', value)}
+                          prefix="$"
+                          suffix="M"
+                          step="0.01"
+                          min="0"
+                        />
                       </div>
-                    )}
-                  </div>
+                      {hasOverride && (
+                        <div className="pro-rata-hint">
+                          <span className="hint-text">
+                            Pro-rata right: ${parseFloat(calculatedProRata.toPrecision(10))}M
+                            {investor.proRataOverride < calculatedProRata
+                              ? ` (taking less)`
+                              : investor.proRataOverride > calculatedProRata
+                                ? ` (taking more)`
+                                : ''}
+                          </span>
+                          <button
+                            type="button"
+                            className="reset-pro-rata-btn"
+                            onClick={() => updateInvestor(investor.id, 'proRataOverride', null)}
+                            title="Reset to calculated pro-rata"
+                          >
+                            reset
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )
                 )}
 
               </div>

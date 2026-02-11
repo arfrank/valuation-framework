@@ -180,12 +180,10 @@ describe('Multi-Party Calculations - Multiple Founders', () => {
       expect(founderB.postRoundPercent).toBeLessThan(35) // Should be diluted
       expect(founderA.postRoundPercent).toBeGreaterThan(founderB.postRoundPercent) // A should still own more than B
       
-      // Verify total ownership including unknown
+      // Verify total ownership using engine's accounting (which deducts pro-rata double-count)
       const seedVC = result.priorInvestors.find(i => i.name === 'Seed VC')
-      const knownTotal = result.roundPercent + seedVC.postRoundPercent + founderA.postRoundPercent + founderB.postRoundPercent
-      const totalWithUnknown = knownTotal + (result.unknownOwnership || 0)
-      expect(totalWithUnknown).toBeCloseTo(100, 1)
-      
+      expect(result.totalOwnership).toBeCloseTo(100, 1)
+
       // Log the ownership breakdown for clarity
       console.log('')
       console.log('Ownership breakdown:')
@@ -194,7 +192,7 @@ describe('Multi-Party Calculations - Multiple Founders', () => {
       console.log(`- Founder A: ${founderA.postRoundPercent}%`)
       console.log(`- Founder B: ${founderB.postRoundPercent}%`)
       console.log(`- Unknown: ${result.unknownOwnership || 0}%`)
-      console.log(`- Total: ${totalWithUnknown}%`)
+      console.log(`- Total (engine): ${result.totalOwnership}%`)
     })
 
     it('should not unfairly adjust only the first founder for rounding differences', () => {

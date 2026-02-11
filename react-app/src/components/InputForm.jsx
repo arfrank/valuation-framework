@@ -383,6 +383,7 @@ const InputForm = ({ company, onUpdate }) => {
             priorInvestors={values.priorInvestors || []}
             onUpdate={handlePriorInvestorsUpdate}
             roundSize={values.roundSize}
+            investorName={values.investorName || 'US'}
           />
 
           <FoundersSection 
