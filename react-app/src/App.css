@@ -706,7 +706,7 @@ body.geometric-background-active .app {
 }
 
 .form-input-wrapper.with-clear .form-input-suffix {
-  padding-right: 32px;
+  margin-right: 28px;
 }
 
 /* Checkbox Input Styles */
