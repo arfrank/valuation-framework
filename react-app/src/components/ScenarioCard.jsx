@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalink, investorName = 'US', showAdvanced = false }) => {
+const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalink, investorName = 'US', showAdvanced = false, percentPrecision = 2, onPercentPrecisionChange }) => {
   const [copyFeedback, setCopyFeedback] = useState('')
   const [collapsed, setCollapsed] = useState({
     newRound: false,
@@ -21,7 +21,7 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
     return `scenario-card scenario-${index % 5}`
   }
 
-  const formatPercent = (value) => `${value.toFixed(2)}%`
+  const formatPercent = (value) => `${value.toFixed(percentPrecision)}%`
   const formatDollar = (value) => `$${value.toFixed(2)}M`
 
   const handleApplyScenario = () => {
@@ -166,7 +166,11 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
         <div className="table-header">
           <div className="label">Party</div>
           <div className="amount">Change</div>
-          <div className="percent">Ownership</div>
+          <div
+            className="percent clickable-header"
+            title={`Showing ${percentPrecision} decimals — click to change`}
+            onClick={() => onPercentPrecisionChange && onPercentPrecisionChange(percentPrecision >= 4 ? 2 : percentPrecision + 1)}
+          >Ownership</div>
         </div>
         
         {/* Total New Round Header */}

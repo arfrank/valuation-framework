@@ -21,7 +21,8 @@ const URL_PARAM_MAP = {
   // ESOP modeling
   currentEsopPercent: 'ce',
   targetEsopPercent: 'te',
-  esopTiming: 'et'
+  esopTiming: 'et',
+  percentPrecision: 'pp'
 }
 
 const REVERSE_PARAM_MAP = Object.fromEntries(
@@ -150,6 +151,11 @@ export function encodeScenarioToURL(scenarioData) {
       if (field === 'esopTiming' && value === 'pre-close') {
         return // Don't include default value
       }
+
+      // Don't include default percent precision
+      if (field === 'percentPrecision' && value === 2) {
+        return // Don't include default value
+      }
       
       params.set(param, value.toString())
     }
@@ -185,7 +191,8 @@ export function decodeScenarioFromURL(urlParams) {
       // ESOP defaults
       currentEsopPercent: 0,
       targetEsopPercent: 0,
-      esopTiming: 'pre-close'
+      esopTiming: 'pre-close',
+      percentPrecision: 2
     }
 
     // Decode parameters
@@ -199,6 +206,9 @@ export function decodeScenarioFromURL(urlParams) {
           scenarioData[field] = value === '1'
         } else if (field === 'esopTiming') {
           scenarioData[field] = value // String value, no parsing needed
+        } else if (field === 'percentPrecision') {
+          const pp = parseInt(value, 10)
+          scenarioData[field] = isNaN(pp) ? 2 : Math.min(4, Math.max(2, pp))
         } else if (field === 'safes') {
           // Decode SAFEs array from JSON
           try {

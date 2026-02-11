@@ -993,6 +993,15 @@ body.geometric-background-active .app {
   letter-spacing: 0.8px;
 }
 
+.clickable-header {
+  cursor: pointer;
+  user-select: none;
+}
+
+.clickable-header:hover {
+  opacity: 0.7;
+}
+
 .table-row {
   font-size: 0.9rem;
   font-weight: 500;

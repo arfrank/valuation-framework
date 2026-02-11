@@ -98,6 +98,7 @@ export function createDefaultCompany(companyName = 'New Company') {
     otherPortion: 0.25,
     investorName: 'US',
     showAdvanced: false,
+    percentPrecision: 2,
     
     // New multi-party structures
     priorInvestors: [

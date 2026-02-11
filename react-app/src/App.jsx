@@ -179,7 +179,7 @@ function App() {
           
           <div className="base-result">
             {scenarios.length > 0 && (
-              <ScenarioCard 
+              <ScenarioCard
                 scenario={scenarios[0]}
                 index={0}
                 isBase={true}
@@ -187,6 +187,8 @@ function App() {
                 onCopyPermalink={handleCopyPermalink}
                 investorName={companies[activeCompany]?.investorName || 'US'}
                 showAdvanced={companies[activeCompany]?.showAdvanced || false}
+                percentPrecision={companies[activeCompany]?.percentPrecision || 2}
+                onPercentPrecisionChange={(pp) => updateCompany(activeCompany, { percentPrecision: pp })}
               />
             )}
           </div>
@@ -194,7 +196,7 @@ function App() {
         
         <div className="scenarios-rows">
           {scenarios.slice(1).map((scenario, index) => (
-            <ScenarioCard 
+            <ScenarioCard
               key={index + 1}
               scenario={scenario}
               index={index + 1}
@@ -202,6 +204,8 @@ function App() {
               onApplyScenario={applyScenario}
               investorName={companies[activeCompany]?.investorName || 'US'}
               showAdvanced={companies[activeCompany]?.showAdvanced || false}
+              percentPrecision={companies[activeCompany]?.percentPrecision || 2}
+              onPercentPrecisionChange={(pp) => updateCompany(activeCompany, { percentPrecision: pp })}
             />
           ))}
         </div>
