@@ -129,9 +129,6 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
     ? scenario.founders.reduce((sum, founder) => sum + founder.postRoundPercent, 0)
     : (scenario.preRoundFounderPercent || 0)
 
-  // Group prior investors and calculate total (using display list)
-  const priorInvestorsTotal = displayPriorInvestors.reduce((sum, inv) => sum + inv.postRoundPercent, 0)
-
   // Compute Prior Investors + Unknown as remainder so section totals sum to exactly 100%
   // (avoids double-counting pro-rata ownership in both New Round and Prior Investors)
   const adjustedPriorAndUnknownTotal = Math.max(0,
