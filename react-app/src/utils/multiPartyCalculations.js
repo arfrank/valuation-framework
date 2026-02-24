@@ -180,11 +180,306 @@ function calculateEsopEffects(currentEsopPercent, targetEsopPercent, esopTiming,
 }
 
 /**
+ * Calculate a two-step round scenario where Step 1 is at V1 and Step 2 at V2
+ * @param {Object} inputs - Company data with two-step fields
+ * @returns {Object} Calculation results with step breakdowns
+ */
+function calculateTwoStepScenario(inputs) {
+  const migratedInputs = migrateLegacyCompany(inputs)
+
+  const {
+    postMoneyVal: V1,
+    roundSize: S1,
+    investorPortion: s1Investor,
+    otherPortion: s1Other,
+    investorName = 'US',
+    showAdvanced = false,
+    step2PostMoney: V2,
+    step2Amount: S2,
+    step2InvestorPortion: s2Investor,
+    step2OtherPortion: s2Other,
+    priorInvestors = [],
+    founders = [],
+    safes = [],
+    currentEsopPercent = 0,
+    targetEsopPercent = 0,
+    esopTiming = 'pre-close'
+  } = migratedInputs
+
+  if (V1 <= 0 || S1 <= 0 || V1 <= S1 || V2 <= 0 || S2 <= 0 || V2 <= S2) {
+    return null
+  }
+
+  const preMoneyV1 = r$(V1 - S1)
+  const preMoneyV2 = r$(V2 - S2)
+
+  const effectivePriorInvestors = showAdvanced ? priorInvestors : []
+  const effectiveFounders = showAdvanced ? founders : []
+  const effectiveSafes = showAdvanced ? safes : []
+  const effectiveCurrentEsopPercent = showAdvanced ? currentEsopPercent : 0
+  const effectiveTargetEsopPercent = showAdvanced ? targetEsopPercent : 0
+
+  // --- SAFE conversions at step 1 pre-money ---
+  const safeCalc = calculateSafeConversions(effectiveSafes, preMoneyV1)
+
+  // --- Pro-rata from step 2's other portion ---
+  const priorInvestorsForProRata = effectivePriorInvestors.map(inv =>
+    inv.name === investorName ? { ...inv, hasProRataRights: false } : inv
+  )
+  const proRataCalc = calculateProRataAllocations(priorInvestorsForProRata, S2)
+
+  // Pro-rata comes from step 2 other portion
+  const actualProRataAmount = Math.min(proRataCalc.totalProRataAmount, s2Other)
+  const adjustedS2Other = r$(s2Other - actualProRataAmount)
+
+  // --- Step 1 ownership ---
+  // Step 1 investors get S1/V1 of post-step-1 company
+  const step1RoundPercent = r2p(S1 / V1)
+  const step1InvestorPercent = r2p(s1Investor / V1)
+  const step1OtherPercent = r2p(s1Other / V1)
+  const step1ExistingPercent = rp(100 - step1RoundPercent - safeCalc.totalSafePercent)
+
+  // --- Step 2 dilution on step 1 holders ---
+  // Step 2 investors get S2/V2 of final company
+  const step2RoundPercent = r2p(S2 / V2)
+  const step2DilutionFactor = rp((V2 - S2) / V2 * 100) / 100 // fraction remaining after step 2
+
+  // Final ownership after both steps
+  const step1InvestorFinal = rp(step1InvestorPercent * step2DilutionFactor)
+  const step1OtherFinal = rp(step1OtherPercent * step2DilutionFactor)
+  const step1RoundFinal = rp(step1RoundPercent * step2DilutionFactor)
+
+  const step2InvestorPercent = r2p(s2Investor / V2)
+  const step2OtherPercent = r2p(adjustedS2Other / V2)
+  const step2ProRataPercent = r2p(actualProRataAmount / V2)
+
+  // Combined round ownership (step 1 diluted + step 2)
+  const totalRoundPercent = rp(step1RoundFinal + step2RoundPercent)
+  const totalInvestorPercent = rp(step1InvestorFinal + step2InvestorPercent)
+  const totalOtherPercent = rp(step1OtherFinal + step2OtherPercent)
+
+  // SAFEs diluted by both steps: convert at step 1 pre-money, then diluted by step 2
+  const safeFinalPercent = rp(safeCalc.totalSafePercent * step2DilutionFactor)
+
+  // --- ESOP ---
+  const baseDilutionPercent = totalRoundPercent + safeFinalPercent
+  const esopCalc = calculateEsopEffects(effectiveCurrentEsopPercent, effectiveTargetEsopPercent, esopTiming, baseDilutionPercent)
+
+  // Total new ownership carved out
+  const totalNewOwnership = totalRoundPercent + safeFinalPercent + esopCalc.esopIncreasePreClose
+
+  // --- Prior investors ---
+  const postRoundPriorInvestors = effectivePriorInvestors.map(investor => {
+    const preRoundPercent = investor.ownershipPercent
+    // Existing shareholders diluted by step 1 then step 2
+    let postRoundPercent = rp(preRoundPercent * (100 - step1RoundPercent - safeCalc.totalSafePercent - esopCalc.esopIncreasePreClose) / 100 * step2DilutionFactor)
+
+    // Add pro-rata participation from step 2
+    const proRataEntry = proRataCalc.proRataResults.find(pr => pr.id === investor.id)
+    if (proRataEntry && proRataEntry.proRataAmount > 0) {
+      const proRataOwnershipPercent = r2p(Math.min(proRataEntry.proRataAmount, actualProRataAmount > 0 ? proRataEntry.proRataAmount : 0) / V2)
+      postRoundPercent += proRataOwnershipPercent
+    }
+
+    // Apply post-close ESOP dilution
+    if (esopCalc.esopIncreasePostClose > 0) {
+      postRoundPercent = rp(postRoundPercent * (100 - esopCalc.esopIncreasePostClose) / 100)
+    }
+
+    return {
+      ...investor,
+      postRoundPercent: rp(postRoundPercent),
+      proRataAmount: proRataEntry ? Math.min(proRataEntry.proRataAmount, actualProRataAmount > 0 ? proRataEntry.proRataAmount : 0) : 0,
+      dilution: rp(preRoundPercent - postRoundPercent)
+    }
+  })
+
+  // --- Founders ---
+  const postRoundFounders = effectiveFounders.map(founder => {
+    const preRoundPercent = founder.ownershipPercent
+    let postRoundPercent = rp(preRoundPercent * (100 - step1RoundPercent - safeCalc.totalSafePercent - esopCalc.esopIncreasePreClose) / 100 * step2DilutionFactor)
+
+    if (esopCalc.esopIncreasePostClose > 0) {
+      postRoundPercent = rp(postRoundPercent * (100 - esopCalc.esopIncreasePostClose) / 100)
+    }
+
+    return {
+      ...founder,
+      postRoundPercent: rp(postRoundPercent),
+      dilution: rp(preRoundPercent - postRoundPercent)
+    }
+  })
+
+  // Apply post-close ESOP to round percentages
+  let finalRoundPercent = totalRoundPercent
+  let finalInvestorPercent = totalInvestorPercent
+  let finalOtherPercent = totalOtherPercent
+  if (esopCalc.esopIncreasePostClose > 0) {
+    finalRoundPercent = rp(totalRoundPercent * (100 - esopCalc.esopIncreasePostClose) / 100)
+    finalInvestorPercent = rp(totalInvestorPercent * (100 - esopCalc.esopIncreasePostClose) / 100)
+    finalOtherPercent = rp(totalOtherPercent * (100 - esopCalc.esopIncreasePostClose) / 100)
+  }
+
+  // --- Combined investor detection ---
+  const matchedPriorInvestor = postRoundPriorInvestors.find(inv => inv.name === investorName)
+  let combinedInvestor = null
+  if (matchedPriorInvestor) {
+    combinedInvestor = {
+      id: matchedPriorInvestor.id,
+      name: investorName,
+      totalNewInvestment: r$(s1Investor + s2Investor + (matchedPriorInvestor.proRataAmount || 0)),
+      totalOwnership: rp(finalInvestorPercent + matchedPriorInvestor.postRoundPercent),
+      investorPortion: s1Investor,
+      proRataAmount: matchedPriorInvestor.proRataAmount || 0,
+      investorRoundPercent: finalInvestorPercent,
+      priorDilutedPercent: matchedPriorInvestor.postRoundPercent,
+      priorOriginalPercent: matchedPriorInvestor.ownershipPercent,
+    }
+  }
+
+  // --- Totals for verification ---
+  const totalPriorInvestorOwnership = postRoundPriorInvestors.reduce((sum, inv) => sum + inv.postRoundPercent, 0)
+  const totalFounderOwnership = postRoundFounders.reduce((sum, founder) => sum + founder.postRoundPercent, 0)
+
+  let proRataOwnershipInRound = r2p(actualProRataAmount / V2)
+  if (esopCalc.esopIncreasePostClose > 0) {
+    proRataOwnershipInRound = rp(proRataOwnershipInRound * (100 - esopCalc.esopIncreasePostClose) / 100)
+  }
+
+  const totalAccountedOwnership = finalRoundPercent + safeFinalPercent
+    + totalPriorInvestorOwnership + totalFounderOwnership + esopCalc.finalEsopPercent
+    - proRataOwnershipInRound
+  const unknownOwnership = rp(100 - totalAccountedOwnership)
+
+  const preRoundTrackedOwnership = effectivePriorInvestors.reduce((sum, inv) => sum + (inv.ownershipPercent || 0), 0)
+    + effectiveFounders.reduce((sum, f) => sum + (f.ownershipPercent || 0), 0)
+    + effectiveCurrentEsopPercent
+  const preRoundUnknownPercent = Math.max(0, rp(100 - preRoundTrackedOwnership))
+
+  // --- Analytics ---
+  const totalRoundAmount = r$(S1 + S2)
+  const blendedPostMoney = r$(V1 + S2) // effective post-money if entire round at V1 economics
+  // Lead's blended effective post-money: total lead $ / total lead % * 100
+  const totalLeadDollars = s1Investor + s2Investor
+  const totalLeadRawPercent = r2p(s1Investor / V1) + r2p(s2Investor / V2)
+  const leadEffectivePostMoney = totalLeadRawPercent > 0 ? r$(totalLeadDollars / (totalLeadRawPercent / 100)) : 0
+  const instantMarkup = V1 > 0 ? rp((V2 / V1 - 1) * 100) : 0
+
+  return {
+    // Basic valuation info
+    postMoneyVal: V1,
+    roundSize: r$(S1 + S2),
+    preMoneyVal: preMoneyV1,
+    investorName,
+    twoStepEnabled: true,
+
+    // Round composition — combined from both steps
+    newMoneyAmount: totalRoundAmount,
+    investorAmount: r$(s1Investor + s2Investor),
+    investorPercent: finalInvestorPercent,
+    otherAmount: r$(s1Other + adjustedS2Other),
+    otherPercent: finalOtherPercent,
+    otherAmountOriginal: r$(s1Other + s2Other),
+    roundPercent: finalRoundPercent,
+
+    // Total round details
+    totalAmount: totalRoundAmount,
+    totalPercent: finalRoundPercent,
+
+    // Pro-rata details
+    totalProRataAmount: actualProRataAmount,
+    totalProRataPercent: r2p(actualProRataAmount / V2),
+    proRataAmount: actualProRataAmount,
+    proRataPercent: r2p(actualProRataAmount / V2),
+    proRataDetails: proRataCalc.proRataResults,
+
+    // SAFE details
+    totalSafeAmount: safeCalc.totalSafeAmount,
+    totalSafePercent: safeFinalPercent,
+    safeDetails: safeCalc.safeDetails.map(d => ({
+      ...d,
+      percent: rp(d.percent * step2DilutionFactor)
+    })),
+    safes: effectiveSafes,
+
+    // ESOP details
+    currentEsopPercent: effectiveCurrentEsopPercent,
+    targetEsopPercent: effectiveTargetEsopPercent,
+    finalEsopPercent: esopCalc.finalEsopPercent,
+    esopIncrease: esopCalc.esopIncrease,
+    esopIncreasePreClose: esopCalc.esopIncreasePreClose,
+    esopIncreasePostClose: esopCalc.esopIncreasePostClose,
+    esopTiming,
+
+    // Multi-party ownership results
+    priorInvestors: postRoundPriorInvestors,
+    founders: postRoundFounders,
+    combinedInvestor,
+
+    // Legacy compatibility
+    postRoundFounderPercent: rp(postRoundFounders.reduce((sum, f) => sum + (f.postRoundPercent || 0), 0)),
+    preRoundFounderPercent: rp(effectiveFounders.reduce((sum, f) => sum + (f.ownershipPercent || 0), 0)),
+    founderDilution: rp(effectiveFounders.reduce((sum, f) => sum + (f.ownershipPercent || 0), 0) - postRoundFounders.reduce((sum, f) => sum + (f.postRoundPercent || 0), 0)),
+
+    totalOwnership: rp(totalAccountedOwnership),
+    unknownOwnership,
+    preRoundUnknownPercent,
+
+    // 2-step specific data
+    step1: {
+      postMoney: V1,
+      preMoney: preMoneyV1,
+      amount: S1,
+      investorAmount: s1Investor,
+      otherAmount: s1Other,
+      rawPercent: step1RoundPercent,
+      finalPercent: rp(esopCalc.esopIncreasePostClose > 0
+        ? step1RoundFinal * (100 - esopCalc.esopIncreasePostClose) / 100
+        : step1RoundFinal),
+      investorPercent: rp(esopCalc.esopIncreasePostClose > 0
+        ? step1InvestorFinal * (100 - esopCalc.esopIncreasePostClose) / 100
+        : step1InvestorFinal),
+      otherPercent: rp(esopCalc.esopIncreasePostClose > 0
+        ? step1OtherFinal * (100 - esopCalc.esopIncreasePostClose) / 100
+        : step1OtherFinal),
+    },
+    step2: {
+      postMoney: V2,
+      preMoney: preMoneyV2,
+      amount: S2,
+      investorAmount: s2Investor,
+      otherAmount: s2Other,
+      percent: rp(esopCalc.esopIncreasePostClose > 0
+        ? step2RoundPercent * (100 - esopCalc.esopIncreasePostClose) / 100
+        : step2RoundPercent),
+      investorPercent: rp(esopCalc.esopIncreasePostClose > 0
+        ? step2InvestorPercent * (100 - esopCalc.esopIncreasePostClose) / 100
+        : step2InvestorPercent),
+      otherPercent: rp(esopCalc.esopIncreasePostClose > 0
+        ? (step2OtherPercent + step2ProRataPercent) * (100 - esopCalc.esopIncreasePostClose) / 100
+        : (step2OtherPercent + step2ProRataPercent)),
+    },
+    analytics: {
+      blendedPostMoney: r$(totalRoundAmount / (finalRoundPercent / 100)),
+      blendedPreMoney: r$(totalRoundAmount / (finalRoundPercent / 100) - totalRoundAmount),
+      leadEffectivePostMoney,
+      instantMarkup,
+      headlineValuation: V2,
+    }
+  }
+}
+
+/**
  * Main calculation function for enhanced multi-party scenarios
  * @param {Object} inputs - Company data with new multi-party structures
  * @returns {Object} Calculation results
  */
 export function calculateEnhancedScenario(inputs) {
+  // Route to two-step calculation if enabled with valid step 2 inputs
+  if (inputs && inputs.twoStepEnabled && inputs.step2PostMoney > 0 && inputs.step2Amount > 0) {
+    return calculateTwoStepScenario(inputs)
+  }
+
   // First migrate any legacy data
   const migratedInputs = migrateLegacyCompany(inputs)
   
@@ -478,12 +773,14 @@ export function calculateEnhancedScenarios(company) {
     { multiplier: 1.5, roundMultiplier: 1.5, title: '1.5x Val & Round' }
   ]
   
+  const isTwoStep = company.twoStepEnabled && company.step2PostMoney > 0 && company.step2Amount > 0
+
   scenarioVariations.forEach((variation, _index) => {
     const adjustedPostMoney = r$(company.postMoneyVal * variation.multiplier)
     const adjustedRoundSize = r$(company.roundSize * variation.roundMultiplier)
     const adjustedInvestorPortion = r$(company.investorPortion * variation.roundMultiplier)
     const adjustedOtherPortion = r$(adjustedRoundSize - adjustedInvestorPortion)
-    
+
     const scenarioInputs = {
       ...company,
       postMoneyVal: adjustedPostMoney,
@@ -491,7 +788,15 @@ export function calculateEnhancedScenarios(company) {
       investorPortion: adjustedInvestorPortion,
       otherPortion: adjustedOtherPortion
     }
-    
+
+    // Scale step 2 values proportionally for two-step scenarios
+    if (isTwoStep) {
+      scenarioInputs.step2PostMoney = r$(company.step2PostMoney * variation.multiplier)
+      scenarioInputs.step2Amount = r$(company.step2Amount * variation.roundMultiplier)
+      scenarioInputs.step2InvestorPortion = r$(company.step2InvestorPortion * variation.roundMultiplier)
+      scenarioInputs.step2OtherPortion = r$(scenarioInputs.step2Amount - scenarioInputs.step2InvestorPortion)
+    }
+
     const scenario = calculateEnhancedScenario(scenarioInputs)
     if (scenario && !scenario.error) {  // Skip error scenarios
       scenarios.push({

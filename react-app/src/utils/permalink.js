@@ -22,7 +22,13 @@ const URL_PARAM_MAP = {
   currentEsopPercent: 'ce',
   targetEsopPercent: 'te',
   esopTiming: 'et',
-  percentPrecision: 'pp'
+  percentPrecision: 'pp',
+  // 2-Step Round
+  twoStepEnabled: 'ts',
+  step2PostMoney: 's2pm',
+  step2Amount: 's2a',
+  step2InvestorPortion: 's2ip',
+  step2OtherPortion: 's2op'
 }
 
 const REVERSE_PARAM_MAP = Object.fromEntries(
@@ -78,8 +84,8 @@ export function encodeScenarioToURL(scenarioData) {
     const value = scenarioData[field]
     
     if (value !== undefined && value !== null) {
-      // Handle boolean showAdvanced field
-      if (field === 'showAdvanced') {
+      // Handle boolean fields
+      if (field === 'showAdvanced' || field === 'twoStepEnabled') {
         if (value === true) {
           params.set(param, '1')
         }
@@ -138,7 +144,8 @@ export function encodeScenarioToURL(scenarioData) {
       }
       
       // Only include non-zero values for optional fields
-      if (['proRataPercent', 'currentEsopPercent', 'targetEsopPercent'].includes(field) && value === 0) {
+      if (['proRataPercent', 'currentEsopPercent', 'targetEsopPercent',
+           'step2PostMoney', 'step2Amount', 'step2InvestorPortion', 'step2OtherPortion'].includes(field) && value === 0) {
         return
       }
       
@@ -192,7 +199,13 @@ export function decodeScenarioFromURL(urlParams) {
       currentEsopPercent: 0,
       targetEsopPercent: 0,
       esopTiming: 'pre-close',
-      percentPrecision: 2
+      percentPrecision: 2,
+      // 2-Step Round defaults
+      twoStepEnabled: false,
+      step2PostMoney: 0,
+      step2Amount: 0,
+      step2InvestorPortion: 0,
+      step2OtherPortion: 0
     }
 
     // Decode parameters
@@ -202,7 +215,7 @@ export function decodeScenarioFromURL(urlParams) {
       if (value !== null) {
         if (field === 'investorName') {
           scenarioData[field] = decodeURIComponent(value)
-        } else if (field === 'showAdvanced') {
+        } else if (field === 'showAdvanced' || field === 'twoStepEnabled') {
           scenarioData[field] = value === '1'
         } else if (field === 'esopTiming') {
           scenarioData[field] = value // String value, no parsing needed

@@ -368,6 +368,44 @@ body.geometric-background-active .app {
   background: #ffffff;
 }
 
+/* 2-Step Round Toggle */
+.two-step-toggle {
+  margin: 0.5rem 0 0.25rem;
+  display: flex;
+  align-items: center;
+}
+
+.two-step-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: #4a5568;
+  font-weight: 600;
+}
+
+.two-step-checkbox input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #635bff;
+  cursor: pointer;
+}
+
+.two-step-label {
+  user-select: none;
+}
+
+.step-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #635bff;
+  margin: 0.6rem 0 0.15rem;
+  padding-left: 2px;
+}
+
 /* Advanced Features */
 .advanced-toggle {
   margin: 0.85rem 0;
@@ -912,6 +950,53 @@ body.geometric-background-active .app {
   display: flex;
   gap: 0.5rem;
   align-items: center;
+}
+
+/* 2-Step Round - Scenario Card */
+.step-sub-header {
+  background: rgba(99, 91, 255, 0.04) !important;
+  border-left: 2px solid #635bff;
+  padding-left: 0.5rem !important;
+}
+
+.step-sub-header .label strong {
+  font-size: 0.8rem;
+  color: #635bff;
+}
+
+.combined-total-row {
+  border-top: 1px dashed #e2e8f0;
+  margin-top: 2px;
+  padding-top: 4px !important;
+}
+
+.two-step-analytics {
+  margin-top: 0.5rem;
+  padding: 0.5rem 0.6rem;
+  background: #f8fafc;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.analytics-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.75rem;
+}
+
+.analytics-label {
+  color: #64748b;
+  font-weight: 500;
+}
+
+.analytics-value {
+  color: #1e293b;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
 .scenario-card:hover {

@@ -24,26 +24,32 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
   const formatPercent = (value) => `${value.toFixed(percentPrecision)}%`
   const formatDollar = (value) => `$${value.toFixed(2)}M`
 
+  const isTwoStep = scenario.twoStepEnabled && scenario.step1 && scenario.step2
+
   const handleApplyScenario = () => {
     if (onApplyScenario) {
-      onApplyScenario({
-        postMoneyVal: scenario.postMoneyVal,
-        roundSize: scenario.roundSize,
-        investorPortion: scenario.investorAmount,
-        otherPortion: scenario.otherAmountOriginal || scenario.otherAmount,
-        // Include advanced features if available
+      const data = {
+        postMoneyVal: isTwoStep ? scenario.step1.postMoney : scenario.postMoneyVal,
+        roundSize: isTwoStep ? scenario.step1.amount : scenario.roundSize,
+        investorPortion: isTwoStep ? scenario.step1.investorAmount : scenario.investorAmount,
+        otherPortion: isTwoStep ? scenario.step1.otherAmount : (scenario.otherAmountOriginal || scenario.otherAmount),
         proRataPercent: scenario.proRataPercentInput || 0,
-        // N SAFEs support
         safes: scenario.safes || [],
         preRoundFounderOwnership: scenario.preRoundFounderPercent ?? 0,
-        // Multi-party arrays
         priorInvestors: scenario.priorInvestors || [],
         founders: scenario.founders || [],
-        // ESOP modeling
         currentEsopPercent: scenario.currentEsopPercent || 0,
         targetEsopPercent: scenario.targetEsopPercent || 0,
         esopTiming: scenario.esopTiming || 'pre-close'
-      })
+      }
+      if (isTwoStep) {
+        data.twoStepEnabled = true
+        data.step2PostMoney = scenario.step2.postMoney
+        data.step2Amount = scenario.step2.amount
+        data.step2InvestorPortion = scenario.step2.investorAmount
+        data.step2OtherPortion = scenario.step2.otherAmount
+      }
+      onApplyScenario(data)
     }
   }
 
@@ -52,23 +58,25 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
 
     try {
       const scenarioData = {
-        postMoneyVal: scenario.postMoneyVal,
-        roundSize: scenario.roundSize,
-        investorPortion: scenario.investorAmount,
-        otherPortion: scenario.otherAmountOriginal || scenario.otherAmount,
+        postMoneyVal: isTwoStep ? scenario.step1.postMoney : scenario.postMoneyVal,
+        roundSize: isTwoStep ? scenario.step1.amount : scenario.roundSize,
+        investorPortion: isTwoStep ? scenario.step1.investorAmount : scenario.investorAmount,
+        otherPortion: isTwoStep ? scenario.step1.otherAmount : (scenario.otherAmountOriginal || scenario.otherAmount),
         investorName: investorName,
         showAdvanced: showAdvanced,
         proRataPercent: scenario.proRataPercentInput || 0,
-        // N SAFEs support
         safes: scenario.safes || [],
         preRoundFounderOwnership: scenario.preRoundFounderPercent ?? 0,
-        // Multi-party arrays
         priorInvestors: scenario.priorInvestors || [],
         founders: scenario.founders || [],
-        // ESOP modeling
         currentEsopPercent: scenario.currentEsopPercent || 0,
         targetEsopPercent: scenario.targetEsopPercent || 0,
-        esopTiming: scenario.esopTiming || 'pre-close'
+        esopTiming: scenario.esopTiming || 'pre-close',
+        twoStepEnabled: isTwoStep || false,
+        step2PostMoney: isTwoStep ? scenario.step2.postMoney : 0,
+        step2Amount: isTwoStep ? scenario.step2.amount : 0,
+        step2InvestorPortion: isTwoStep ? scenario.step2.investorAmount : 0,
+        step2OtherPortion: isTwoStep ? scenario.step2.otherAmount : 0
       }
 
       const result = await onCopyPermalink(scenarioData)
@@ -186,48 +194,97 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
         {/* New money breakdown */}
         {!collapsed.newRound && (
           <>
-            <div className="table-row sub-row">
-              <div className="label">├─ {investorName}{combinedInvestor ? ' (total)' : ''}</div>
-              <div className="amount amount-positive">+{formatDollar(displayInvestorAmount)}</div>
-              <div className="percent">{formatPercent(displayInvestorOwnership)}</div>
-            </div>
-        
-        {showAdvanced ? (
-          <>
-            <div className="table-row sub-row">
-              <div className="label">└─ Other</div>
-              <div className="amount amount-positive">+{formatDollar(displayOtherAmount)}</div>
-              <div className="percent">{formatPercent((displayOtherAmount / scenario.postMoneyVal) * 100)}</div>
-            </div>
-
-            {/* Pro-rata breakdown in advanced mode (exclude combined investor) */}
-            {displayProRataTotal > 0 && (
+            {isTwoStep ? (
               <>
-                {proRataInvestorsForDisplay.map((investor, idx, arr) => (
-                    <div key={investor.id || idx} className="table-row sub-sub-row">
-                      <div className="label">    {remainingOther > 0.01 ? '├─' : (idx === arr.length - 1 ? '└─' : '├─')} {investor.name} (pro-rata)</div>
-                      <div className="amount amount-positive">+{formatDollar(investor.proRataAmount)}</div>
-                      <div className="percent">{formatPercent((investor.proRataAmount / scenario.postMoneyVal) * 100)}</div>
+                {/* Step 1 sub-header */}
+                <div className="table-row step-sub-header">
+                  <div className="label"><strong>Step 1</strong> @ {formatDollar(scenario.step1.postMoney)}</div>
+                  <div className="amount amount-positive">+{formatDollar(scenario.step1.amount)}</div>
+                  <div className="percent">{formatPercent(scenario.step1.finalPercent)}</div>
+                </div>
+                <div className="table-row sub-sub-row">
+                  <div className="label">    ├─ {investorName}</div>
+                  <div className="amount amount-positive">+{formatDollar(scenario.step1.investorAmount)}</div>
+                  <div className="percent">{formatPercent(scenario.step1.investorPercent)}</div>
+                </div>
+                <div className="table-row sub-sub-row">
+                  <div className="label">    └─ Other</div>
+                  <div className="amount amount-positive">+{formatDollar(scenario.step1.otherAmount)}</div>
+                  <div className="percent">{formatPercent(scenario.step1.otherPercent)}</div>
+                </div>
+
+                {/* Step 2 sub-header */}
+                <div className="table-row step-sub-header">
+                  <div className="label"><strong>Step 2</strong> @ {formatDollar(scenario.step2.postMoney)}</div>
+                  <div className="amount amount-positive">+{formatDollar(scenario.step2.amount)}</div>
+                  <div className="percent">{formatPercent(scenario.step2.percent)}</div>
+                </div>
+                <div className="table-row sub-sub-row">
+                  <div className="label">    ├─ {investorName}</div>
+                  <div className="amount amount-positive">+{formatDollar(scenario.step2.investorAmount)}</div>
+                  <div className="percent">{formatPercent(scenario.step2.investorPercent)}</div>
+                </div>
+                <div className="table-row sub-sub-row">
+                  <div className="label">    └─ Other</div>
+                  <div className="amount amount-positive">+{formatDollar(scenario.step2.otherAmount)}</div>
+                  <div className="percent">{formatPercent(scenario.step2.percent - scenario.step2.investorPercent)}</div>
+                </div>
+
+                {/* Combined investor total if applicable */}
+                {combinedInvestor && (
+                  <div className="table-row sub-row combined-total-row">
+                    <div className="label">├─ {investorName} (total)</div>
+                    <div className="amount amount-positive">+{formatDollar(combinedInvestor.totalNewInvestment)}</div>
+                    <div className="percent">{formatPercent(combinedInvestor.totalOwnership)}</div>
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                <div className="table-row sub-row">
+                  <div className="label">├─ {investorName}{combinedInvestor ? ' (total)' : ''}</div>
+                  <div className="amount amount-positive">+{formatDollar(displayInvestorAmount)}</div>
+                  <div className="percent">{formatPercent(displayInvestorOwnership)}</div>
+                </div>
+
+                {showAdvanced ? (
+                  <>
+                    <div className="table-row sub-row">
+                      <div className="label">└─ Other</div>
+                      <div className="amount amount-positive">+{formatDollar(displayOtherAmount)}</div>
+                      <div className="percent">{formatPercent((displayOtherAmount / scenario.postMoneyVal) * 100)}</div>
                     </div>
-                  ))
-                }
-                {remainingOther > 0.01 && (
-                  <div className="table-row sub-sub-row">
-                    <div className="label">    └─ New investors</div>
-                    <div className="amount amount-positive">+{formatDollar(remainingOther)}</div>
-                    <div className="percent">{formatPercent((remainingOther / scenario.postMoneyVal) * 100)}</div>
+
+                    {/* Pro-rata breakdown in advanced mode (exclude combined investor) */}
+                    {displayProRataTotal > 0 && (
+                      <>
+                        {proRataInvestorsForDisplay.map((investor, idx, arr) => (
+                            <div key={investor.id || idx} className="table-row sub-sub-row">
+                              <div className="label">    {remainingOther > 0.01 ? '├─' : (idx === arr.length - 1 ? '└─' : '├─')} {investor.name} (pro-rata)</div>
+                              <div className="amount amount-positive">+{formatDollar(investor.proRataAmount)}</div>
+                              <div className="percent">{formatPercent((investor.proRataAmount / scenario.postMoneyVal) * 100)}</div>
+                            </div>
+                          ))
+                        }
+                        {remainingOther > 0.01 && (
+                          <div className="table-row sub-sub-row">
+                            <div className="label">    └─ New investors</div>
+                            <div className="amount amount-positive">+{formatDollar(remainingOther)}</div>
+                            <div className="percent">{formatPercent((remainingOther / scenario.postMoneyVal) * 100)}</div>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </>
+                ) : (
+                  <div className="table-row sub-row">
+                    <div className="label">└─ Other</div>
+                    <div className="amount amount-positive">+{formatDollar(scenario.otherAmountOriginal || scenario.otherAmount)}</div>
+                    <div className="percent">{formatPercent(((scenario.otherAmountOriginal || scenario.otherAmount) / scenario.postMoneyVal) * 100)}</div>
                   </div>
                 )}
               </>
             )}
-          </>
-        ) : (
-          <div className="table-row sub-row">
-            <div className="label">└─ Other</div>
-            <div className="amount amount-positive">+{formatDollar(scenario.otherAmountOriginal || scenario.otherAmount)}</div>
-            <div className="percent">{formatPercent(((scenario.otherAmountOriginal || scenario.otherAmount) / scenario.postMoneyVal) * 100)}</div>
-          </div>
-        )}
           </>
         )}
         
@@ -397,20 +454,35 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
       
       <div className="valuation-footer">
         <div className="valuation-items">
-          <div className="valuation-item">
-            <span className="label">Pre-Money:</span>
-            <span className="value">{formatDollar(scenario.preMoneyVal)}</span>
-          </div>
-          <div className="valuation-item">
-            <span className="label">Post-Money:</span>
-            <span className="value">{formatDollar(scenario.postMoneyVal)}</span>
-          </div>
+          {isTwoStep ? (
+            <>
+              <div className="valuation-item">
+                <span className="label">V1 (Step 1):</span>
+                <span className="value">{formatDollar(scenario.step1.postMoney)}</span>
+              </div>
+              <div className="valuation-item">
+                <span className="label">V2 (Step 2):</span>
+                <span className="value">{formatDollar(scenario.step2.postMoney)}</span>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="valuation-item">
+                <span className="label">Pre-Money:</span>
+                <span className="value">{formatDollar(scenario.preMoneyVal)}</span>
+              </div>
+              <div className="valuation-item">
+                <span className="label">Post-Money:</span>
+                <span className="value">{formatDollar(scenario.postMoneyVal)}</span>
+              </div>
+            </>
+          )}
         </div>
-        
+
         {isBase && onCopyPermalink && (
           <div className="share-buttons">
-            <button 
-              className="permalink-btn-inline" 
+            <button
+              className="permalink-btn-inline"
               onClick={handleCopyPermalink}
               title="Share permalink for this scenario"
               disabled={!!copyFeedback}
@@ -420,6 +492,28 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
           </div>
         )}
       </div>
+
+      {/* Two-step analytics */}
+      {isTwoStep && scenario.analytics && (
+        <div className="two-step-analytics">
+          <div className="analytics-row">
+            <span className="analytics-label">Headline valuation</span>
+            <span className="analytics-value">{formatDollar(scenario.analytics.headlineValuation)}</span>
+          </div>
+          <div className="analytics-row">
+            <span className="analytics-label">Blended post-money</span>
+            <span className="analytics-value">{formatDollar(scenario.analytics.blendedPostMoney)}</span>
+          </div>
+          <div className="analytics-row">
+            <span className="analytics-label">{investorName} effective post-money</span>
+            <span className="analytics-value">{formatDollar(scenario.analytics.leadEffectivePostMoney)}</span>
+          </div>
+          <div className="analytics-row">
+            <span className="analytics-label">Instant markup (V2/V1)</span>
+            <span className="analytics-value">{scenario.analytics.instantMarkup.toFixed(1)}%</span>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

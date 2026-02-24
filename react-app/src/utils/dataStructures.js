@@ -99,7 +99,14 @@ export function createDefaultCompany(companyName = 'New Company') {
     investorName: 'US',
     showAdvanced: false,
     percentPrecision: 2,
-    
+
+    // 2-Step Round support
+    twoStepEnabled: false,
+    step2PostMoney: 0,
+    step2Amount: 0,
+    step2InvestorPortion: 0,
+    step2OtherPortion: 0,
+
     // New multi-party structures
     priorInvestors: [
       createPriorInvestor('Previous Investors', 15, true) // Default with pro-rata rights
@@ -168,7 +175,14 @@ export function migrateLegacyCompany(legacyCompany) {
   migrated.priorInvestors = migrated.priorInvestors || []
   migrated.founders = migrated.founders || [createFounder('Founder Team', 85)]
   migrated.safes = migrated.safes || []
-  
+
+  // Ensure 2-step round fields exist
+  if (migrated.twoStepEnabled === undefined) migrated.twoStepEnabled = false
+  if (migrated.step2PostMoney === undefined) migrated.step2PostMoney = 0
+  if (migrated.step2Amount === undefined) migrated.step2Amount = 0
+  if (migrated.step2InvestorPortion === undefined) migrated.step2InvestorPortion = 0
+  if (migrated.step2OtherPortion === undefined) migrated.step2OtherPortion = 0
+
   return migrated
 }
 

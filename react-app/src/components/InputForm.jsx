@@ -42,10 +42,10 @@ const InputForm = ({ company, onUpdate }) => {
   }, [company])
 
   const handleChange = (field, value) => {
-    let numValue = field === 'investorName' || field === 'showAdvanced' || field === 'esopTiming' ? value : parseFloat(value)
-    
+    let numValue = field === 'investorName' || field === 'showAdvanced' || field === 'twoStepEnabled' || field === 'esopTiming' ? value : parseFloat(value)
+
     // Input validation for numeric fields
-    if (field !== 'investorName' && field !== 'showAdvanced' && field !== 'esopTiming') {
+    if (field !== 'investorName' && field !== 'showAdvanced' && field !== 'twoStepEnabled' && field !== 'esopTiming') {
       // Handle NaN, empty strings, and invalid inputs
       if (isNaN(numValue) || value === '' || value === null || value === undefined) {
         numValue = 0
@@ -69,6 +69,20 @@ const InputForm = ({ company, onUpdate }) => {
       // No additional calculation needed - pre-money is calculated in render
     }
     
+    // Auto-calculate step 2 other portion
+    if (field === 'step2Amount' || field === 'step2InvestorPortion') {
+      if (field === 'step2Amount') {
+        newValues.step2OtherPortion = Math.round(Math.max(0, numValue - (values.step2InvestorPortion || 0)) * 100) / 100
+      } else if (field === 'step2InvestorPortion') {
+        newValues.step2OtherPortion = Math.round(Math.max(0, (values.step2Amount || 0) - numValue) * 100) / 100
+      }
+    }
+    if (field === 'step2OtherPortion') {
+      const clampedOther = Math.min(numValue, values.step2Amount || 0)
+      newValues.step2OtherPortion = Math.round(Math.max(0, clampedOther) * 100) / 100
+      newValues.step2InvestorPortion = Math.round(Math.max(0, (values.step2Amount || 0) - newValues.step2OtherPortion) * 100) / 100
+    }
+
     // Auto-calculate other portion when round size or investor portion changes
     if (field === 'roundSize' || field === 'investorPortion') {
       if (field === 'roundSize') {
@@ -199,6 +213,19 @@ const InputForm = ({ company, onUpdate }) => {
         </div>
       </div>
 
+      {/* 2-Step Round Toggle */}
+      <div className="two-step-toggle">
+        <label className="two-step-checkbox">
+          <input
+            type="checkbox"
+            checked={values.twoStepEnabled || false}
+            onChange={(e) => handleChange('twoStepEnabled', e.target.checked)}
+          />
+          <span className="two-step-label">2-Step Round</span>
+        </label>
+      </div>
+
+      {values.twoStepEnabled && <div className="step-label">Step 1</div>}
       <div className="input-grid">
         <FormInput
           label={inputMode === 'post-money' ? 'Post-Money Valuation' : 'Pre-Money Valuation'}
@@ -246,6 +273,65 @@ const InputForm = ({ company, onUpdate }) => {
           max={values.roundSize}
         />
       </div>
+
+      {/* Step 2 inputs */}
+      {values.twoStepEnabled && (
+        <>
+          <div className="step-label">Step 2</div>
+          {values.step2PostMoney > 0 && values.step2PostMoney <= values.postMoneyVal && (
+            <div className="warning">
+              V2 (${values.step2PostMoney}M) should be greater than V1 ($${values.postMoneyVal}M)
+            </div>
+          )}
+          <div className="input-grid">
+            <FormInput
+              label="Post-Money Valuation"
+              type="number"
+              value={values.step2PostMoney || 0}
+              onChange={(value) => handleChange('step2PostMoney', value)}
+              prefix="$"
+              suffix="M"
+              step="0.1"
+              min="0"
+            />
+
+            <FormInput
+              label="Amount"
+              type="number"
+              value={values.step2Amount || 0}
+              onChange={(value) => handleChange('step2Amount', value)}
+              prefix="$"
+              suffix="M"
+              step="0.1"
+              min="0"
+            />
+
+            <FormInput
+              label={`${values.investorName || 'US'} Portion`}
+              type="number"
+              value={values.step2InvestorPortion || 0}
+              onChange={(value) => handleChange('step2InvestorPortion', value)}
+              prefix="$"
+              suffix="M"
+              step="0.01"
+              min="0"
+              max={values.step2Amount || 0}
+            />
+
+            <FormInput
+              label="Other Portion"
+              type="number"
+              value={values.step2OtherPortion || 0}
+              onChange={(value) => handleChange('step2OtherPortion', value)}
+              prefix="$"
+              suffix="M"
+              step="0.01"
+              min="0"
+              max={values.step2Amount || 0}
+            />
+          </div>
+        </>
+      )}
 
       {/* Advanced Features Toggle */}
       <div className="advanced-toggle">
