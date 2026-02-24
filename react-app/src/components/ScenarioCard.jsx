@@ -24,7 +24,7 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
   const formatPercent = (value) => `${value.toFixed(percentPrecision)}%`
   const formatDollar = (value) => `$${value.toFixed(2)}M`
 
-  const isTwoStep = scenario.twoStepEnabled && scenario.step1 && scenario.step2
+  const isTwoStep = !!(scenario.twoStepEnabled && scenario.step1 && scenario.step2)
 
   const handleApplyScenario = () => {
     if (onApplyScenario) {
