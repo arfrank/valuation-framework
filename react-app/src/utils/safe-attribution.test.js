@@ -78,7 +78,7 @@ describe('SAFE Attribution to Lead Investor', () => {
     )
   })
 
-  it('should NOT create combinedInvestor for unattributed SAFEs with no prior match', () => {
+  it('should always create combinedInvestor even for unattributed SAFEs with no prior match', () => {
     const inputs = {
       ...baseInputs,
       safes: [{ id: 1, amount: 2, cap: 0, discount: 20, investorName: '' }],
@@ -87,7 +87,11 @@ describe('SAFE Attribution to Lead Investor', () => {
     const scenarios = calculateEnhancedScenarios(inputs)
     const base = scenarios[0]
 
-    expect(base.combinedInvestor).toBeNull()
+    expect(base.combinedInvestor).not.toBeNull()
+    expect(base.combinedInvestor.safePercent).toBe(0)
+    expect(base.combinedInvestor.priorDilutedPercent).toBe(0)
+    // totalOwnership should just be the new round percent
+    expect(base.combinedInvestor.totalOwnership).toBe(base.combinedInvestor.investorRoundPercent)
   })
 
   it('should NOT include unattributed SAFE in combinedInvestor.safePercent', () => {

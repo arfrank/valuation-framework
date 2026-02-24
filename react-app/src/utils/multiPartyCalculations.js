@@ -361,7 +361,8 @@ function calculateTwoStepScenario(inputs) {
       combinedInvestor.priorDilutedPercent +
       investorSafePercent
     )
-  } else if (investorSafePercent > 0) {
+  } else {
+    // Always create combinedInvestor so the summary section renders
     combinedInvestor = {
       name: investorName,
       totalNewInvestment: r$(s1Investor + s2Investor),
@@ -733,7 +734,8 @@ export function calculateEnhancedScenario(inputs) {
       combinedInvestor.priorDilutedPercent +
       investorSafePercent
     )
-  } else if (investorSafePercent > 0) {
+  } else {
+    // Always create combinedInvestor so the summary section renders
     combinedInvestor = {
       name: investorName,
       totalNewInvestment: r$(adjustedInvestorPortion),

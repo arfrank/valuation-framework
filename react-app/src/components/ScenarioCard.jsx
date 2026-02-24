@@ -516,7 +516,7 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
       )}
 
       {/* Investor Ownership Summary */}
-      {combinedInvestor && (combinedInvestor.priorDilutedPercent > 0.01 || (combinedInvestor.safePercent || 0) > 0.01) && (
+      {combinedInvestor && (
         <div className="investor-summary">
           <div className="investor-summary-header">
             {investorName} Ownership Summary
