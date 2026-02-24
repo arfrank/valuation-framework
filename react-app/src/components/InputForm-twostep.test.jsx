@@ -26,14 +26,15 @@ describe('InputForm - Two-Step Round', () => {
     vi.clearAllMocks()
   })
 
-  it('should render the 2-Step Round checkbox inside Advanced Features', () => {
+  it('should render the 2-Step Round section inside Advanced Features', () => {
     render(<InputForm company={defaultCompany} onUpdate={mockOnUpdate} />)
-    expect(screen.getByLabelText(/2-Step Round/)).toBeInTheDocument()
+    expect(screen.getByText('2-Step Round')).toBeInTheDocument()
+    expect(screen.getByRole('checkbox', { name: /enable/i })).toBeInTheDocument()
   })
 
-  it('should not render 2-Step Round checkbox when advanced is hidden', () => {
+  it('should not render 2-Step Round section when advanced is hidden', () => {
     render(<InputForm company={{ ...defaultCompany, showAdvanced: false }} onUpdate={mockOnUpdate} />)
-    expect(screen.queryByLabelText(/2-Step Round/)).not.toBeInTheDocument()
+    expect(screen.queryByText('2-Step Round')).not.toBeInTheDocument()
   })
 
   it('should not show step 2 inputs when disabled', () => {
@@ -50,7 +51,7 @@ describe('InputForm - Two-Step Round', () => {
     const user = userEvent.setup()
     render(<InputForm company={defaultCompany} onUpdate={mockOnUpdate} />)
 
-    const checkbox = screen.getByLabelText(/2-Step Round/)
+    const checkbox = screen.getByRole('checkbox', { name: /enable/i })
     await user.click(checkbox)
 
     expect(mockOnUpdate).toHaveBeenCalledWith(
@@ -133,7 +134,7 @@ describe('InputForm - Two-Step Round', () => {
     render(<InputForm company={twoStepCompany} onUpdate={mockOnUpdate} />)
 
     // Toggle off
-    const checkbox = screen.getByLabelText(/2-Step Round/)
+    const checkbox = screen.getByRole('checkbox', { name: /enable/i })
     await user.click(checkbox)
 
     expect(mockOnUpdate).toHaveBeenCalledWith(

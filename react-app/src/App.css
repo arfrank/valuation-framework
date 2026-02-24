@@ -368,11 +368,25 @@ body.geometric-background-active .app {
   background: #ffffff;
 }
 
-/* 2-Step Round Toggle */
-.two-step-toggle {
-  margin: 0.5rem 0 0.25rem;
+/* 2-Step Round Section */
+.two-step-section {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.two-step-header {
   display: flex;
+  justify-content: space-between;
   align-items: center;
+  margin-bottom: 1rem;
+}
+
+.two-step-header h5 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #2d3748;
+  margin: 0;
 }
 
 .two-step-checkbox {
@@ -380,7 +394,7 @@ body.geometric-background-active .app {
   align-items: center;
   gap: 0.4rem;
   cursor: pointer;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: #4a5568;
   font-weight: 600;
 }
@@ -396,14 +410,40 @@ body.geometric-background-active .app {
   user-select: none;
 }
 
+.step2-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 1rem;
+  transition: all 0.2s ease;
+}
+
+.step2-card:hover {
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  border-color: #cbd5e0;
+}
+
+.step2-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #f7fafc;
+}
+
 .step-label {
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
   color: #635bff;
-  margin: 0.6rem 0 0.15rem;
-  padding-left: 2px;
+}
+
+.step-note {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  font-style: italic;
 }
 
 /* Advanced Features */
