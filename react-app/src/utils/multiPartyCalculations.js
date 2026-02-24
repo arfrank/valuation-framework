@@ -237,7 +237,7 @@ function calculateTwoStepScenario(inputs) {
   const step1RoundPercent = r2p(S1 / V1)
   const step1InvestorPercent = r2p(s1Investor / V1)
   const step1OtherPercent = r2p(s1Other / V1)
-  const step1ExistingPercent = rp(100 - step1RoundPercent - safeCalc.totalSafePercent)
+  // Existing shareholders after step 1: (V1 - S1) / V1 minus SAFEs
 
   // --- Step 2 dilution on step 1 holders ---
   // Step 2 investors get S2/V2 of final company
@@ -264,9 +264,6 @@ function calculateTwoStepScenario(inputs) {
   // --- ESOP ---
   const baseDilutionPercent = totalRoundPercent + safeFinalPercent
   const esopCalc = calculateEsopEffects(effectiveCurrentEsopPercent, effectiveTargetEsopPercent, esopTiming, baseDilutionPercent)
-
-  // Total new ownership carved out
-  const totalNewOwnership = totalRoundPercent + safeFinalPercent + esopCalc.esopIncreasePreClose
 
   // --- Prior investors ---
   const postRoundPriorInvestors = effectivePriorInvestors.map(investor => {
@@ -358,7 +355,6 @@ function calculateTwoStepScenario(inputs) {
 
   // --- Analytics ---
   const totalRoundAmount = r$(S1 + S2)
-  const blendedPostMoney = r$(V1 + S2) // effective post-money if entire round at V1 economics
   // Lead's blended effective post-money: total lead $ / total lead % * 100
   const totalLeadDollars = s1Investor + s2Investor
   const totalLeadRawPercent = r2p(s1Investor / V1) + r2p(s2Investor / V2)
