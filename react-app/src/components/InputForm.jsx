@@ -213,19 +213,6 @@ const InputForm = ({ company, onUpdate }) => {
         </div>
       </div>
 
-      {/* 2-Step Round Toggle */}
-      <div className="two-step-toggle">
-        <label className="two-step-checkbox">
-          <input
-            type="checkbox"
-            checked={values.twoStepEnabled || false}
-            onChange={(e) => handleChange('twoStepEnabled', e.target.checked)}
-          />
-          <span className="two-step-label">2-Step Round</span>
-        </label>
-      </div>
-
-      {values.twoStepEnabled && <div className="step-label">Step 1</div>}
       <div className="input-grid">
         <FormInput
           label={inputMode === 'post-money' ? 'Post-Money Valuation' : 'Pre-Money Valuation'}
@@ -274,65 +261,6 @@ const InputForm = ({ company, onUpdate }) => {
         />
       </div>
 
-      {/* Step 2 inputs */}
-      {values.twoStepEnabled && (
-        <>
-          <div className="step-label">Step 2</div>
-          {values.step2PostMoney > 0 && values.step2PostMoney <= values.postMoneyVal && (
-            <div className="warning">
-              V2 (${values.step2PostMoney}M) should be greater than V1 ($${values.postMoneyVal}M)
-            </div>
-          )}
-          <div className="input-grid">
-            <FormInput
-              label="Post-Money Valuation"
-              type="number"
-              value={values.step2PostMoney || 0}
-              onChange={(value) => handleChange('step2PostMoney', value)}
-              prefix="$"
-              suffix="M"
-              step="0.1"
-              min="0"
-            />
-
-            <FormInput
-              label="Amount"
-              type="number"
-              value={values.step2Amount || 0}
-              onChange={(value) => handleChange('step2Amount', value)}
-              prefix="$"
-              suffix="M"
-              step="0.1"
-              min="0"
-            />
-
-            <FormInput
-              label={`${values.investorName || 'US'} Portion`}
-              type="number"
-              value={values.step2InvestorPortion || 0}
-              onChange={(value) => handleChange('step2InvestorPortion', value)}
-              prefix="$"
-              suffix="M"
-              step="0.01"
-              min="0"
-              max={values.step2Amount || 0}
-            />
-
-            <FormInput
-              label="Other Portion"
-              type="number"
-              value={values.step2OtherPortion || 0}
-              onChange={(value) => handleChange('step2OtherPortion', value)}
-              prefix="$"
-              suffix="M"
-              step="0.01"
-              min="0"
-              max={values.step2Amount || 0}
-            />
-          </div>
-        </>
-      )}
-
       {/* Advanced Features Toggle */}
       <div className="advanced-toggle">
         <button 
@@ -348,7 +276,77 @@ const InputForm = ({ company, onUpdate }) => {
       {values.showAdvanced && (
         <div className="advanced-section">
           <h4>Cap Table Modeling</h4>
-          
+
+          {/* 2-Step Round */}
+          <div className="two-step-toggle">
+            <label className="two-step-checkbox">
+              <input
+                type="checkbox"
+                checked={values.twoStepEnabled || false}
+                onChange={(e) => handleChange('twoStepEnabled', e.target.checked)}
+              />
+              <span className="two-step-label">2-Step Round</span>
+            </label>
+          </div>
+
+          {values.twoStepEnabled && (
+            <>
+              <div className="step-label">Step 2</div>
+              {values.step2PostMoney > 0 && values.step2PostMoney <= values.postMoneyVal && (
+                <div className="warning">
+                  V2 (${values.step2PostMoney}M) should be greater than V1 (${values.postMoneyVal}M)
+                </div>
+              )}
+              <div className="input-grid">
+                <FormInput
+                  label="Post-Money Valuation"
+                  type="number"
+                  value={values.step2PostMoney || 0}
+                  onChange={(value) => handleChange('step2PostMoney', value)}
+                  prefix="$"
+                  suffix="M"
+                  step="0.1"
+                  min="0"
+                />
+
+                <FormInput
+                  label="Amount"
+                  type="number"
+                  value={values.step2Amount || 0}
+                  onChange={(value) => handleChange('step2Amount', value)}
+                  prefix="$"
+                  suffix="M"
+                  step="0.1"
+                  min="0"
+                />
+
+                <FormInput
+                  label={`${values.investorName || 'US'} Portion`}
+                  type="number"
+                  value={values.step2InvestorPortion || 0}
+                  onChange={(value) => handleChange('step2InvestorPortion', value)}
+                  prefix="$"
+                  suffix="M"
+                  step="0.01"
+                  min="0"
+                  max={values.step2Amount || 0}
+                />
+
+                <FormInput
+                  label="Other Portion"
+                  type="number"
+                  value={values.step2OtherPortion || 0}
+                  onChange={(value) => handleChange('step2OtherPortion', value)}
+                  prefix="$"
+                  suffix="M"
+                  step="0.01"
+                  min="0"
+                  max={values.step2Amount || 0}
+                />
+              </div>
+            </>
+          )}
+
           <div className="safes-section">
             <div className="safes-header">
               <h5>SAFE Notes</h5>

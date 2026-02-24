@@ -11,7 +11,7 @@ describe('InputForm - Two-Step Round', () => {
     investorPortion: 75,
     otherPortion: 25,
     investorName: 'Lead VC',
-    showAdvanced: false,
+    showAdvanced: true,
     proRataPercent: 0,
     safes: [],
     preRoundFounderOwnership: 0,
@@ -26,20 +26,23 @@ describe('InputForm - Two-Step Round', () => {
     vi.clearAllMocks()
   })
 
-  it('should render the 2-Step Round checkbox', () => {
+  it('should render the 2-Step Round checkbox inside Advanced Features', () => {
     render(<InputForm company={defaultCompany} onUpdate={mockOnUpdate} />)
     expect(screen.getByLabelText(/2-Step Round/)).toBeInTheDocument()
   })
 
-  it('should not show step labels or step 2 inputs when disabled', () => {
+  it('should not render 2-Step Round checkbox when advanced is hidden', () => {
+    render(<InputForm company={{ ...defaultCompany, showAdvanced: false }} onUpdate={mockOnUpdate} />)
+    expect(screen.queryByLabelText(/2-Step Round/)).not.toBeInTheDocument()
+  })
+
+  it('should not show step 2 inputs when disabled', () => {
     render(<InputForm company={defaultCompany} onUpdate={mockOnUpdate} />)
-    expect(screen.queryByText('Step 1')).not.toBeInTheDocument()
     expect(screen.queryByText('Step 2')).not.toBeInTheDocument()
   })
 
-  it('should show step labels and step 2 inputs when enabled', () => {
+  it('should show step 2 inputs when enabled', () => {
     render(<InputForm company={{ ...defaultCompany, twoStepEnabled: true }} onUpdate={mockOnUpdate} />)
-    expect(screen.getByText('Step 1')).toBeInTheDocument()
     expect(screen.getByText('Step 2')).toBeInTheDocument()
   })
 
@@ -60,7 +63,7 @@ describe('InputForm - Two-Step Round', () => {
   it('should render step 2 input fields when enabled', () => {
     render(<InputForm company={{ ...defaultCompany, twoStepEnabled: true, step2PostMoney: 1000, step2Amount: 200 }} onUpdate={mockOnUpdate} />)
 
-    // Should have two "Post-Money Valuation" labels visible (step 1 and step 2)
+    // Should have two "Post-Money Valuation" labels visible (main + step 2)
     const postMoneyLabels = screen.getAllByText('Post-Money Valuation')
     expect(postMoneyLabels.length).toBe(2)
 
@@ -116,7 +119,7 @@ describe('InputForm - Two-Step Round', () => {
     expect(screen.queryByText(/should be greater than/)).not.toBeInTheDocument()
   })
 
-  it('should preserve step 1 inputs when toggling two-step off', async () => {
+  it('should preserve main inputs when toggling two-step off', async () => {
     const user = userEvent.setup()
     const twoStepCompany = {
       ...defaultCompany,
@@ -133,7 +136,6 @@ describe('InputForm - Two-Step Round', () => {
     const checkbox = screen.getByLabelText(/2-Step Round/)
     await user.click(checkbox)
 
-    // Should still have step 1 values
     expect(mockOnUpdate).toHaveBeenCalledWith(
       expect.objectContaining({
         twoStepEnabled: false,
@@ -145,7 +147,7 @@ describe('InputForm - Two-Step Round', () => {
     )
   })
 
-  it('should show both step 1 and step 2 investor name labels', () => {
+  it('should show both main and step 2 investor name labels', () => {
     render(<InputForm company={{
       ...defaultCompany,
       twoStepEnabled: true,
@@ -156,7 +158,7 @@ describe('InputForm - Two-Step Round', () => {
       step2OtherPortion: 100
     }} onUpdate={mockOnUpdate} />)
 
-    // Both step 1 and step 2 should show the investor name
+    // Both main and step 2 should show the investor name
     const investorLabels = screen.getAllByText(/Acme VC Portion/)
     expect(investorLabels.length).toBe(2)
   })
