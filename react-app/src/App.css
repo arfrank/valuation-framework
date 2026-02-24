@@ -1039,6 +1039,50 @@ body.geometric-background-active .app {
   font-variant-numeric: tabular-nums;
 }
 
+/* Investor Ownership Summary */
+.investor-summary {
+  margin-top: 0.5rem;
+  padding: 0.5rem 0.6rem;
+  background: #f0f9ff;
+  border-radius: 6px;
+  border: 1px solid #bfdbfe;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.investor-summary-header {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #1e40af;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.15rem;
+}
+
+.investor-summary-total {
+  border-top: 1px solid #bfdbfe;
+  padding-top: 0.25rem;
+  margin-top: 0.1rem;
+}
+
+.investor-summary-total .analytics-label {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.investor-summary-total .analytics-value {
+  font-weight: 700;
+  color: #1e40af;
+}
+
+/* SAFE attribution label */
+.safe-attribution {
+  font-size: 0.75rem;
+  color: #64748b;
+  font-style: italic;
+}
+
 .scenario-card:hover {
   box-shadow: 0 4px 12px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.04);
   transform: translateY(-2px);

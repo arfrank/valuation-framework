@@ -405,7 +405,7 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
             {/* Individual SAFEs */}
             {!collapsed.safes && scenario.safeDetails.map((safe, safeIndex) => (
               <div key={safe.id || safeIndex} className="table-row sub-row">
-                <div className="label">{safeIndex === scenario.safeDetails.length - 1 ? '└─' : '├─'} SAFE #{safe.index}</div>
+                <div className="label">{safeIndex === scenario.safeDetails.length - 1 ? '└─' : '├─'} SAFE #{safe.index}{safe.investorName && <span className="safe-attribution"> ({safe.investorName})</span>}</div>
                 <div className="amount amount-neutral">
                   <span style={{ fontSize: '0.85rem' }}>${safe.amount}M @ ${safe.conversionPrice}M</span>
                 </div>
@@ -511,6 +511,35 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
           <div className="analytics-row">
             <span className="analytics-label">Instant markup (V2/V1)</span>
             <span className="analytics-value">{scenario.analytics.instantMarkup.toFixed(1)}%</span>
+          </div>
+        </div>
+      )}
+
+      {/* Investor Ownership Summary */}
+      {combinedInvestor && (combinedInvestor.priorDilutedPercent > 0.01 || (combinedInvestor.safePercent || 0) > 0.01) && (
+        <div className="investor-summary">
+          <div className="investor-summary-header">
+            {investorName} Ownership Summary
+          </div>
+          <div className="analytics-row">
+            <span className="analytics-label">New round investment</span>
+            <span className="analytics-value">{formatPercent(combinedInvestor.investorRoundPercent)}</span>
+          </div>
+          {combinedInvestor.priorDilutedPercent > 0.01 && (
+            <div className="analytics-row">
+              <span className="analytics-label">Prior equity (diluted)</span>
+              <span className="analytics-value">{formatPercent(combinedInvestor.priorDilutedPercent)}</span>
+            </div>
+          )}
+          {(combinedInvestor.safePercent || 0) > 0.01 && (
+            <div className="analytics-row">
+              <span className="analytics-label">SAFE conversion</span>
+              <span className="analytics-value">{formatPercent(combinedInvestor.safePercent)}</span>
+            </div>
+          )}
+          <div className="analytics-row investor-summary-total">
+            <span className="analytics-label">Total ownership</span>
+            <span className="analytics-value">{formatPercent(combinedInvestor.totalOwnership)}</span>
           </div>
         </div>
       )}

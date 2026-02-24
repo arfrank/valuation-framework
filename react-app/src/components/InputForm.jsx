@@ -123,7 +123,8 @@ const InputForm = ({ company, onUpdate }) => {
       id: Date.now(), // Simple ID generation
       amount: 0,
       cap: 0,
-      discount: 0
+      discount: 0,
+      investorName: ''
     }
     const newValues = {
       ...values,
@@ -143,8 +144,23 @@ const InputForm = ({ company, onUpdate }) => {
   }
 
   const updateSafe = (safeId, field, value) => {
+    // Handle string fields (investorName)
+    if (field === 'investorName') {
+      const newValues = {
+        ...values,
+        safes: (values.safes || []).map(safe =>
+          safe.id === safeId
+            ? { ...safe, investorName: value }
+            : safe
+        )
+      }
+      setValues(newValues)
+      onUpdate(newValues)
+      return
+    }
+
     let numValue = parseFloat(value)
-    
+
     // Handle NaN, empty strings, and invalid inputs
     if (isNaN(numValue) || value === '' || value === null || value === undefined) {
       numValue = 0
@@ -158,8 +174,8 @@ const InputForm = ({ company, onUpdate }) => {
 
     const newValues = {
       ...values,
-      safes: (values.safes || []).map(safe => 
-        safe.id === safeId 
+      safes: (values.safes || []).map(safe =>
+        safe.id === safeId
           ? { ...safe, [field]: numValue }
           : safe
       )
@@ -422,6 +438,15 @@ const InputForm = ({ company, onUpdate }) => {
                     min="0"
                     max="100"
                     id={`safe-discount-${safe.id}`}
+                  />
+
+                  <FormInput
+                    label="Investor"
+                    type="text"
+                    value={safe.investorName || ''}
+                    onChange={(value) => updateSafe(safe.id, 'investorName', value)}
+                    placeholder="Optional"
+                    id={`safe-investor-${safe.id}`}
                   />
                 </div>
 

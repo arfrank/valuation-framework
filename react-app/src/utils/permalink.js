@@ -96,12 +96,18 @@ export function encodeScenarioToURL(scenarioData) {
       if (field === 'safes') {
         if (Array.isArray(value) && value.length > 0) {
           // Encode SAFEs array as JSON string
-          const safesData = value.map(safe => ({
-            a: safe.amount || 0,
-            c: safe.cap || 0,
-            d: safe.discount || 0
-          })).filter(safe => safe.a > 0) // Only include SAFEs with amount > 0
-          
+          const safesData = value.map(safe => {
+            const encoded = {
+              a: safe.amount || 0,
+              c: safe.cap || 0,
+              d: safe.discount || 0
+            }
+            if (safe.investorName && safe.investorName.trim()) {
+              encoded.n = safe.investorName.trim()
+            }
+            return encoded
+          }).filter(safe => safe.a > 0) // Only include SAFEs with amount > 0
+
           if (safesData.length > 0) {
             params.set(param, JSON.stringify(safesData))
           }
@@ -231,7 +237,8 @@ export function decodeScenarioFromURL(urlParams) {
                 id: Date.now() + index, // Generate unique IDs
                 amount: safe.a || 0,
                 cap: safe.c || 0,
-                discount: safe.d || 0
+                discount: safe.d || 0,
+                investorName: safe.n || ''
               }))
             }
           } catch (error) {

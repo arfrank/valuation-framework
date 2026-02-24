@@ -109,7 +109,8 @@ function calculateSafeConversions(safes, preMoneyVal) {
               cap: safe.cap,
               discount: safe.discount,
               conversionPrice: r$(conversionPrice),
-              percent: safePercent
+              percent: safePercent,
+              investorName: safe.investorName || ''
             })
           }
         }
@@ -331,6 +332,46 @@ function calculateTwoStepScenario(inputs) {
       investorRoundPercent: finalInvestorPercent,
       priorDilutedPercent: matchedPriorInvestor.postRoundPercent,
       priorOriginalPercent: matchedPriorInvestor.ownershipPercent,
+      safePercent: 0,
+    }
+  }
+
+  // Compute diluted SAFE details once (reused in return and SAFE attribution)
+  const dilutedSafeDetails = safeCalc.safeDetails.map(d => ({
+    ...d,
+    percent: rp(d.percent * step2DilutionFactor)
+  }))
+
+  // Calculate SAFE ownership attributed to the lead investor
+  let investorSafePercent = 0
+  dilutedSafeDetails.forEach(safe => {
+    if (safe.investorName && safe.investorName === investorName) {
+      let safeOwnership = safe.percent
+      if (esopCalc.esopIncreasePostClose > 0) {
+        safeOwnership = rp(safeOwnership * (100 - esopCalc.esopIncreasePostClose) / 100)
+      }
+      investorSafePercent = rp(investorSafePercent + safeOwnership)
+    }
+  })
+
+  if (combinedInvestor) {
+    combinedInvestor.safePercent = investorSafePercent
+    combinedInvestor.totalOwnership = rp(
+      combinedInvestor.investorRoundPercent +
+      combinedInvestor.priorDilutedPercent +
+      investorSafePercent
+    )
+  } else if (investorSafePercent > 0) {
+    combinedInvestor = {
+      name: investorName,
+      totalNewInvestment: r$(s1Investor + s2Investor),
+      totalOwnership: rp(finalInvestorPercent + investorSafePercent),
+      investorPortion: s1Investor,
+      proRataAmount: 0,
+      investorRoundPercent: finalInvestorPercent,
+      priorDilutedPercent: 0,
+      priorOriginalPercent: 0,
+      safePercent: investorSafePercent,
     }
   }
 
@@ -392,10 +433,7 @@ function calculateTwoStepScenario(inputs) {
     // SAFE details
     totalSafeAmount: safeCalc.totalSafeAmount,
     totalSafePercent: safeFinalPercent,
-    safeDetails: safeCalc.safeDetails.map(d => ({
-      ...d,
-      percent: rp(d.percent * step2DilutionFactor)
-    })),
+    safeDetails: dilutedSafeDetails,
     safes: effectiveSafes,
 
     // ESOP details
@@ -662,7 +700,7 @@ export function calculateEnhancedScenario(inputs) {
       name: investorName,
       // Total new money this round (investor portion + pro-rata)
       totalNewInvestment: r$(adjustedInvestorPortion + (matchedPriorInvestor.proRataAmount || 0)),
-      // Total post-round ownership (new round ownership + diluted prior ownership including pro-rata)
+      // Total post-round ownership (updated below to include SAFEs)
       totalOwnership: rp(investorPercent + matchedPriorInvestor.postRoundPercent),
       // Breakdown components
       investorPortion: adjustedInvestorPortion,
@@ -670,6 +708,42 @@ export function calculateEnhancedScenario(inputs) {
       investorRoundPercent: investorPercent,
       priorDilutedPercent: matchedPriorInvestor.postRoundPercent,
       priorOriginalPercent: matchedPriorInvestor.ownershipPercent,
+      safePercent: 0,
+    }
+  }
+
+  // Calculate SAFE ownership attributed to the lead investor
+  let investorSafePercent = 0
+  if (safeCalc.safeDetails && safeCalc.safeDetails.length > 0) {
+    safeCalc.safeDetails.forEach(safe => {
+      if (safe.investorName && safe.investorName === investorName) {
+        let safeOwnership = safe.percent
+        if (esopCalc.esopIncreasePostClose > 0) {
+          safeOwnership = rp(safeOwnership * (100 - esopCalc.esopIncreasePostClose) / 100)
+        }
+        investorSafePercent = rp(investorSafePercent + safeOwnership)
+      }
+    })
+  }
+
+  if (combinedInvestor) {
+    combinedInvestor.safePercent = investorSafePercent
+    combinedInvestor.totalOwnership = rp(
+      combinedInvestor.investorRoundPercent +
+      combinedInvestor.priorDilutedPercent +
+      investorSafePercent
+    )
+  } else if (investorSafePercent > 0) {
+    combinedInvestor = {
+      name: investorName,
+      totalNewInvestment: r$(adjustedInvestorPortion),
+      totalOwnership: rp(investorPercent + investorSafePercent),
+      investorPortion: adjustedInvestorPortion,
+      proRataAmount: 0,
+      investorRoundPercent: investorPercent,
+      priorDilutedPercent: 0,
+      priorOriginalPercent: 0,
+      safePercent: investorSafePercent,
     }
   }
 
