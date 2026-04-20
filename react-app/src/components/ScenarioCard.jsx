@@ -26,30 +26,32 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
 
   const isTwoStep = !!(scenario.twoStepEnabled && scenario.step1 && scenario.step2)
 
+  const buildScenarioData = () => {
+    const data = {
+      postMoneyVal: isTwoStep ? scenario.step1.postMoney : scenario.postMoneyVal,
+      roundSize: isTwoStep ? scenario.step1.amount : scenario.roundSize,
+      investorPortion: isTwoStep ? scenario.step1.investorAmount : scenario.investorAmount,
+      otherPortion: isTwoStep ? scenario.step1.otherAmount : (scenario.otherAmountOriginal || scenario.otherAmount),
+      proRataPercent: scenario.proRataPercentInput || 0,
+      safes: scenario.safes || [],
+      preRoundFounderOwnership: scenario.preRoundFounderPercent ?? 0,
+      priorInvestors: scenario.priorInvestors || [],
+      founders: scenario.founders || [],
+      currentEsopPercent: scenario.currentEsopPercent || 0,
+      targetEsopPercent: scenario.targetEsopPercent || 0,
+      esopTiming: scenario.esopTiming || 'pre-close',
+      twoStepEnabled: isTwoStep,
+      step2PostMoney: isTwoStep ? scenario.step2.postMoney : 0,
+      step2Amount: isTwoStep ? scenario.step2.amount : 0,
+      step2InvestorPortion: isTwoStep ? scenario.step2.investorAmount : 0,
+      step2OtherPortion: isTwoStep ? scenario.step2.otherAmount : 0
+    }
+    return data
+  }
+
   const handleApplyScenario = () => {
     if (onApplyScenario) {
-      const data = {
-        postMoneyVal: isTwoStep ? scenario.step1.postMoney : scenario.postMoneyVal,
-        roundSize: isTwoStep ? scenario.step1.amount : scenario.roundSize,
-        investorPortion: isTwoStep ? scenario.step1.investorAmount : scenario.investorAmount,
-        otherPortion: isTwoStep ? scenario.step1.otherAmount : (scenario.otherAmountOriginal || scenario.otherAmount),
-        proRataPercent: scenario.proRataPercentInput || 0,
-        safes: scenario.safes || [],
-        preRoundFounderOwnership: scenario.preRoundFounderPercent ?? 0,
-        priorInvestors: scenario.priorInvestors || [],
-        founders: scenario.founders || [],
-        currentEsopPercent: scenario.currentEsopPercent || 0,
-        targetEsopPercent: scenario.targetEsopPercent || 0,
-        esopTiming: scenario.esopTiming || 'pre-close'
-      }
-      if (isTwoStep) {
-        data.twoStepEnabled = true
-        data.step2PostMoney = scenario.step2.postMoney
-        data.step2Amount = scenario.step2.amount
-        data.step2InvestorPortion = scenario.step2.investorAmount
-        data.step2OtherPortion = scenario.step2.otherAmount
-      }
-      onApplyScenario(data)
+      onApplyScenario(buildScenarioData())
     }
   }
 
@@ -58,25 +60,9 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
 
     try {
       const scenarioData = {
-        postMoneyVal: isTwoStep ? scenario.step1.postMoney : scenario.postMoneyVal,
-        roundSize: isTwoStep ? scenario.step1.amount : scenario.roundSize,
-        investorPortion: isTwoStep ? scenario.step1.investorAmount : scenario.investorAmount,
-        otherPortion: isTwoStep ? scenario.step1.otherAmount : (scenario.otherAmountOriginal || scenario.otherAmount),
-        investorName: investorName,
-        showAdvanced: showAdvanced,
-        proRataPercent: scenario.proRataPercentInput || 0,
-        safes: scenario.safes || [],
-        preRoundFounderOwnership: scenario.preRoundFounderPercent ?? 0,
-        priorInvestors: scenario.priorInvestors || [],
-        founders: scenario.founders || [],
-        currentEsopPercent: scenario.currentEsopPercent || 0,
-        targetEsopPercent: scenario.targetEsopPercent || 0,
-        esopTiming: scenario.esopTiming || 'pre-close',
-        twoStepEnabled: isTwoStep || false,
-        step2PostMoney: isTwoStep ? scenario.step2.postMoney : 0,
-        step2Amount: isTwoStep ? scenario.step2.amount : 0,
-        step2InvestorPortion: isTwoStep ? scenario.step2.investorAmount : 0,
-        step2OtherPortion: isTwoStep ? scenario.step2.otherAmount : 0
+        ...buildScenarioData(),
+        investorName,
+        showAdvanced
       }
 
       const result = await onCopyPermalink(scenarioData)

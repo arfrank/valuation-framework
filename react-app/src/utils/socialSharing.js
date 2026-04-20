@@ -3,7 +3,7 @@
  */
 
 import { decodeScenarioFromURL } from './permalink'
-import { calculateScenario } from './calculations'
+import { calculateEnhancedScenario } from './multiPartyCalculations'
 
 /**
  * Generates a human-readable summary of a scenario
@@ -13,7 +13,7 @@ import { calculateScenario } from './calculations'
 function generateScenarioSummary(scenarioData) {
   if (!scenarioData) return 'Investment scenario analysis'
 
-  const result = calculateScenario(scenarioData)
+  const result = calculateEnhancedScenario(scenarioData)
   if (!result || result.error) return 'Investment scenario analysis'
 
   const parts = []
@@ -60,7 +60,7 @@ function generateScenarioDescription(scenarioData) {
     return 'Interactive valuation analysis tool for investment scenarios with advanced features like multiple SAFE notes, pro-rata participation, and founder dilution modeling.'
   }
 
-  const result = calculateScenario(scenarioData)
+  const result = calculateEnhancedScenario(scenarioData)
   if (!result || result.error) {
     return 'Investment scenario analysis with detailed cap table modeling.'
   }
