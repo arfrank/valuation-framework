@@ -6,6 +6,8 @@ import ScenarioCard from './components/ScenarioCard'
 import Logo from './components/Logo'
 import GeometricBackground from './components/GeometricBackground'
 import NotificationContainer from './components/NotificationContainer'
+import ExitMathModule from './components/ExitMathModule'
+import AppFooter from './components/AppFooter'
 import { useLocalStorage } from './hooks/useLocalStorage'
 import { useNotifications } from './hooks/useNotifications'
 import { calculateEnhancedScenarios } from './utils/multiPartyCalculations'
@@ -171,12 +173,12 @@ function App() {
           onUpdateCompany={updateCompany}
         />
         
-        <div className="top-row">
-          <InputForm 
+        <div className={`top-row${companies[activeCompany]?.showExitMath ? ' with-exit-math' : ''}`}>
+          <InputForm
             company={companies[activeCompany]}
             onUpdate={(data) => updateCompany(activeCompany, data)}
           />
-          
+
           <div className="base-result">
             {scenarios.length > 0 && (
               <ScenarioCard
@@ -192,8 +194,17 @@ function App() {
               />
             )}
           </div>
+
+          {companies[activeCompany]?.showExitMath && (
+            <ExitMathModule
+              baseScenario={scenarios[0]}
+              investorName={companies[activeCompany]?.investorName || 'US'}
+              exitMath={companies[activeCompany]?.exitMath}
+              onUpdate={(exitMath) => updateCompany(activeCompany, { exitMath })}
+            />
+          )}
         </div>
-        
+
         <div className="scenarios-rows">
           {scenarios.slice(1).map((scenario, index) => (
             <ScenarioCard
@@ -210,6 +221,11 @@ function App() {
           ))}
         </div>
       </main>
+
+      <AppFooter
+        showExitMath={companies[activeCompany]?.showExitMath || false}
+        onToggleExitMath={(v) => updateCompany(activeCompany, { showExitMath: v })}
+      />
     </div>
   )
 }

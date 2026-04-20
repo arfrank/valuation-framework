@@ -107,6 +107,15 @@ export function createDefaultCompany(companyName = 'New Company') {
     step2InvestorPortion: 0,
     step2OtherPortion: 0,
 
+    // Exit Math module (local exploration tool; not permalinked)
+    showExitMath: false,
+    exitMath: {
+      exitValuation: 5000,
+      numRounds: 3,
+      uniformDilution: 20,
+      perRoundOverrides: []
+    },
+
     // New multi-party structures
     priorInvestors: [
       createPriorInvestor('Previous Investors', 15, true) // Default with pro-rata rights
@@ -182,6 +191,17 @@ export function migrateLegacyCompany(legacyCompany) {
   if (migrated.step2Amount === undefined) migrated.step2Amount = 0
   if (migrated.step2InvestorPortion === undefined) migrated.step2InvestorPortion = 0
   if (migrated.step2OtherPortion === undefined) migrated.step2OtherPortion = 0
+
+  // Ensure Exit Math fields exist
+  if (migrated.showExitMath === undefined) migrated.showExitMath = false
+  if (!migrated.exitMath || typeof migrated.exitMath !== 'object') {
+    migrated.exitMath = {
+      exitValuation: 5000,
+      numRounds: 3,
+      uniformDilution: 20,
+      perRoundOverrides: []
+    }
+  }
 
   return migrated
 }
