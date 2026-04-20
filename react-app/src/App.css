@@ -250,6 +250,11 @@ body.geometric-background-active .app {
   margin-right: auto;
 }
 
+.top-row.with-exit-math {
+  grid-template-columns: 1fr 1fr 0.9fr;
+  max-width: 1500px;
+}
+
 .base-result {
   display: flex;
   justify-content: center;
@@ -2143,7 +2148,8 @@ input.investor-name-input:focus, input.founder-name-input:focus {
     border-bottom: none;
   }
 
-  .top-row {
+  .top-row,
+  .top-row.with-exit-math {
     grid-template-columns: 1fr;
     gap: 1.5rem;
     margin-bottom: 1.5rem;
@@ -2394,4 +2400,227 @@ input.investor-name-input:focus, input.founder-name-input:focus {
     padding: 0.4rem 0.6rem;
     font-size: 0.72rem;
   }
+}
+
+/* ============================================================
+   Exit Math Module
+   ============================================================ */
+.exit-math-module {
+  background: #ffffff;
+  border: 1px solid #e2e7ed;
+  border-radius: 10px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.exit-math-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.exit-math-subtitle {
+  display: block;
+  font-size: 0.75rem;
+  color: #718096;
+  margin-top: 0.15rem;
+}
+
+.exit-math-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  background: #f7fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 0.85rem;
+}
+
+.exit-math-inputs .input-group label {
+  font-weight: 600;
+  color: #4a5568;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.25rem;
+}
+
+.exit-math-inputs input[type="number"] {
+  width: 100%;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid #cbd5e0;
+  border-radius: 4px;
+  background: #ffffff;
+  font-family: 'JetBrains Mono', 'Consolas', 'Monaco', monospace;
+  font-size: 0.9rem;
+  color: #1e293b;
+  box-sizing: border-box;
+}
+
+.exit-math-inputs input[type="number"]:focus {
+  outline: none;
+  border-color: #635bff;
+  box-shadow: 0 0 0 2px rgba(99, 91, 255, 0.15);
+}
+
+.exit-math-input-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.exit-math-hint {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  font-style: italic;
+  margin-top: 0.15rem;
+}
+
+.exit-math-overrides {
+  border-top: 1px dashed #e2e8f0;
+  padding-top: 0.6rem;
+}
+
+.exit-math-overrides-grid {
+  margin-top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.exit-math-override-row {
+  display: grid;
+  grid-template-columns: 60px 1fr 20px;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.exit-math-override-row label {
+  font-size: 0.75rem;
+  color: #4a5568;
+  font-weight: 600;
+  margin: 0;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.exit-math-override-row input {
+  padding: 0.3rem 0.5rem !important;
+  font-size: 0.82rem !important;
+}
+
+.exit-math-override-unit {
+  font-size: 0.8rem;
+  color: #718096;
+}
+
+.exit-math-reset-btn {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  color: #635bff;
+  font-size: 0.75rem;
+  cursor: pointer;
+  padding: 0.25rem 0;
+  font-weight: 600;
+}
+
+.exit-math-reset-btn:hover {
+  text-decoration: underline;
+}
+
+.exit-math-summary {
+  margin-top: 0;
+}
+
+.exit-math-breakdown {
+  background: #f7fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 0.75rem;
+}
+
+.exit-math-breakdown-header {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #4a5568;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.5rem;
+}
+
+.exit-math-breakdown table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'JetBrains Mono', 'Consolas', 'Monaco', monospace;
+  font-size: 0.82rem;
+}
+
+.exit-math-breakdown th {
+  text-align: left;
+  font-weight: 600;
+  color: #718096;
+  padding: 0.3rem 0.4rem;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.exit-math-breakdown td {
+  padding: 0.3rem 0.4rem;
+  color: #1e293b;
+  border-bottom: 1px solid #edf2f7;
+}
+
+.exit-math-breakdown tr:last-child td {
+  border-bottom: none;
+}
+
+.exit-math-empty {
+  color: #94a3b8;
+  font-size: 0.85rem;
+  font-style: italic;
+  text-align: center;
+  padding: 1rem 0.5rem;
+}
+
+/* ============================================================
+   App Footer (houses Exit Math toggle)
+   ============================================================ */
+.app-footer {
+  width: 100%;
+  padding: 1rem 1.5rem 1.25rem;
+  display: flex;
+  justify-content: center;
+  border-top: 1px solid #e2e8f0;
+  margin-top: 1.5rem;
+}
+
+.exit-math-toggle {
+  background: none;
+  border: 1px solid #e2e8f0;
+  color: #718096;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.4rem 0.85rem;
+  border-radius: 4px;
+  cursor: pointer;
+  letter-spacing: 0.3px;
+  transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+
+.exit-math-toggle:hover {
+  color: #4a5568;
+  border-color: #cbd5e0;
+  background: #f7fafc;
+}
+
+.exit-math-toggle[aria-pressed="true"] {
+  color: #635bff;
+  border-color: #c7c3ff;
+  background: #f5f4ff;
 }
