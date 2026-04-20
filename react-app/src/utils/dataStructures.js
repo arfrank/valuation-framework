@@ -109,7 +109,7 @@ export function createDefaultCompany(companyName = 'New Company') {
 
     // New multi-party structures
     priorInvestors: [
-      createPriorInvestor('Previous Investors', 15, true) // Default with pro-rata rights
+      createPriorInvestor('Previous Investors', 15, false)
     ],
     founders: [
       createFounder('Founder Team', 85) // Default founder ownership
