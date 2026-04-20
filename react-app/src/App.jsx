@@ -4,7 +4,6 @@ import CompanyTabs from './components/CompanyTabs'
 import InputForm from './components/InputForm'
 import ScenarioCard from './components/ScenarioCard'
 import Logo from './components/Logo'
-import GeometricBackground from './components/GeometricBackground'
 import NotificationContainer from './components/NotificationContainer'
 import ExitMathModule from './components/ExitMathModule'
 import AppFooter from './components/AppFooter'
@@ -21,7 +20,6 @@ function App() {
     company1: createDefaultCompany('Startup Alpha')
   })
   const [nextCompanyId, setNextCompanyId] = useState(2)
-  const [showGeometricBackground, setShowGeometricBackground] = useState(false)
   const [hasLoadedFromURL, setHasLoadedFromURL] = useState(false)
 
   const [scenarios, setScenarios] = useState([])
@@ -111,54 +109,12 @@ function App() {
     }
   }, [companies, activeCompany, showError])
 
-  // Hidden keyboard shortcut: Shift + Space
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.shiftKey && (e.code === 'Space' || e.key === ' ')) {
-        setShowGeometricBackground(prev => !prev)
-        e.preventDefault()
-      }
-    }
-    
-    window.addEventListener('keydown', handleKeyDown)
-    
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [])
-
-  // Add/remove class to body when geometric background is active
-  useEffect(() => {
-    if (showGeometricBackground) {
-      document.body.classList.add('geometric-background-active')
-    } else {
-      document.body.classList.remove('geometric-background-active')
-    }
-  }, [showGeometricBackground])
-
   return (
     <div className="app">
-      <GeometricBackground isActive={showGeometricBackground} />
-      <NotificationContainer 
-        notifications={notifications} 
-        onRemove={removeNotification} 
+      <NotificationContainer
+        notifications={notifications}
+        onRemove={removeNotification}
       />
-      {/* Debug indicator */}
-      {showGeometricBackground && (
-        <div style={{
-          position: 'fixed',
-          top: '10px',
-          right: '10px',
-          background: 'rgba(99, 91, 255, 0.8)',
-          color: 'white',
-          padding: '5px 10px',
-          borderRadius: '4px',
-          fontSize: '12px',
-          zIndex: 1000
-        }}>
-          3D Mode Active
-        </div>
-      )}
       <header className="app-header">
         <Logo size={40} />
       </header>
