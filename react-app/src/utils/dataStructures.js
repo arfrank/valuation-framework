@@ -174,7 +174,11 @@ export function migrateLegacyCompany(legacyCompany) {
   // Ensure arrays exist even if empty
   migrated.priorInvestors = migrated.priorInvestors || []
   migrated.founders = migrated.founders || [createFounder('Founder Team', 85)]
-  migrated.safes = migrated.safes || []
+  migrated.safes = (migrated.safes || []).map(safe => ({
+    proRata: false,
+    proRataOverride: null,
+    ...safe
+  }))
 
   // Ensure 2-step round fields exist
   if (migrated.twoStepEnabled === undefined) migrated.twoStepEnabled = false

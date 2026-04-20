@@ -124,7 +124,9 @@ const InputForm = ({ company, onUpdate }) => {
       amount: 0,
       cap: 0,
       discount: 0,
-      investorName: ''
+      investorName: '',
+      proRata: false,
+      proRataOverride: null
     }
     const newValues = {
       ...values,
@@ -151,6 +153,40 @@ const InputForm = ({ company, onUpdate }) => {
         safes: (values.safes || []).map(safe =>
           safe.id === safeId
             ? { ...safe, investorName: value }
+            : safe
+        )
+      }
+      setValues(newValues)
+      onUpdate(newValues)
+      return
+    }
+
+    // Handle pro-rata toggle (boolean). Clear override when disabling.
+    if (field === 'proRata') {
+      const newValues = {
+        ...values,
+        safes: (values.safes || []).map(safe =>
+          safe.id === safeId
+            ? { ...safe, proRata: Boolean(value), proRataOverride: value ? safe.proRataOverride : null }
+            : safe
+        )
+      }
+      setValues(newValues)
+      onUpdate(newValues)
+      return
+    }
+
+    // Handle pro-rata override (nullable number). Null = use calculated amount.
+    if (field === 'proRataOverride') {
+      const parsed = parseFloat(value)
+      const next = (isNaN(parsed) || value === '' || value === null || value === undefined)
+        ? null
+        : Math.max(0, parsed)
+      const newValues = {
+        ...values,
+        safes: (values.safes || []).map(safe =>
+          safe.id === safeId
+            ? { ...safe, proRataOverride: next }
             : safe
         )
       }
@@ -460,7 +496,7 @@ const InputForm = ({ company, onUpdate }) => {
                           if (safe.cap > 0 && safe.discount > 0) {
                             const capPrice = safe.cap
                             const discountPrice = safePreMoneyVal * (1 - safe.discount / 100)
-                            return capPrice < discountPrice 
+                            return capPrice < discountPrice
                               ? `$${capPrice.toFixed(1)}M`
                               : `$${discountPrice.toFixed(1)}M`
                           } else if (safe.cap > 0) {
@@ -476,11 +512,11 @@ const InputForm = ({ company, onUpdate }) => {
                           if (safe.cap > 0 && safe.discount > 0) {
                             const capPrice = safe.cap
                             const discountPrice = safePreMoneyVal * (1 - safe.discount / 100)
-                            return capPrice < discountPrice 
+                            return capPrice < discountPrice
                               ? `(Using cap vs ${safe.discount}% discount)`
                               : `(Using discount vs $${capPrice.toFixed(1)}M cap)`
                           } else if (safe.cap > 0) {
-                            return `(Cap: $${safe.cap.toFixed(1)}M)`  
+                            return `(Cap: $${safe.cap.toFixed(1)}M)`
                           } else if (safe.discount > 0) {
                             return `(${safe.discount}% discount)`
                           }
@@ -490,6 +526,83 @@ const InputForm = ({ company, onUpdate }) => {
                     </div>
                   </div>
                 )}
+
+                {/* Pro-rata rights for this SAFE */}
+                <div className="investor-pro-rata">
+                  <label className="pro-rata-checkbox">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(safe.proRata)}
+                      onChange={(e) => updateSafe(safe.id, 'proRata', e.target.checked)}
+                    />
+                    <span className="checkbox-label">Pro-rata rights</span>
+                  </label>
+                </div>
+
+                {safe.proRata && safe.amount > 0 && values.roundSize > 0 && (() => {
+                  // Compute conversion price matching calculateSafeConversions
+                  let conversionPrice = 0
+                  if (safe.cap > 0 && safe.discount > 0) {
+                    conversionPrice = Math.min(safe.cap, safePreMoneyVal * (1 - safe.discount / 100))
+                  } else if (safe.cap > 0) {
+                    conversionPrice = Math.min(safe.cap, safePreMoneyVal)
+                  } else if (safe.discount > 0) {
+                    conversionPrice = safePreMoneyVal * (1 - safe.discount / 100)
+                  } else {
+                    conversionPrice = safePreMoneyVal
+                  }
+                  if (conversionPrice <= 0) return null
+                  const safeOwnership = (safe.amount / conversionPrice) * 100
+                  const calculatedProRata = (safeOwnership / 100) * values.roundSize
+                  const hasOverride = safe.proRataOverride != null
+                  const displayAmount = hasOverride ? safe.proRataOverride : calculatedProRata
+                  const matchesLead = (safe.investorName || '').trim() === (values.investorName || 'US').trim()
+                  if (matchesLead && safe.investorName) {
+                    return (
+                      <div className="pro-rata-hint">
+                        <span className="hint-text">
+                          Pro-rata handled via {values.investorName || 'US'} round portion
+                        </span>
+                      </div>
+                    )
+                  }
+                  return (
+                    <div className="pro-rata-allocation">
+                      <div className="pro-rata-allocation-row">
+                        <FormInput
+                          label="Allocation"
+                          type="number"
+                          value={displayAmount}
+                          onChange={(value) => updateSafe(safe.id, 'proRataOverride', value)}
+                          prefix="$"
+                          suffix="M"
+                          step="0.01"
+                          min="0"
+                        />
+                      </div>
+                      {hasOverride && (
+                        <div className="pro-rata-hint">
+                          <span className="hint-text">
+                            Pro-rata right: ${parseFloat(calculatedProRata.toPrecision(10))}M
+                            {safe.proRataOverride < calculatedProRata
+                              ? ` (taking less)`
+                              : safe.proRataOverride > calculatedProRata
+                                ? ` (taking more)`
+                                : ''}
+                          </span>
+                          <button
+                            type="button"
+                            className="reset-pro-rata-btn"
+                            onClick={() => updateSafe(safe.id, 'proRataOverride', null)}
+                            title="Reset to calculated pro-rata"
+                          >
+                            reset
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })()}
               </div>
             ))}
           </div>

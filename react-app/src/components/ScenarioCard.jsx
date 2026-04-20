@@ -103,9 +103,16 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
     ? scenario.priorInvestors.reduce((sum, inv) => sum + (inv.proRataAmount || 0), 0)
     : (scenario.proRataAmount || 0)
 
-  // Remaining other for truly new investors (after ALL pro-rata)
+  // SAFE pro-rata attributed under "Other" (SAFEs not matched to the lead)
+  const safeProRataRowsForDisplay = (scenario.safeDetails || [])
+    .filter(s => (s.proRataAmount || 0) > 0 && (s.investorName || '') !== investorName)
+  const totalSafeProRataAmountForDisplay = safeProRataRowsForDisplay.reduce(
+    (sum, s) => sum + (s.proRataAmount || 0), 0
+  )
+
+  // Remaining other for truly new investors (after ALL pro-rata, prior + SAFE)
   const remainingOther = scenario.otherAmountOriginal
-    ? scenario.otherAmountOriginal - totalProRataAmount
+    ? scenario.otherAmountOriginal - totalProRataAmount - totalSafeProRataAmountForDisplay
     : scenario.otherAmount
 
   // Display values when investor is combined with a prior investor
@@ -256,16 +263,33 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
                     </div>
 
                     {/* Pro-rata breakdown in advanced mode (exclude combined investor) */}
-                    {displayProRataTotal > 0 && (
+                    {(displayProRataTotal > 0 || totalSafeProRataAmountForDisplay > 0) && (
                       <>
-                        {proRataInvestorsForDisplay.map((investor, idx, arr) => (
+                        {proRataInvestorsForDisplay.map((investor, idx) => {
+                          const hasMoreAfter = (idx < proRataInvestorsForDisplay.length - 1)
+                            || safeProRataRowsForDisplay.length > 0
+                            || remainingOther > 0.01
+                          return (
                             <div key={investor.id || idx} className="table-row sub-sub-row">
-                              <div className="label">    {remainingOther > 0.01 ? '├─' : (idx === arr.length - 1 ? '└─' : '├─')} {investor.name} (pro-rata)</div>
+                              <div className="label">    {hasMoreAfter ? '├─' : '└─'} {investor.name} (pro-rata)</div>
                               <div className="amount amount-positive">+{formatDollar(investor.proRataAmount)}</div>
                               <div className="percent">{formatPercent((investor.proRataAmount / scenario.postMoneyVal) * 100)}</div>
                             </div>
-                          ))
-                        }
+                          )
+                        })}
+                        {safeProRataRowsForDisplay.map((safe, idx) => {
+                          const hasMoreAfter = (idx < safeProRataRowsForDisplay.length - 1) || remainingOther > 0.01
+                          const label = safe.investorName
+                            ? `${safe.investorName} (SAFE pro-rata)`
+                            : `SAFE #${safe.index} (pro-rata)`
+                          return (
+                            <div key={`safe-pr-${safe.id || idx}`} className="table-row sub-sub-row">
+                              <div className="label">    {hasMoreAfter ? '├─' : '└─'} {label}</div>
+                              <div className="amount amount-positive">+{formatDollar(safe.proRataAmount)}</div>
+                              <div className="percent">{formatPercent((safe.proRataAmount / scenario.postMoneyVal) * 100)}</div>
+                            </div>
+                          )
+                        })}
                         {remainingOther > 0.01 && (
                           <div className="table-row sub-sub-row">
                             <div className="label">    └─ New investors</div>
@@ -403,15 +427,28 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
               <div className="percent percent-bold">{formatPercent(scenario.totalSafePercent)}</div>
             </div>
             {/* Individual SAFEs */}
-            {!collapsed.safes && scenario.safeDetails.map((safe, safeIndex) => (
-              <div key={safe.id || safeIndex} className="table-row sub-row">
-                <div className="label">{safeIndex === scenario.safeDetails.length - 1 ? '└─' : '├─'} SAFE #{safe.index}{safe.investorName && <span className="safe-attribution"> ({safe.investorName})</span>}</div>
-                <div className="amount amount-neutral">
-                  <span style={{ fontSize: '0.85rem' }}>${safe.amount}M @ ${safe.conversionPrice}M</span>
+            {!collapsed.safes && scenario.safeDetails.map((safe, safeIndex) => {
+              const isLast = safeIndex === scenario.safeDetails.length - 1
+              const showProRata = (safe.proRataAmount || 0) > 0
+              return (
+                <div key={safe.id || safeIndex} style={{ display: 'contents' }}>
+                  <div className="table-row sub-row">
+                    <div className="label">{isLast && !showProRata ? '└─' : '├─'} SAFE #{safe.index}{safe.investorName && <span className="safe-attribution"> ({safe.investorName})</span>}</div>
+                    <div className="amount amount-neutral">
+                      <span style={{ fontSize: '0.85rem' }}>${safe.amount}M @ ${safe.conversionPrice}M</span>
+                    </div>
+                    <div className="percent">{formatPercent(safe.percent)}</div>
+                  </div>
+                  {showProRata && (
+                    <div className="table-row sub-sub-row">
+                      <div className="label">    {isLast ? '└─' : '├─'} pro-rata</div>
+                      <div className="amount amount-positive">+{formatDollar(safe.proRataAmount)}</div>
+                      <div className="percent">{formatPercent(safe.proRataPercent || 0)}</div>
+                    </div>
+                  )}
                 </div>
-                <div className="percent">{formatPercent(safe.percent)}</div>
-              </div>
-            ))}
+              )
+            })}
           </>
         )}
         
