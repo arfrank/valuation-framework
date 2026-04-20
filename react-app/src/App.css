@@ -1295,7 +1295,7 @@ body {
 
 /* Advanced Features Styling */
 .advanced-section .input-grid {
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 1rem;
 }
 
@@ -1390,7 +1390,7 @@ body {
 
 .safe-inputs {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 0.75rem;
   margin-bottom: 0.75rem;
 }
@@ -1525,7 +1525,7 @@ body {
 
 .investor-inputs, .founder-inputs {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 0.75rem;
   margin-bottom: 0.75rem;
 }
@@ -1922,7 +1922,7 @@ input.investor-name-input:focus, input.founder-name-input:focus {
 }
 
 .esop-section .input-grid {
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 1rem;
 }
 
