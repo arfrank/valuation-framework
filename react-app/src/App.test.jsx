@@ -40,10 +40,6 @@ vi.mock('./components/Logo', () => ({
   default: () => <div data-testid="logo">Logo</div>
 }))
 
-vi.mock('./components/GeometricBackground', () => ({
-  default: () => <div data-testid="geometric-bg">Background</div>
-}))
-
 describe('App with Permalink Loading', () => {
   beforeEach(() => {
     vi.clearAllMocks()
