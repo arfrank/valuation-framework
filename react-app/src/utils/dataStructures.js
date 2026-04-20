@@ -109,7 +109,7 @@ export function createDefaultCompany(companyName = 'New Company') {
 
     // New multi-party structures
     priorInvestors: [
-      createPriorInvestor('Previous Investors', 15, true) // Default with pro-rata rights
+      createPriorInvestor('Previous Investors', 15, false)
     ],
     founders: [
       createFounder('Founder Team', 85) // Default founder ownership
@@ -174,7 +174,11 @@ export function migrateLegacyCompany(legacyCompany) {
   // Ensure arrays exist even if empty
   migrated.priorInvestors = migrated.priorInvestors || []
   migrated.founders = migrated.founders || [createFounder('Founder Team', 85)]
-  migrated.safes = migrated.safes || []
+  migrated.safes = (migrated.safes || []).map(safe => ({
+    proRata: false,
+    proRataOverride: null,
+    ...safe
+  }))
 
   // Ensure 2-step round fields exist
   if (migrated.twoStepEnabled === undefined) migrated.twoStepEnabled = false

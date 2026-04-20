@@ -105,6 +105,12 @@ export function encodeScenarioToURL(scenarioData) {
             if (safe.investorName && safe.investorName.trim()) {
               encoded.n = safe.investorName.trim()
             }
+            if (safe.proRata) {
+              encoded.p = 1
+              if (safe.proRataOverride != null && safe.proRataOverride >= 0) {
+                encoded.po = safe.proRataOverride
+              }
+            }
             return encoded
           }).filter(safe => safe.a > 0) // Only include SAFEs with amount > 0
 
@@ -238,7 +244,9 @@ export function decodeScenarioFromURL(urlParams) {
                 amount: safe.a || 0,
                 cap: safe.c || 0,
                 discount: safe.d || 0,
-                investorName: safe.n || ''
+                investorName: safe.n || '',
+                proRata: safe.p === 1 || safe.p === true,
+                proRataOverride: (typeof safe.po === 'number' && safe.po >= 0) ? safe.po : null
               }))
             }
           } catch (error) {

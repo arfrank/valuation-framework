@@ -77,12 +77,12 @@ function calculateSafeConversions(safes, preMoneyVal) {
   let totalSafePercent = 0
   let totalSafeAmount = 0
   let safeDetails = []
-  
+
   if (safes && safes.length > 0) {
     safes.forEach((safe, index) => {
       if (safe.amount > 0) {
         let conversionPrice = 0
-        
+
         if (safe.cap > 0 && safe.discount > 0) {
           const capPrice = safe.cap
           const discountPrice = preMoneyVal * (1 - safe.discount / 100)
@@ -94,14 +94,14 @@ function calculateSafeConversions(safes, preMoneyVal) {
         } else {
           conversionPrice = preMoneyVal
         }
-        
+
         if (conversionPrice > 0) {
           const safePercent = r2p(safe.amount / conversionPrice)
-          
+
           if (safePercent <= 95) {
             totalSafePercent += safePercent
             totalSafeAmount += safe.amount
-            
+
             safeDetails.push({
               id: safe.id,
               index: index + 1,
@@ -110,18 +110,72 @@ function calculateSafeConversions(safes, preMoneyVal) {
               discount: safe.discount,
               conversionPrice: r$(conversionPrice),
               percent: safePercent,
-              investorName: safe.investorName || ''
+              investorName: safe.investorName || '',
+              proRata: Boolean(safe.proRata),
+              proRataOverride: (safe.proRataOverride != null && safe.proRataOverride >= 0)
+                ? Number(safe.proRataOverride)
+                : null
             })
           }
         }
       }
     })
   }
-  
+
   return {
     totalSafePercent: rp(totalSafePercent),
     totalSafeAmount: r$(totalSafeAmount),
     safeDetails
+  }
+}
+
+/**
+ * Calculate pro-rata allocation for SAFEs flagged with proRata rights.
+ * Mirrors calculateProRataAllocations for prior investors.
+ * @param {Array} safeDetails - Output from calculateSafeConversions (already carries percent, proRata, proRataOverride, investorName)
+ * @param {number} roundSize - Total round size in which pro-rata is exercised
+ * @param {string} investorName - Lead investor name; matching SAFEs are skipped (handled via lead portion)
+ * @returns {Object} { safeProRataResults, totalSafeProRataAmount }
+ */
+function calculateSafeProRataAllocations(safeDetails, roundSize, investorName) {
+  const safeProRataResults = []
+  let totalSafeProRataAmount = 0
+
+  if (!Array.isArray(safeDetails)) {
+    return { safeProRataResults: [], totalSafeProRataAmount: 0 }
+  }
+
+  const leadName = (investorName || '').trim()
+
+  safeDetails.forEach(safe => {
+    if (!safe.proRata || !safe.percent || safe.percent <= 0 || !roundSize) {
+      return
+    }
+    // Lead-attributed SAFEs: pro-rata absorbed by lead's investor portion
+    const safeInvestor = (safe.investorName || '').trim()
+    if (safeInvestor && safeInvestor === leadName) {
+      return
+    }
+    const calculatedAmount = r$((safe.percent / 100) * roundSize)
+    const proRataAmount = (safe.proRataOverride != null && safe.proRataOverride >= 0)
+      ? r$(safe.proRataOverride)
+      : calculatedAmount
+    if (proRataAmount <= 0) return
+
+    safeProRataResults.push({
+      id: safe.id,
+      investorName: safe.investorName || '',
+      preRoundSafePercent: safe.percent,
+      proRataAmount,
+      calculatedProRataAmount: calculatedAmount,
+      isOverridden: safe.proRataOverride != null && safe.proRataOverride >= 0
+    })
+    totalSafeProRataAmount += proRataAmount
+  })
+
+  return {
+    safeProRataResults,
+    totalSafeProRataAmount: r$(totalSafeProRataAmount)
   }
 }
 
@@ -229,9 +283,24 @@ function calculateTwoStepScenario(inputs) {
   )
   const proRataCalc = calculateProRataAllocations(priorInvestorsForProRata, S2)
 
-  // Pro-rata comes from step 2 other portion
-  const actualProRataAmount = Math.min(proRataCalc.totalProRataAmount, s2Other)
-  const adjustedS2Other = r$(s2Other - actualProRataAmount)
+  // SAFE pro-rata also draws from step 2's other portion. Use pre-dilution SAFE percent
+  // relative to step 2 round (treat safeCalc.totalSafePercent as the step-1 post-money % of SAFE).
+  const safeProRataCalc = calculateSafeProRataAllocations(safeCalc.safeDetails, S2, investorName)
+
+  // Combined pro-rata clamped to available step 2 other portion
+  const combinedRequestedProRata = r$(proRataCalc.totalProRataAmount + safeProRataCalc.totalSafeProRataAmount)
+  const priorProRataShare = combinedRequestedProRata > 0
+    ? (proRataCalc.totalProRataAmount / combinedRequestedProRata)
+    : 0
+  const safeProRataShare = combinedRequestedProRata > 0
+    ? (safeProRataCalc.totalSafeProRataAmount / combinedRequestedProRata)
+    : 0
+  const totalProRataApplied = Math.min(combinedRequestedProRata, s2Other)
+  const actualProRataAmount = r$(totalProRataApplied * priorProRataShare)
+  const actualSafeProRataAmount = r$(totalProRataApplied * safeProRataShare)
+  const adjustedS2Other = r$(s2Other - actualProRataAmount - actualSafeProRataAmount)
+  // Scale factor applied per-investor/per-SAFE if combined pro-rata exceeded available s2Other
+  const clampRatio = combinedRequestedProRata > 0 ? (totalProRataApplied / combinedRequestedProRata) : 0
 
   // --- Step 1 ownership ---
   // Step 1 investors get S1/V1 of post-step-1 company
@@ -272,10 +341,13 @@ function calculateTwoStepScenario(inputs) {
     // Existing shareholders diluted by step 1 then step 2
     let postRoundPercent = rp(preRoundPercent * (100 - step1RoundPercent - safeCalc.totalSafePercent - esopCalc.esopIncreasePreClose) / 100 * step2DilutionFactor)
 
-    // Add pro-rata participation from step 2
+    // Add pro-rata participation from step 2 (scaled by clamp ratio when combined pro-rata exceeds s2Other)
     const proRataEntry = proRataCalc.proRataResults.find(pr => pr.id === investor.id)
-    if (proRataEntry && proRataEntry.proRataAmount > 0) {
-      const proRataOwnershipPercent = r2p(Math.min(proRataEntry.proRataAmount, actualProRataAmount > 0 ? proRataEntry.proRataAmount : 0) / V2)
+    const scaledProRataAmount = (proRataEntry && proRataEntry.proRataAmount > 0)
+      ? r$(proRataEntry.proRataAmount * clampRatio)
+      : 0
+    if (scaledProRataAmount > 0) {
+      const proRataOwnershipPercent = r2p(scaledProRataAmount / V2)
       postRoundPercent += proRataOwnershipPercent
     }
 
@@ -287,7 +359,7 @@ function calculateTwoStepScenario(inputs) {
     return {
       ...investor,
       postRoundPercent: rp(postRoundPercent),
-      proRataAmount: proRataEntry ? Math.min(proRataEntry.proRataAmount, actualProRataAmount > 0 ? proRataEntry.proRataAmount : 0) : 0,
+      proRataAmount: scaledProRataAmount,
       dilution: rp(preRoundPercent - postRoundPercent)
     }
   })
@@ -337,10 +409,22 @@ function calculateTwoStepScenario(inputs) {
   }
 
   // Compute diluted SAFE details once (reused in return and SAFE attribution)
-  const dilutedSafeDetails = safeCalc.safeDetails.map(d => ({
-    ...d,
-    percent: rp(d.percent * step2DilutionFactor)
-  }))
+  const esopPostCloseFactor2 = esopCalc.esopIncreasePostClose > 0
+    ? (100 - esopCalc.esopIncreasePostClose) / 100
+    : 1
+  const dilutedSafeDetails = safeCalc.safeDetails.map(d => {
+    const pr = safeProRataCalc.safeProRataResults.find(r => r.id === d.id)
+    const scaledProRataAmount = pr ? r$(pr.proRataAmount * clampRatio) : 0
+    const proRataPercent = rp(r2p(scaledProRataAmount / V2) * esopPostCloseFactor2)
+    const dilutedPercent = rp(d.percent * step2DilutionFactor * esopPostCloseFactor2)
+    return {
+      ...d,
+      percent: rp(d.percent * step2DilutionFactor),
+      proRataAmount: scaledProRataAmount,
+      proRataPercent,
+      totalPercent: rp(dilutedPercent + proRataPercent)
+    }
+  })
 
   // Calculate SAFE ownership attributed to the lead investor
   let investorSafePercent = 0
@@ -430,6 +514,11 @@ function calculateTwoStepScenario(inputs) {
     proRataAmount: actualProRataAmount,
     proRataPercent: r2p(actualProRataAmount / V2),
     proRataDetails: proRataCalc.proRataResults,
+
+    // SAFE pro-rata totals
+    totalSafeProRataAmount: actualSafeProRataAmount,
+    totalSafeProRataPercent: r2p(actualSafeProRataAmount / V2),
+    safeProRataDetails: safeProRataCalc.safeProRataResults,
 
     // SAFE details
     totalSafeAmount: safeCalc.totalSafeAmount,
@@ -576,30 +665,33 @@ export function calculateEnhancedScenario(inputs) {
     inv.name === investorName ? { ...inv, hasProRataRights: false } : inv
   )
   const proRataCalc = calculateProRataAllocations(priorInvestorsForProRata, roundSize)
-  
-  // Pro-rata comes from the "Other" portion, not from round size
-  // Validate that pro-rata doesn't exceed the "Other" portion
-  if (proRataCalc.totalProRataAmount > otherPortion) {
-    // Return an error object that can be handled by the UI
+
+  // Calculate SAFE conversions (needed before SAFE pro-rata)
+  const safeCalc = calculateSafeConversions(effectiveSafes, preMoneyVal)
+
+  // Calculate SAFE pro-rata on SAFEs flagged with pro-rata rights
+  const safeProRataCalc = calculateSafeProRataAllocations(safeCalc.safeDetails, roundSize, investorName)
+
+  // Pro-rata (prior + SAFE) comes from the "Other" portion, not from round size
+  const combinedProRataAmount = r$(proRataCalc.totalProRataAmount + safeProRataCalc.totalSafeProRataAmount)
+  if (combinedProRataAmount > otherPortion + 1e-9) {
     return {
       error: true,
-      errorMessage: `Total pro-rata amount ($${proRataCalc.totalProRataAmount.toFixed(2)}M) exceeds available "Other" portion ($${otherPortion.toFixed(2)}M). Please reduce pro-rata rights or increase "Other" portion.`,
-      proRataAmount: proRataCalc.totalProRataAmount,
+      errorMessage: `Total pro-rata amount ($${combinedProRataAmount.toFixed(2)}M) exceeds available "Other" portion ($${otherPortion.toFixed(2)}M). Please reduce pro-rata rights or increase "Other" portion.`,
+      proRataAmount: combinedProRataAmount,
       otherPortion,
       roundSize,
       postMoneyVal,
       preMoneyVal
     }
   }
-  
+
   const actualProRataAmount = proRataCalc.totalProRataAmount
-  
-  // Adjust investor portions - investor stays the same, other is reduced by pro-rata
+  const actualSafeProRataAmount = safeProRataCalc.totalSafeProRataAmount
+
+  // Adjust investor portions - investor stays the same, other is reduced by combined pro-rata
   const adjustedInvestorPortion = investorPortion
-  const adjustedOtherPortion = r$(otherPortion - actualProRataAmount)
-  
-  // Calculate SAFE conversions
-  const safeCalc = calculateSafeConversions(effectiveSafes, preMoneyVal)
+  const adjustedOtherPortion = r$(otherPortion - actualProRataAmount - actualSafeProRataAmount)
   
   // Calculate ownership percentages on post-money basis
   const roundPercent = r2p(roundSize / postMoneyVal)
@@ -749,13 +841,31 @@ export function calculateEnhancedScenario(inputs) {
     }
   }
 
+  // Enrich safeDetails with pro-rata attribution (post-close ESOP dilutes round percentages)
+  const esopPostCloseFactor = esopCalc.esopIncreasePostClose > 0
+    ? (100 - esopCalc.esopIncreasePostClose) / 100
+    : 1
+  const enrichedSafeDetails = (safeCalc.safeDetails || []).map(safe => {
+    const pr = safeProRataCalc.safeProRataResults.find(r => r.id === safe.id)
+    const proRataAmount = pr ? pr.proRataAmount : 0
+    const proRataPercentRaw = r2p(proRataAmount / postMoneyVal)
+    const proRataPercent = rp(proRataPercentRaw * esopPostCloseFactor)
+    const dilutedConversionPercent = rp(safe.percent * esopPostCloseFactor)
+    return {
+      ...safe,
+      proRataAmount,
+      proRataPercent,
+      totalPercent: rp(dilutedConversionPercent + proRataPercent)
+    }
+  })
+
   return {
     // Basic valuation info
     postMoneyVal: postMoneyVal || 13,
     roundSize: roundSize || 3,
     preMoneyVal: preMoneyVal || 10,
     investorName: investorName || 'US',
-    
+
     // Round composition - ensure no undefined values
     newMoneyAmount: roundSize || 0,
     investorAmount: adjustedInvestorPortion || 0,
@@ -764,22 +874,27 @@ export function calculateEnhancedScenario(inputs) {
     otherPercent: otherPercent || 0,
     otherAmountOriginal: otherPortion || 0, // Original other amount before pro-rata adjustment
     roundPercent: finalRoundPercent || 0,
-    
+
     // Total round details for legacy compatibility
     totalAmount: roundSize || 3,
     totalPercent: finalRoundPercent || 0,
-    
-    // Pro-rata details
+
+    // Pro-rata details (prior investors only — SAFE pro-rata surfaced via safeDetails)
     totalProRataAmount: actualProRataAmount || 0,
     totalProRataPercent: r2p(actualProRataAmount / postMoneyVal),
     proRataAmount: actualProRataAmount || 0,
     proRataPercent: r2p(actualProRataAmount / postMoneyVal),
     proRataDetails: proRataCalc.proRataResults || [],
-    
+
+    // SAFE pro-rata totals
+    totalSafeProRataAmount: actualSafeProRataAmount || 0,
+    totalSafeProRataPercent: r2p(actualSafeProRataAmount / postMoneyVal),
+    safeProRataDetails: safeProRataCalc.safeProRataResults || [],
+
     // SAFE details
     totalSafeAmount: safeCalc.totalSafeAmount || 0,
     totalSafePercent: safeCalc.totalSafePercent || 0,
-    safeDetails: safeCalc.safeDetails || [],
+    safeDetails: enrichedSafeDetails,
     safes: effectiveSafes || [],
     
     // ESOP details
