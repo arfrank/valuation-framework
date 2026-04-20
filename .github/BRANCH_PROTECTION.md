@@ -13,9 +13,9 @@ To ensure code quality and prevent breaking changes, set up branch protection ru
 
 #### ✅ Required Status Checks
 Enable these checks before merging:
-- `test (18.x)` - Tests on Node.js 18
-- `test (20.x)` - Tests on Node.js 20  
-- `critical-tests` - Mathematical consistency checks
+- `test (20.x)` - Tests on Node.js 20
+- `test (22.x)` - Tests on Node.js 22
+- `test (24.x)` - Tests on Node.js 24
 - `quality` - Code quality and linting
 - `security` - Security audit
 
@@ -39,9 +39,9 @@ protection:
   required_status_checks:
     strict: true
     checks:
-      - "test (18.x)"
       - "test (20.x)"
-      - "critical-tests"
+      - "test (22.x)"
+      - "test (24.x)"
       - "quality"
       - "security"
   
@@ -64,7 +64,7 @@ Create `.github/CODEOWNERS` to automatically request reviews:
 * @your-username
 
 # Specific paths
-/react-app/src/utils/calculations.js @math-expert @your-username
+/react-app/src/utils/multiPartyCalculations.js @math-expert @your-username
 /.github/workflows/ @devops-expert @your-username
 ```
 
