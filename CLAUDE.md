@@ -38,18 +38,11 @@ Building a lightweight frontend application for valuation analysis, ownership tr
 - ✅ Clean, subtle UI design for sharing features
 
 ## Technical Stack
-### React Version (Current)
-- React 18
+- React 19
 - Vite (build tool)
 - Modern CSS with gradients and animations
 - Local Storage API
 - Component-based architecture
-
-### Original Version
-- HTML5
-- CSS3  
-- Vanilla JavaScript
-- Local Storage API
 
 ## Commands
 ### Git
