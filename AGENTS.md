@@ -25,8 +25,7 @@ phoenix/
 │   │   │   ├── ScenarioCard.jsx             # Base case + scenario tiles
 │   │   │   ├── PriorInvestorsSection.jsx
 │   │   │   ├── FoundersSection.jsx
-│   │   │   ├── ExitMathModule.jsx           # 3rd column (toggled in footer)
-│   │   │   ├── AppFooter.jsx                # Exit Math toggle lives here
+│   │   │   ├── ExitMathModule.jsx           # 3rd column (toggled from header)
 │   │   │   └── CompanyTabs.jsx
 │   │   ├── utils/
 │   │   │   ├── multiPartyCalculations.js    # ★ Primary calc engine
