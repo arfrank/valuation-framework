@@ -629,37 +629,43 @@ const InputForm = ({ company, onUpdate }) => {
               <FormInput
                 label="Current Pool"
                 type="number"
-                value={values.currentEsopPercent}
+                value={values.currentEsopPercent || ''}
                 onChange={(value) => handleChange('currentEsopPercent', value)}
                 suffix="%"
                 step="0.01"
                 min="0"
                 max="100"
+                placeholder="0"
                 clearable={true}
+                tooltip="Total ESOP pool today, including both granted and unallocated shares (as a % of fully-diluted shares)."
               />
 
               <FormInput
                 label="Already Granted"
                 type="number"
-                value={values.grantedEsopPercent || 0}
+                value={values.grantedEsopPercent || ''}
                 onChange={(value) => handleChange('grantedEsopPercent', value)}
                 suffix="%"
                 step="0.01"
                 min="0"
                 max="100"
+                placeholder="0"
                 clearable={true}
+                tooltip="Portion of the current pool that has already been issued to employees. The rest is the unallocated pool VCs negotiate over."
               />
 
               <FormInput
                 label="Target Available"
                 type="number"
-                value={values.targetEsopPercent}
+                value={values.targetEsopPercent || ''}
                 onChange={(value) => handleChange('targetEsopPercent', value)}
                 suffix="%"
                 step="0.01"
                 min="0"
                 max="100"
+                placeholder="0"
                 clearable={true}
+                tooltip="Desired unallocated pool post-round (as a % of post-money fully-diluted). Set to 0 to skip any top-up."
               />
             </div>
 

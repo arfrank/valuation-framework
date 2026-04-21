@@ -333,21 +333,26 @@ body {
 }
 
 .top-row.compare-mode {
-  grid-template-columns: minmax(320px, 1fr) minmax(0, 2fr);
-  max-width: 1600px;
+  /* Cap the form column so the compare rail takes all remaining viewport width —
+     otherwise a fixed outer max-width forces horizontal scrolling on wide screens
+     even when the viewport has room for more cards. */
+  grid-template-columns: minmax(320px, 440px) minmax(0, 1fr);
+  max-width: none;
 }
 
 .base-result-compare {
   display: flex;
   flex-direction: row;
   justify-content: flex-start;
-  gap: var(--space-2);
+  /* Scale gap with viewport so wide screens get breathing room without cramping narrow ones. */
+  gap: clamp(var(--space-2), 1.2vw, var(--space-5));
   overflow-x: auto;
   padding-bottom: var(--space-2);
   width: 100%;
 }
 
 .base-result-compare > .scenario-card {
+  --card-pad-x: var(--space-3);
   flex: 0 0 340px;
   max-width: 380px;
   padding: var(--space-3);
@@ -940,6 +945,8 @@ body {
   border-radius: 50%;
   width: 20px;
   height: 20px;
+  min-width: 20px;
+  padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -956,11 +963,11 @@ body {
 }
 
 .form-input-wrapper.with-clear .form-input-control {
-  padding-right: 32px;
+  padding-right: 40px;
 }
 
 .form-input-wrapper.with-clear .form-input-suffix {
-  margin-right: 28px;
+  margin-right: 36px;
 }
 
 /* Checkbox Input Styles */
@@ -1075,6 +1082,7 @@ body {
 
 /* Scenario Cards */
 .scenario-card {
+  --card-pad-x: var(--space-4);
   background: var(--color-bg);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
@@ -1082,6 +1090,7 @@ body {
   transition: box-shadow var(--transition-base), transform var(--transition-base);
   position: relative;
   box-shadow: var(--shadow-sm);
+  overflow: hidden;
 }
 
 .scenario-header {
@@ -1412,9 +1421,11 @@ body {
 
 .table-row.header-row {
   background: var(--color-bg-subtle);
-  margin: 0 -1rem;
-  padding-left: 1rem;
-  padding-right: 1rem;
+  /* Extend across the card's horizontal padding AND its 1px border so the
+     header-row background overlays the side borders edge-to-edge. */
+  margin: 0 calc(var(--card-pad-x, 1rem) * -1 - 1px);
+  padding-left: calc(var(--card-pad-x, 1rem) + 1px);
+  padding-right: calc(var(--card-pad-x, 1rem) + 1px);
   border-top: 1px solid var(--color-border);
   font-weight: 600;
 }
@@ -2117,8 +2128,67 @@ input.investor-name-input:focus, input.founder-name-input:focus {
 }
 
 .esop-section .input-grid.esop-input-grid {
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-4);
+}
+
+/* ESOP inputs use label-above layout — the absolute-label overlay reserves
+   too much horizontal space for these short-label, narrow 3-column inputs. */
+.esop-section .esop-input-grid .form-input-wrapper {
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-2);
+  min-width: 0;
+  min-height: 0;
+  overflow: visible;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+}
+
+.esop-section .esop-input-grid .form-input-wrapper.focused,
+.esop-section .esop-input-grid .form-input-wrapper.disabled {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.esop-section .esop-input-grid .form-input-label {
+  position: static;
+  transform: none;
+  max-width: none;
+  min-width: 0;
+  padding: 0 0 0 2px;
+  color: var(--color-fg-muted);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-weight: 600;
+  background: none;
+  line-height: 1.2;
+}
+
+.esop-section .esop-input-grid .form-input-field {
+  padding-left: 0;
+  background: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  min-height: 40px;
+  position: relative;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Anchor the clear button to the input row (the .form-input-field), not the
+   taller wrapper — otherwise it floats above the input in label-above mode. */
+.esop-section .esop-input-grid .form-clear-btn {
+  right: 6px;
+}
+
+.esop-section .esop-input-grid .form-input-wrapper.focused .form-input-field {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(99, 91, 255, 0.12);
 }
 
 .esop-validation-error {
@@ -2602,44 +2672,17 @@ input.investor-name-input:focus, input.founder-name-input:focus {
   padding: var(--space-4);
 }
 
-.exit-math-inputs .input-group label {
-  font-weight: 600;
-  color: #4a5568;
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 0.25rem;
-}
-
-.exit-math-inputs input[type="number"] {
-  width: 100%;
-  padding: 0.45rem 0.6rem;
-  border: 1px solid #cbd5e0;
-  border-radius: 4px;
-  background: #ffffff;
-  font-family: 'JetBrains Mono', 'Consolas', 'Monaco', monospace;
-  font-size: 0.9rem;
-  color: #1e293b;
-  box-sizing: border-box;
-}
-
-.exit-math-inputs input[type="number"]:focus {
-  outline: none;
-  border-color: #635bff;
-  box-shadow: 0 0 0 2px rgba(99, 91, 255, 0.15);
-}
-
-.exit-math-input-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.75rem;
+.exit-math-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
 }
 
 .exit-math-hint {
   font-size: 0.72rem;
   color: #94a3b8;
   font-style: italic;
-  margin-top: 0.15rem;
+  padding-left: 12px;
 }
 
 .exit-math-overrides {
@@ -2651,33 +2694,7 @@ input.investor-name-input:focus, input.founder-name-input:focus {
   margin-top: 0.5rem;
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
-}
-
-.exit-math-override-row {
-  display: grid;
-  grid-template-columns: 60px 1fr 20px;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.exit-math-override-row label {
-  font-size: 0.75rem;
-  color: #4a5568;
-  font-weight: 600;
-  margin: 0;
-  text-transform: none;
-  letter-spacing: 0;
-}
-
-.exit-math-override-row input {
-  padding: 0.3rem 0.5rem !important;
-  font-size: 0.82rem !important;
-}
-
-.exit-math-override-unit {
-  font-size: 0.8rem;
-  color: #718096;
+  gap: var(--space-2);
 }
 
 .exit-math-reset-btn {

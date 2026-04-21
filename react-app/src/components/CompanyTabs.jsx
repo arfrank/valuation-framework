@@ -112,7 +112,10 @@ const CompanyTabs = ({
                       className="tab-remove-btn"
                       onClick={(e) => {
                         e.stopPropagation()
-                        onRemoveCompany(companyId)
+                        const name = company.name || 'this scenario'
+                        if (window.confirm(`Delete "${name}"? This cannot be undone.`)) {
+                          onRemoveCompany(companyId)
+                        }
                       }}
                       title="Remove company"
                     >

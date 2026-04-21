@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { calculateExitReturn, resolveDilutions } from '../utils/exitMath'
+import FormInput from './FormInput'
 
 const DEFAULT_EXIT = {
   exitValuation: 5000, // $5B in $M
@@ -76,43 +77,40 @@ const ExitMathModule = ({ baseScenario, investorName = 'US', exitMath, onUpdate 
       </div>
 
       <div className="exit-math-inputs">
-        <div className="input-group">
-          <label>Exit Valuation ($M)</label>
-          <input
+        <div className="exit-math-input-group">
+          <FormInput
+            label="Exit Valuation"
             type="number"
+            value={exitValuation}
+            onChange={(value) => update({ exitValuation: Number(value) || 0 })}
+            prefix="$"
+            suffix="M"
             min="0"
             step="100"
-            value={exitValuation}
-            onChange={(e) => update({ exitValuation: Number(e.target.value) || 0 })}
           />
           <span className="exit-math-hint">{formatMoney(exitValuation)}</span>
         </div>
 
-        <div className="exit-math-input-row">
-          <div className="input-group">
-            <label># Rounds</label>
-            <input
-              type="number"
-              min="0"
-              max="10"
-              step="1"
-              value={numRounds}
-              onChange={(e) => handleNumRoundsChange(e.target.value)}
-            />
-          </div>
+        <FormInput
+          label="# Rounds"
+          type="number"
+          value={numRounds}
+          onChange={handleNumRoundsChange}
+          min="0"
+          max="10"
+          step="1"
+        />
 
-          <div className="input-group">
-            <label>Dilution / Round (%)</label>
-            <input
-              type="number"
-              min="0"
-              max="100"
-              step="1"
-              value={uniformDilution}
-              onChange={(e) => update({ uniformDilution: Number(e.target.value) || 0 })}
-            />
-          </div>
-        </div>
+        <FormInput
+          label="Dilution / Round"
+          type="number"
+          value={uniformDilution}
+          onChange={(value) => update({ uniformDilution: Number(value) || 0 })}
+          suffix="%"
+          min="0"
+          max="100"
+          step="1"
+        />
 
         {numRounds > 0 && (
           <div className="exit-math-overrides">
@@ -126,19 +124,18 @@ const ExitMathModule = ({ baseScenario, investorName = 'US', exitMath, onUpdate 
             {showOverrides && (
               <div className="exit-math-overrides-grid">
                 {Array.from({ length: numRounds }).map((_, i) => (
-                  <div key={i} className="exit-math-override-row">
-                    <label>Round {i + 1}</label>
-                    <input
-                      type="number"
-                      min="0"
-                      max="100"
-                      step="1"
-                      placeholder={`${uniformDilution}`}
-                      value={perRoundOverrides[i] ?? ''}
-                      onChange={(e) => handleOverrideChange(i, e.target.value)}
-                    />
-                    <span className="exit-math-override-unit">%</span>
-                  </div>
+                  <FormInput
+                    key={i}
+                    label={`Round ${i + 1}`}
+                    type="number"
+                    value={perRoundOverrides[i] ?? ''}
+                    onChange={(value) => handleOverrideChange(i, value)}
+                    suffix="%"
+                    placeholder={`${uniformDilution}`}
+                    min="0"
+                    max="100"
+                    step="1"
+                  />
                 ))}
                 <button type="button" className="exit-math-reset-btn" onClick={resetOverrides}>
                   Reset to uniform
