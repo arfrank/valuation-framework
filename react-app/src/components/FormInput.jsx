@@ -1,9 +1,9 @@
 import { useState } from 'react'
 
-const FormInput = ({ 
-  label, 
-  value, 
-  onChange, 
+const FormInput = ({
+  label,
+  value,
+  onChange,
   type = 'number',
   prefix = '',
   suffix = '',
@@ -16,7 +16,8 @@ const FormInput = ({
   onClear,
   clearable = false,
   id,
-  ...props 
+  tooltip,
+  ...props
 }) => {
   const [isFocused, setIsFocused] = useState(false)
   
@@ -44,9 +45,9 @@ const FormInput = ({
   const showClearButton = clearable && value && (type === 'number' ? value > 0 : value.length > 0)
 
   return (
-    <div className={`form-input-group ${className}`}>
+    <div className={`form-input-group ${className}`} title={tooltip || undefined}>
       <div className={`form-input-wrapper ${isFocused ? 'focused' : ''} ${disabled ? 'disabled' : ''} ${showClearButton ? 'with-clear' : ''}`}>
-        <label htmlFor={inputId} className="form-input-label">
+        <label htmlFor={inputId} className="form-input-label" title={tooltip || undefined}>
           {label}
         </label>
         

@@ -2167,7 +2167,14 @@ input.investor-name-input:focus, input.founder-name-input:focus {
   border: 1px solid var(--color-border);
   border-radius: 6px;
   min-height: 40px;
+  position: relative;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Anchor the clear button to the input row (the .form-input-field), not the
+   taller wrapper — otherwise it floats above the input in label-above mode. */
+.esop-section .esop-input-grid .form-clear-btn {
+  right: 6px;
 }
 
 .esop-section .esop-input-grid .form-input-wrapper.focused .form-input-field {
