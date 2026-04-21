@@ -824,6 +824,8 @@ body {
   border-radius: 50%;
   width: 20px;
   height: 20px;
+  min-width: 20px;
+  padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -840,11 +842,11 @@ body {
 }
 
 .form-input-wrapper.with-clear .form-input-control {
-  padding-right: 32px;
+  padding-right: 40px;
 }
 
 .form-input-wrapper.with-clear .form-input-suffix {
-  margin-right: 28px;
+  margin-right: 36px;
 }
 
 /* Checkbox Input Styles */
@@ -2402,44 +2404,17 @@ input.investor-name-input:focus, input.founder-name-input:focus {
   padding: var(--space-4);
 }
 
-.exit-math-inputs .input-group label {
-  font-weight: 600;
-  color: #4a5568;
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 0.25rem;
-}
-
-.exit-math-inputs input[type="number"] {
-  width: 100%;
-  padding: 0.45rem 0.6rem;
-  border: 1px solid #cbd5e0;
-  border-radius: 4px;
-  background: #ffffff;
-  font-family: 'JetBrains Mono', 'Consolas', 'Monaco', monospace;
-  font-size: 0.9rem;
-  color: #1e293b;
-  box-sizing: border-box;
-}
-
-.exit-math-inputs input[type="number"]:focus {
-  outline: none;
-  border-color: #635bff;
-  box-shadow: 0 0 0 2px rgba(99, 91, 255, 0.15);
-}
-
-.exit-math-input-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.75rem;
+.exit-math-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
 }
 
 .exit-math-hint {
   font-size: 0.72rem;
   color: #94a3b8;
   font-style: italic;
-  margin-top: 0.15rem;
+  padding-left: 12px;
 }
 
 .exit-math-overrides {
@@ -2451,33 +2426,7 @@ input.investor-name-input:focus, input.founder-name-input:focus {
   margin-top: 0.5rem;
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
-}
-
-.exit-math-override-row {
-  display: grid;
-  grid-template-columns: 60px 1fr 20px;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.exit-math-override-row label {
-  font-size: 0.75rem;
-  color: #4a5568;
-  font-weight: 600;
-  margin: 0;
-  text-transform: none;
-  letter-spacing: 0;
-}
-
-.exit-math-override-row input {
-  padding: 0.3rem 0.5rem !important;
-  font-size: 0.82rem !important;
-}
-
-.exit-math-override-unit {
-  font-size: 0.8rem;
-  color: #718096;
+  gap: var(--space-2);
 }
 
 .exit-math-reset-btn {
