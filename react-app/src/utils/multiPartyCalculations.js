@@ -299,11 +299,33 @@ function calculateTwoStepScenario(inputs) {
   const effectiveGrantedEsopPercent = showAdvanced ? Math.min(grantedEsopPercent, currentEsopPercent) : 0
   const effectiveTargetEsopPercent = showAdvanced ? targetEsopPercent : 0
 
+  // Validate founders + priors ≤ 100% on their own; auto-scale to accommodate ESOP otherwise.
+  // See single-step path for rationale.
+  const rawFoundersTotal2 = effectiveFounders.reduce((sum, f) => sum + (f.ownershipPercent || 0), 0)
+  const rawPriorsTotal2 = effectivePriorInvestors.reduce((sum, inv) => sum + (inv.ownershipPercent || 0), 0)
+  const preRoundNonEsop2 = rawFoundersTotal2 + rawPriorsTotal2
+
+  if (preRoundNonEsop2 > 100) {
+    return null
+  }
+
+  const targetNonEsop2 = Math.max(0, 100 - effectiveCurrentEsopPercent)
+  const preRoundScaleFactor2 = preRoundNonEsop2 > targetNonEsop2 + 1e-6 && preRoundNonEsop2 > 0
+    ? targetNonEsop2 / preRoundNonEsop2
+    : 1
+
+  const scaledPriorInvestors = preRoundScaleFactor2 < 1
+    ? effectivePriorInvestors.map(inv => ({ ...inv, ownershipPercent: rp(inv.ownershipPercent * preRoundScaleFactor2) }))
+    : effectivePriorInvestors
+  const scaledFounders = preRoundScaleFactor2 < 1
+    ? effectiveFounders.map(f => ({ ...f, ownershipPercent: rp(f.ownershipPercent * preRoundScaleFactor2) }))
+    : effectiveFounders
+
   // --- SAFE conversions at step 1 pre-money ---
   const safeCalc = calculateSafeConversions(effectiveSafes, preMoneyV1)
 
   // --- Pro-rata from step 2's other portion ---
-  const priorInvestorsForProRata = effectivePriorInvestors.map(inv =>
+  const priorInvestorsForProRata = scaledPriorInvestors.map(inv =>
     inv.name === investorName ? { ...inv, hasProRataRights: false } : inv
   )
   const proRataCalc = calculateProRataAllocations(priorInvestorsForProRata, S2)
@@ -361,7 +383,7 @@ function calculateTwoStepScenario(inputs) {
   const esopCalc = calculateEsopEffects(effectiveCurrentEsopPercent, effectiveGrantedEsopPercent, effectiveTargetEsopPercent, esopTiming, baseDilutionPercent)
 
   // --- Prior investors ---
-  const postRoundPriorInvestors = effectivePriorInvestors.map(investor => {
+  const postRoundPriorInvestors = scaledPriorInvestors.map(investor => {
     const preRoundPercent = investor.ownershipPercent
     // Existing shareholders diluted by step 1 then step 2
     let postRoundPercent = rp(preRoundPercent * (100 - step1RoundPercent - safeCalc.totalSafePercent - esopCalc.esopIncreasePreClose) / 100 * step2DilutionFactor)
@@ -390,7 +412,7 @@ function calculateTwoStepScenario(inputs) {
   })
 
   // --- Founders ---
-  const postRoundFounders = effectiveFounders.map(founder => {
+  const postRoundFounders = scaledFounders.map(founder => {
     const preRoundPercent = founder.ownershipPercent
     let postRoundPercent = rp(preRoundPercent * (100 - step1RoundPercent - safeCalc.totalSafePercent - esopCalc.esopIncreasePreClose) / 100 * step2DilutionFactor)
 
@@ -499,8 +521,8 @@ function calculateTwoStepScenario(inputs) {
     - proRataOwnershipInRound
   const unknownOwnership = rp(100 - totalAccountedOwnership)
 
-  const preRoundTrackedOwnership = effectivePriorInvestors.reduce((sum, inv) => sum + (inv.ownershipPercent || 0), 0)
-    + effectiveFounders.reduce((sum, f) => sum + (f.ownershipPercent || 0), 0)
+  const preRoundTrackedOwnership = scaledPriorInvestors.reduce((sum, inv) => sum + (inv.ownershipPercent || 0), 0)
+    + scaledFounders.reduce((sum, f) => sum + (f.ownershipPercent || 0), 0)
     + effectiveCurrentEsopPercent
   const preRoundUnknownPercent = Math.max(0, rp(100 - preRoundTrackedOwnership))
 
@@ -570,8 +592,8 @@ function calculateTwoStepScenario(inputs) {
 
     // Legacy compatibility
     postRoundFounderPercent: rp(postRoundFounders.reduce((sum, f) => sum + (f.postRoundPercent || 0), 0)),
-    preRoundFounderPercent: rp(effectiveFounders.reduce((sum, f) => sum + (f.ownershipPercent || 0), 0)),
-    founderDilution: rp(effectiveFounders.reduce((sum, f) => sum + (f.ownershipPercent || 0), 0) - postRoundFounders.reduce((sum, f) => sum + (f.postRoundPercent || 0), 0)),
+    preRoundFounderPercent: rp(scaledFounders.reduce((sum, f) => sum + (f.ownershipPercent || 0), 0)),
+    founderDilution: rp(scaledFounders.reduce((sum, f) => sum + (f.ownershipPercent || 0), 0) - postRoundFounders.reduce((sum, f) => sum + (f.postRoundPercent || 0), 0)),
 
     totalOwnership: rp(totalAccountedOwnership),
     unknownOwnership,
@@ -668,18 +690,31 @@ export function calculateEnhancedScenario(inputs) {
   const effectiveGrantedEsopPercent = showAdvanced ? Math.min(grantedEsopPercent, currentEsopPercent) : 0
   const effectiveTargetEsopPercent = showAdvanced ? targetEsopPercent : 0
   
-  // Check if pre-round ownership exceeds 100% and return error if so
-  const totalPreRoundOwnership = (effectivePriorInvestors.reduce((sum, inv) => sum + (inv.ownershipPercent || 0), 0)) +
-                                  (effectiveFounders.reduce((sum, f) => sum + (f.ownershipPercent || 0), 0))
-  
-  if (totalPreRoundOwnership > 100) {
-    console.error(`Pre-round ownership totals ${totalPreRoundOwnership.toFixed(1)}% which exceeds 100%. Cannot calculate scenario.`)
+  // Validate founders + priors can't exceed 100% on their own (obvious user error).
+  const rawFoundersTotal = effectiveFounders.reduce((sum, f) => sum + (f.ownershipPercent || 0), 0)
+  const rawPriorsTotal = effectivePriorInvestors.reduce((sum, inv) => sum + (inv.ownershipPercent || 0), 0)
+  const preRoundNonEsop = rawFoundersTotal + rawPriorsTotal
+
+  if (preRoundNonEsop > 100) {
+    console.error(`Pre-round ownership totals ${preRoundNonEsop.toFixed(1)}% which exceeds 100%. Cannot calculate scenario.`)
     return null
   }
-  
-  // Use effective values (will be empty arrays when showAdvanced is false)
-  const scaledPriorInvestors = effectivePriorInvestors
-  const scaledFounders = effectiveFounders
+
+  // Reconcile with ESOP: users commonly enter founders = 100% and then add an ESOP pool,
+  // expecting the pool to be carved out of the cap table. When founders + priors + current
+  // ESOP > 100%, scale founders + priors proportionally to fit in (100 − currentEsopPercent)
+  // so section totals sum to exactly 100% instead of silently overshooting.
+  const targetNonEsop = Math.max(0, 100 - effectiveCurrentEsopPercent)
+  const preRoundScaleFactor = preRoundNonEsop > targetNonEsop + 1e-6 && preRoundNonEsop > 0
+    ? targetNonEsop / preRoundNonEsop
+    : 1
+
+  const scaledPriorInvestors = preRoundScaleFactor < 1
+    ? effectivePriorInvestors.map(inv => ({ ...inv, ownershipPercent: rp(inv.ownershipPercent * preRoundScaleFactor) }))
+    : effectivePriorInvestors
+  const scaledFounders = preRoundScaleFactor < 1
+    ? effectiveFounders.map(f => ({ ...f, ownershipPercent: rp(f.ownershipPercent * preRoundScaleFactor) }))
+    : effectiveFounders
   
   // Validate basic inputs
   if (postMoneyVal <= 0 || roundSize <= 0 || postMoneyVal <= roundSize) {
