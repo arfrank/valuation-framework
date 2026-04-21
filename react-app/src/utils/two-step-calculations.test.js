@@ -338,24 +338,21 @@ describe('Two-Step Round Calculations', () => {
     it('should scale V1 and V2 together in valuation variations', () => {
       const scenarios = calculateEnhancedScenarios(baseTwoStepInputs)
       const base = scenarios[0]
-      // Find the 0.5x valuation scenario
-      const halfVal = scenarios.find(s => s.title === '0.5x Valuation')
-      expect(halfVal).toBeDefined()
+      // Find the -30% valuation scenario (0.7x multiplier)
+      const down30 = scenarios.find(s => s.offsetPercent === -30)
+      expect(down30).toBeDefined()
 
-      // V1 should be halved
-      expect(halfVal.step1.postMoney).toBeCloseTo(base.step1.postMoney * 0.5, 1)
-      // V2 should be halved
-      expect(halfVal.step2.postMoney).toBeCloseTo(base.step2.postMoney * 0.5, 1)
+      expect(down30.step1.postMoney).toBeCloseTo(base.step1.postMoney * 0.7, 1)
+      expect(down30.step2.postMoney).toBeCloseTo(base.step2.postMoney * 0.7, 1)
     })
 
-    it('should scale S1 and S2 together in round size variations', () => {
+    it('should keep round sizes pinned to base across valuation variations', () => {
       const scenarios = calculateEnhancedScenarios(baseTwoStepInputs)
       const base = scenarios[0]
-      const halfRound = scenarios.find(s => s.title === 'Half Round Size')
-      expect(halfRound).toBeDefined()
-
-      expect(halfRound.step1.amount).toBeCloseTo(base.step1.amount * 0.5, 1)
-      expect(halfRound.step2.amount).toBeCloseTo(base.step2.amount * 0.5, 1)
+      scenarios.slice(1).forEach(scenario => {
+        expect(scenario.step1.amount).toBeCloseTo(base.step1.amount, 2)
+        expect(scenario.step2.amount).toBeCloseTo(base.step2.amount, 2)
+      })
     })
 
     it('should maintain V1/V2 ratio across variations', () => {

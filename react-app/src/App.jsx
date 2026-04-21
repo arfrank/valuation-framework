@@ -3,6 +3,7 @@ import './App.css'
 import CompanyTabs from './components/CompanyTabs'
 import InputForm from './components/InputForm'
 import ScenarioCard from './components/ScenarioCard'
+import ScenarioControls from './components/ScenarioControls'
 import Logo from './components/Logo'
 import NotificationContainer from './components/NotificationContainer'
 import ExitMathModule from './components/ExitMathModule'
@@ -107,7 +108,9 @@ function App() {
   useEffect(() => {
     const currentCompany = companies[activeCompany]
     if (currentCompany) {
-      const newScenarios = calculateEnhancedScenarios(currentCompany)
+      const newScenarios = calculateEnhancedScenarios(currentCompany, {
+        offsets: currentCompany.scenarioOffsets
+      })
 
       // Check if the result is an error object
       if (newScenarios && newScenarios.error) {
@@ -219,10 +222,17 @@ function App() {
           )}
         </div>
 
+        {!isCompareMode && scenarios.length > 1 && (
+          <ScenarioControls
+            offsets={companies[activeCompany]?.scenarioOffsets || []}
+            onChange={(next) => updateCompany(activeCompany, { scenarioOffsets: next })}
+          />
+        )}
+
         <div className="scenarios-rows">
           {scenarios.slice(1).map((scenario, index) => (
             <ScenarioCard
-              key={index + 1}
+              key={scenario.offsetPercent ?? index + 1}
               scenario={scenario}
               index={index + 1}
               isBase={false}
@@ -231,6 +241,7 @@ function App() {
               showAdvanced={companies[activeCompany]?.showAdvanced || false}
               percentPrecision={companies[activeCompany]?.percentPrecision || 2}
               onPercentPrecisionChange={(pp) => updateCompany(activeCompany, { percentPrecision: pp })}
+              baseScenario={scenarios[0]}
             />
           ))}
         </div>

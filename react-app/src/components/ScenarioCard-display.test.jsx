@@ -72,10 +72,10 @@ describe('ScenarioCard Display Logic', () => {
       }
 
       const { getByText } = render(
-        <ScenarioCard 
-          scenario={scenarioWithFounders} 
-          index={1} 
-          isBase={false}
+        <ScenarioCard
+          scenario={scenarioWithFounders}
+          index={1}
+          isBase={true}
           showAdvanced={true}
           investorName="US"
         />
@@ -155,9 +155,9 @@ describe('ScenarioCard Display Logic', () => {
 
       const { getByText, getAllByText } = render(
         <ScenarioCard 
-          scenario={scenarioWithMultipleInvestors} 
-          index={1} 
-          isBase={false}
+          scenario={scenarioWithMultipleInvestors}
+          index={1}
+          isBase={true}
           showAdvanced={true}
           investorName="US"
         />
@@ -209,9 +209,9 @@ describe('ScenarioCard Display Logic', () => {
 
       const { getByText } = render(
         <ScenarioCard 
-          scenario={scenarioWithMultipleFounders} 
-          index={1} 
-          isBase={false}
+          scenario={scenarioWithMultipleFounders}
+          index={1}
+          isBase={true}
           showAdvanced={true}
           investorName="US"
         />
@@ -266,9 +266,9 @@ describe('ScenarioCard Display Logic', () => {
 
       const { getByText, getAllByText } = render(
         <ScenarioCard 
-          scenario={scenarioWithBoth} 
-          index={1} 
-          isBase={false}
+          scenario={scenarioWithBoth}
+          index={1}
+          isBase={true}
           showAdvanced={true}
           investorName="US"
         />
@@ -304,9 +304,9 @@ describe('ScenarioCard Display Logic', () => {
 
       const { getByText, getAllByText } = render(
         <ScenarioCard 
-          scenario={scenarioWithManyStakeholders} 
-          index={1} 
-          isBase={false}
+          scenario={scenarioWithManyStakeholders}
+          index={1}
+          isBase={true}
           showAdvanced={true}
           investorName="US"
         />
@@ -345,9 +345,9 @@ describe('ScenarioCard Display Logic', () => {
 
       const { getByText } = render(
         <ScenarioCard 
-          scenario={scenarioWithSafes} 
-          index={1} 
-          isBase={false}
+          scenario={scenarioWithSafes}
+          index={1}
+          isBase={true}
           showAdvanced={true}
           investorName="US"
         />
@@ -406,9 +406,9 @@ describe('ScenarioCard Display Logic', () => {
 
       const { getByText } = render(
         <ScenarioCard 
-          scenario={fullScenario} 
-          index={1} 
-          isBase={false}
+          scenario={fullScenario}
+          index={1}
+          isBase={true}
           showAdvanced={true}
           investorName="US"
         />
@@ -435,9 +435,9 @@ describe('ScenarioCard Display Logic', () => {
 
       const { getByText, container } = render(
         <ScenarioCard 
-          scenario={safeOnlyScenario} 
-          index={1} 
-          isBase={false}
+          scenario={safeOnlyScenario}
+          index={1}
+          isBase={true}
           showAdvanced={true}
           investorName="US"
         />

@@ -61,9 +61,9 @@ describe('ScenarioCard - Multiple Founders Display', () => {
 
     const { getByText, getAllByText, container } = render(
       <ScenarioCard 
-        scenario={scenarioWithMultipleFounders} 
-        index={1} 
-        isBase={false}
+        scenario={scenarioWithMultipleFounders}
+        index={1}
+        isBase={true}
         showAdvanced={true}
         investorName="US"
       />
@@ -157,9 +157,9 @@ describe('ScenarioCard - Multiple Founders Display', () => {
 
     const { getByText, container } = render(
       <ScenarioCard 
-        scenario={scenarioWithDuplicatePercents} 
-        index={1} 
-        isBase={false}
+        scenario={scenarioWithDuplicatePercents}
+        index={1}
+        isBase={true}
         showAdvanced={true}
         investorName="US"
       />
@@ -250,9 +250,9 @@ describe('ScenarioCard - Multiple Founders Display', () => {
 
     const { getByText, container } = render(
       <ScenarioCard 
-        scenario={inputs} 
-        index={1} 
-        isBase={false}
+        scenario={inputs}
+        index={1}
+        isBase={true}
         showAdvanced={true}
         investorName="US"
       />

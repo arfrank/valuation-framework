@@ -440,9 +440,130 @@ body {
 /* Scenarios Rows Layout */
 .scenarios-rows {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--space-4);
   width: 100%;
+}
+
+/* Scenario Controls strip (sensitivity pills + presets) */
+.scenario-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-2);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.scenario-controls-label {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-fg-subtle);
+}
+
+.scenario-pills {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.scenario-pill {
+  font-family: inherit;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  padding: 0.35rem 0.65rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-subtle);
+  color: var(--color-fg-muted);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  line-height: 1;
+  min-width: 2.75rem;
+}
+
+.scenario-pill:hover {
+  border-color: var(--color-border-strong);
+  background: var(--color-bg-muted);
+}
+
+.scenario-pill.active.scenario-pill-down {
+  background: hsl(22 70% 94%);
+  border-color: hsl(22 60% 70%);
+  color: hsl(22 55% 32%);
+}
+
+.scenario-pill.active.scenario-pill-up {
+  background: hsl(152 45% 93%);
+  border-color: hsl(152 35% 60%);
+  color: hsl(152 45% 26%);
+}
+
+.scenario-pill-add {
+  font-size: var(--text-sm);
+  padding: 0.3rem 0.6rem;
+  color: var(--color-fg-subtle);
+}
+
+.scenario-pill-add-input input {
+  font-family: inherit;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  width: 4.5rem;
+  padding: 0.3rem 0.5rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--color-accent);
+  background: var(--color-bg);
+  color: var(--color-fg);
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+.scenario-presets {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-left: auto;
+}
+
+.scenario-presets-label {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-fg-subtle);
+  margin-right: var(--space-1);
+}
+
+.scenario-preset {
+  font-family: inherit;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  padding: 0.3rem 0.55rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-fg-muted);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.scenario-preset:hover {
+  border-color: var(--color-border-strong);
+  background: var(--color-bg-subtle);
+}
+
+.scenario-preset.active {
+  background: var(--color-accent-soft);
+  border-color: var(--color-accent);
+  color: var(--color-accent-hover);
 }
 
 /* Input Form */
@@ -1356,28 +1477,81 @@ body {
   box-shadow: var(--shadow-md);
 }
 
-/* Scenario card tints — harmonized HSL ramp, desaturated, coherent family.
-   Background ~97% L / 35% S; border-left accent ~60% L / 40% S. */
-.scenario-0 {
-  background: hsl(210 30% 98%);
-  border-left: 3px solid hsl(210 35% 70%);
+/* Scenario card tints — direction-based (down = warm, up = cool).
+   Magnitude (sm/md/lg) scales saturation & border intensity. */
+.scenario-down-sm {
+  background: hsl(30 55% 98%);
+  border-left: 3px solid hsl(30 55% 75%);
 }
-.scenario-1 {
-  background: hsl(42 45% 97%);
-  border-left: 3px solid hsl(42 45% 65%);
+.scenario-down-md {
+  background: hsl(24 60% 97%);
+  border-left: 3px solid hsl(24 60% 68%);
 }
-.scenario-2 {
-  background: hsl(210 45% 97%);
-  border-left: 3px solid hsl(210 55% 65%);
+.scenario-down-lg {
+  background: hsl(18 65% 96%);
+  border-left: 3px solid hsl(18 65% 60%);
 }
-.scenario-3 {
-  background: hsl(150 35% 97%);
-  border-left: 3px solid hsl(150 35% 60%);
+.scenario-up-sm {
+  background: hsl(160 35% 97%);
+  border-left: 3px solid hsl(160 35% 70%);
 }
-.scenario-4 {
-  background: hsl(330 35% 97%);
-  border-left: 3px solid hsl(330 40% 70%);
+.scenario-up-md {
+  background: hsl(155 40% 96%);
+  border-left: 3px solid hsl(155 40% 60%);
 }
+.scenario-up-lg {
+  background: hsl(150 45% 95%);
+  border-left: 3px solid hsl(150 45% 50%);
+}
+
+/* Scenario headline row (non-base cards): 3 metrics with deltas */
+.scenario-headline {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-2);
+  padding: var(--space-3) 0;
+  margin-bottom: var(--space-3);
+  border-bottom: 1px dashed var(--color-border);
+}
+
+.headline-metric {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.headline-label {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-fg-subtle);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.headline-value {
+  font-size: var(--text-md);
+  font-weight: 700;
+  color: var(--color-fg);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.headline-delta {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.headline-delta.delta-up { color: var(--color-success); }
+.headline-delta.delta-down { color: var(--color-danger); }
+.headline-delta.delta-flat { color: var(--color-fg-faint); }
 
 
 /* Scenario Table */

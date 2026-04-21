@@ -130,6 +130,9 @@ export function createDefaultCompany(companyName = 'New Company') {
     grantedEsopPercent: 0,
     targetEsopPercent: 0,
     esopTiming: 'pre-close',
+
+    // Sensitivity scenarios: valuation % offsets to render as alternative cards
+    scenarioOffsets: [-30, -20, -10, 10, 20, 30],
     
     // Legacy fields - to be removed after migration
     proRataPercent: 0, // DEPRECATED: Use priorInvestors with hasProRataRights
@@ -199,6 +202,11 @@ export function migrateLegacyCompany(legacyCompany) {
 
   // Ensure ESOP fields exist (grantedEsopPercent added after initial release)
   if (migrated.grantedEsopPercent === undefined) migrated.grantedEsopPercent = 0
+
+  // Ensure scenarioOffsets exist
+  if (!Array.isArray(migrated.scenarioOffsets) || migrated.scenarioOffsets.length === 0) {
+    migrated.scenarioOffsets = [-30, -20, -10, 10, 20, 30]
+  }
 
   // Ensure Exit Math fields exist
   if (migrated.showExitMath === undefined) migrated.showExitMath = false

@@ -991,76 +991,73 @@ export function calculateEnhancedScenario(inputs) {
   }
 }
 
+const DEFAULT_SCENARIO_OFFSETS = [-30, -20, -10, 10, 20, 30]
+
+const formatOffsetTitle = (offset) => {
+  if (offset === 0) return 'Base Case'
+  const sign = offset > 0 ? '+' : '−'
+  return `${sign}${Math.abs(offset)}%`
+}
+
 /**
  * Generate scenarios using the enhanced calculation engine
  * @param {Object} company - Company data
- * @returns {Array} Array of scenario results
+ * @param {Object} [options] - Optional generation options
+ * @param {number[]} [options.offsets] - Percent offsets to apply to postMoneyVal (e.g., [-20, -10, 10, 20])
+ * @returns {Array} Array of scenario results. Index 0 is always the base case.
  */
-export function calculateEnhancedScenarios(company) {
+export function calculateEnhancedScenarios(company, options = {}) {
   const baseScenario = calculateEnhancedScenario(company)
-  
+
   if (!baseScenario) {
     return []
   }
-  
-  // Check if base scenario is an error
+
   if (baseScenario.error) {
-    return baseScenario  // Return the error object directly
+    return baseScenario
   }
-  
+
   const scenarios = [{
     ...baseScenario,
     title: 'Base Case',
-    isBase: true
+    isBase: true,
+    offsetPercent: 0
   }]
-  
-  // Generate 10 alternative scenarios with varied parameters
-  const scenarioVariations = [
-    { multiplier: 0.5, roundMultiplier: 1.0, title: '0.5x Valuation' },
-    { multiplier: 0.75, roundMultiplier: 1.0, title: '0.75x Valuation' },
-    { multiplier: 0.9, roundMultiplier: 1.0, title: '0.9x Valuation' },
-    { multiplier: 1.1, roundMultiplier: 1.0, title: '1.1x Valuation' },
-    { multiplier: 1.25, roundMultiplier: 1.0, title: '1.25x Valuation' },
-    { multiplier: 1.5, roundMultiplier: 1.0, title: '1.5x Valuation' },
-    { multiplier: 2.0, roundMultiplier: 1.0, title: '2x Valuation' },
-    { multiplier: 1.0, roundMultiplier: 0.5, title: 'Half Round Size' },
-    { multiplier: 1.0, roundMultiplier: 1.5, title: '1.5x Round Size' },
-    { multiplier: 1.5, roundMultiplier: 1.5, title: '1.5x Val & Round' }
-  ]
-  
+
+  const rawOffsets = Array.isArray(options.offsets) ? options.offsets : DEFAULT_SCENARIO_OFFSETS
+  const offsets = Array.from(new Set(
+    rawOffsets
+      .map(n => Number(n))
+      .filter(n => Number.isFinite(n) && n !== 0)
+  )).sort((a, b) => a - b)
+
   const isTwoStep = company.twoStepEnabled && company.step2PostMoney > 0 && company.step2Amount > 0
 
-  scenarioVariations.forEach((variation, _index) => {
-    const adjustedPostMoney = r$(company.postMoneyVal * variation.multiplier)
-    const adjustedRoundSize = r$(company.roundSize * variation.roundMultiplier)
-    const adjustedInvestorPortion = r$(company.investorPortion * variation.roundMultiplier)
-    const adjustedOtherPortion = r$(adjustedRoundSize - adjustedInvestorPortion)
+  offsets.forEach((offset) => {
+    const multiplier = 1 + offset / 100
+    if (multiplier <= 0) return
 
     const scenarioInputs = {
       ...company,
-      postMoneyVal: adjustedPostMoney,
-      roundSize: adjustedRoundSize,
-      investorPortion: adjustedInvestorPortion,
-      otherPortion: adjustedOtherPortion
+      postMoneyVal: r$(company.postMoneyVal * multiplier)
     }
 
-    // Scale step 2 values proportionally for two-step scenarios
+    // Scale step 2 valuation along with step 1 to preserve deal shape (V2/V1 ratio).
+    // Round sizes are NOT varied here (offsets model valuation sensitivity only).
     if (isTwoStep) {
-      scenarioInputs.step2PostMoney = r$(company.step2PostMoney * variation.multiplier)
-      scenarioInputs.step2Amount = r$(company.step2Amount * variation.roundMultiplier)
-      scenarioInputs.step2InvestorPortion = r$(company.step2InvestorPortion * variation.roundMultiplier)
-      scenarioInputs.step2OtherPortion = r$(scenarioInputs.step2Amount - scenarioInputs.step2InvestorPortion)
+      scenarioInputs.step2PostMoney = r$(company.step2PostMoney * multiplier)
     }
 
     const scenario = calculateEnhancedScenario(scenarioInputs)
-    if (scenario && !scenario.error) {  // Skip error scenarios
+    if (scenario && !scenario.error) {
       scenarios.push({
         ...scenario,
-        title: variation.title,
-        isBase: false
+        title: formatOffsetTitle(offset),
+        isBase: false,
+        offsetPercent: offset
       })
     }
   })
-  
+
   return scenarios
 }
