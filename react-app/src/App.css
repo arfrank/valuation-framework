@@ -333,8 +333,11 @@ body {
 }
 
 .top-row.compare-mode {
-  grid-template-columns: minmax(320px, 1fr) minmax(0, 2fr);
-  max-width: 1600px;
+  /* Cap the form column so the compare rail takes all remaining viewport width —
+     otherwise a fixed outer max-width forces horizontal scrolling on wide screens
+     even when the viewport has room for more cards. */
+  grid-template-columns: minmax(320px, 440px) minmax(0, 1fr);
+  max-width: none;
 }
 
 .base-result-compare {
