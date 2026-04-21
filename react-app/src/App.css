@@ -1295,7 +1295,7 @@ body {
 
 /* Advanced Features Styling */
 .advanced-section .input-grid {
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 1rem;
 }
 
@@ -1390,7 +1390,7 @@ body {
 
 .safe-inputs {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 0.75rem;
   margin-bottom: 0.75rem;
 }
@@ -1525,7 +1525,7 @@ body {
 
 .investor-inputs, .founder-inputs {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 0.75rem;
   margin-bottom: 0.75rem;
 }
@@ -1560,7 +1560,7 @@ body {
 
 /* Adjust form input spacing for different contexts */
 .input-grid .form-input-field {
-  padding-left: 140px;
+  padding-left: 155px;
 }
 
 .safe-inputs .form-input-field,
@@ -1926,7 +1926,7 @@ input.investor-name-input:focus, input.founder-name-input:focus {
   font-weight: 600;
 }
 
-.esop-input-grid {
+.esop-section .input-grid.esop-input-grid {
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: var(--space-4);
 }
