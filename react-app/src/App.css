@@ -2186,6 +2186,14 @@ input.investor-name-input:focus, input.founder-name-input:focus {
   right: 6px;
 }
 
+/* The global .with-clear padding-right on the input is tuned for the full-width
+   label-inside layout. In ESOP's 3-column grid it steals enough horizontal space
+   that right-aligned decimals get clipped. The suffix's margin-right already
+   reserves room for the clear button, so the input doesn't need extra padding. */
+.esop-section .esop-input-grid .form-input-wrapper.with-clear .form-input-control {
+  padding-right: 4px;
+}
+
 .esop-section .esop-input-grid .form-input-wrapper.focused .form-input-field {
   border-color: var(--color-accent);
   box-shadow: 0 0 0 3px rgba(99, 91, 255, 0.12);
