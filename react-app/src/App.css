@@ -343,7 +343,9 @@ body {
 .base-result-compare {
   display: flex;
   flex-direction: row;
-  justify-content: flex-start;
+  /* `safe center` keeps cards centered in the rail until they exceed it, then
+     falls back to flex-start so the leftmost card stays reachable via scroll. */
+  justify-content: safe center;
   /* Scale gap with viewport so wide screens get breathing room without cramping narrow ones. */
   gap: clamp(var(--space-2), 1.2vw, var(--space-5));
   overflow-x: auto;
