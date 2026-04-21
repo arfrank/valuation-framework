@@ -82,11 +82,19 @@ body {
 }
 
 .app-header {
+  position: relative;
   background: var(--color-bg);
   border-bottom: 1px solid var(--color-border);
   padding: var(--space-5) var(--space-6);
   text-align: center;
   box-shadow: var(--shadow-sm);
+}
+
+.header-exit-math-toggle {
+  position: absolute;
+  top: 50%;
+  right: var(--space-6);
+  transform: translateY(-50%);
 }
 
 /* Logo Styles */
@@ -333,11 +341,20 @@ body {
 }
 
 .top-row.compare-mode {
-  /* Cap the form column so the compare rail takes all remaining viewport width —
-     otherwise a fixed outer max-width forces horizontal scrolling on wide screens
-     even when the viewport has room for more cards. */
-  grid-template-columns: minmax(320px, 440px) minmax(0, 1fr);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 2rem;
   max-width: none;
+}
+
+.top-row.compare-mode > .input-form {
+  flex: 0 0 clamp(320px, 28vw, 440px);
+}
+
+.top-row.compare-mode > .base-result-compare {
+  flex: 0 1 auto;
+  min-width: 0;
 }
 
 .base-result-compare {
@@ -2397,6 +2414,16 @@ input.investor-name-input:focus, input.founder-name-input:focus {
     margin-bottom: 1.5rem;
   }
 
+  .top-row.compare-mode {
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .top-row.compare-mode > .input-form {
+    flex: 0 0 auto;
+    width: 100%;
+  }
+
   .scenarios-rows {
     grid-template-columns: 1fr;
     gap: 1rem;
@@ -2776,18 +2803,6 @@ input.investor-name-input:focus, input.founder-name-input:focus {
   font-style: italic;
   text-align: center;
   padding: 1rem 0.5rem;
-}
-
-/* ============================================================
-   App Footer (houses Exit Math toggle)
-   ============================================================ */
-.app-footer {
-  width: 100%;
-  padding: 1rem 1.5rem 1.25rem;
-  display: flex;
-  justify-content: center;
-  border-top: 1px solid #e2e8f0;
-  margin-top: 1.5rem;
 }
 
 .exit-math-toggle {

@@ -6,7 +6,6 @@ import ScenarioCard from './components/ScenarioCard'
 import Logo from './components/Logo'
 import NotificationContainer from './components/NotificationContainer'
 import ExitMathModule from './components/ExitMathModule'
-import AppFooter from './components/AppFooter'
 import { useLocalStorage } from './hooks/useLocalStorage'
 import { useNotifications } from './hooks/useNotifications'
 import { calculateEnhancedScenarios } from './utils/multiPartyCalculations'
@@ -162,6 +161,14 @@ function App() {
       />
       <header className="app-header">
         <Logo size={40} />
+        <button
+          type="button"
+          className="exit-math-toggle header-exit-math-toggle"
+          onClick={() => updateCompany(activeCompany, { showExitMath: !(companies[activeCompany]?.showExitMath) })}
+          aria-pressed={companies[activeCompany]?.showExitMath || false}
+        >
+          {companies[activeCompany]?.showExitMath ? '▼' : '▶'} Exit Math
+        </button>
       </header>
 
       <main className="app-main">
@@ -235,11 +242,6 @@ function App() {
           ))}
         </div>
       </main>
-
-      <AppFooter
-        showExitMath={companies[activeCompany]?.showExitMath || false}
-        onToggleExitMath={(v) => updateCompany(activeCompany, { showExitMath: v })}
-      />
     </div>
   )
 }
