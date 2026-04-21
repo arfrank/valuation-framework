@@ -343,7 +343,9 @@ body {
 .base-result-compare {
   display: flex;
   flex-direction: row;
-  justify-content: flex-start;
+  /* `safe center` keeps cards centered in the rail until they exceed it, then
+     falls back to flex-start so the leftmost card stays reachable via scroll. */
+  justify-content: safe center;
   /* Scale gap with viewport so wide screens get breathing room without cramping narrow ones. */
   gap: clamp(var(--space-2), 1.2vw, var(--space-5));
   overflow-x: auto;
@@ -2184,6 +2186,14 @@ input.investor-name-input:focus, input.founder-name-input:focus {
    taller wrapper — otherwise it floats above the input in label-above mode. */
 .esop-section .esop-input-grid .form-clear-btn {
   right: 6px;
+}
+
+/* The global .with-clear padding-right on the input is tuned for the full-width
+   label-inside layout. In ESOP's 3-column grid it steals enough horizontal space
+   that right-aligned decimals get clipped. The suffix's margin-right already
+   reserves room for the clear button, so the input doesn't need extra padding. */
+.esop-section .esop-input-grid .form-input-wrapper.with-clear .form-input-control {
+  padding-right: 4px;
 }
 
 .esop-section .esop-input-grid .form-input-wrapper.focused .form-input-field {
