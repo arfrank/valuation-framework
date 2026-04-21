@@ -1,21 +1,21 @@
 import { useState } from 'react'
 
-const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalink, investorName = 'US', showAdvanced = false, percentPrecision = 2, onPercentPrecisionChange, company, onUpdateBase, companyName, compareActive, compareIndex }) => {
+const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalink, investorName = 'US', showAdvanced = false, percentPrecision = 2, onPercentPrecisionChange, company, onUpdateBase, companyName, compareActive, compareIndex, baseScenario }) => {
   const [copyFeedback, setCopyFeedback] = useState('')
   const [collapsed, setCollapsed] = useState({
-    newRound: false,
-    founders: false,
-    priorInvestors: false,
-    safes: false
+    newRound: !isBase,
+    founders: !isBase,
+    priorInvestors: !isBase,
+    safes: !isBase
   })
-  
+
   const toggleCollapse = (section) => {
     setCollapsed(prev => ({
       ...prev,
       [section]: !prev[section]
     }))
   }
-  
+
   const getCardClass = () => {
     if (isBase) {
       let cls = 'scenario-card base-scenario'
@@ -26,7 +26,10 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
       }
       return cls
     }
-    return `scenario-card scenario-${index % 5}`
+    const offset = scenario.offsetPercent || 0
+    const direction = offset < 0 ? 'down' : 'up'
+    const magnitude = Math.abs(offset) >= 25 ? 'lg' : Math.abs(offset) >= 15 ? 'md' : 'sm'
+    return `scenario-card scenario-${direction} scenario-${direction}-${magnitude}`
   }
 
   const formatPercent = (value) => `${value.toFixed(percentPrecision)}%`
@@ -172,22 +175,91 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
     ? `Base Case — ${companyName}`
     : (scenario.title || (isBase ? 'Base Case' : `Scenario ${index}`))
 
+  // Headline metrics for non-base cards (LSVP, Founders, Pre-money) with deltas vs. base
+  const headlineLsvpPercent = combinedInvestor ? combinedInvestor.totalOwnership : scenario.investorPercent
+  const headlineFoundersPercent = foundersTotal
+  const headlinePreMoney = isTwoStep ? scenario.step1.postMoney - scenario.step1.amount : scenario.preMoneyVal
+  const headlinePostMoney = isTwoStep ? scenario.step1.postMoney : scenario.postMoneyVal
+  let deltaLsvp = null
+  let deltaFounders = null
+  let deltaPreMoney = null
+  if (!isBase && baseScenario) {
+    const baseLsvp = baseScenario.combinedInvestor ? baseScenario.combinedInvestor.totalOwnership : baseScenario.investorPercent
+    const baseFounders = baseScenario.founders
+      ? baseScenario.founders.reduce((sum, f) => sum + (f.postRoundPercent || 0), 0)
+      : (baseScenario.preRoundFounderPercent || 0)
+    const baseIsTwoStep = !!(baseScenario.twoStepEnabled && baseScenario.step1 && baseScenario.step2)
+    const basePreMoney = baseIsTwoStep
+      ? baseScenario.step1.postMoney - baseScenario.step1.amount
+      : baseScenario.preMoneyVal
+    deltaLsvp = headlineLsvpPercent - baseLsvp
+    deltaFounders = headlineFoundersPercent - baseFounders
+    deltaPreMoney = headlinePreMoney - basePreMoney
+  }
+  const formatDelta = (d) => {
+    if (d === null || d === undefined || !Number.isFinite(d)) return ''
+    const abs = Math.abs(d).toFixed(1)
+    const sign = d > 0 ? '+' : d < 0 ? '−' : ''
+    return `${sign}${abs}pp`
+  }
+  const formatDollarDelta = (d) => {
+    if (d === null || d === undefined || !Number.isFinite(d)) return ''
+    const abs = Math.abs(d).toFixed(1)
+    const sign = d > 0 ? '+' : d < 0 ? '−' : ''
+    return `${sign}$${abs}M`
+  }
+  const deltaClass = (d) => d === null ? '' : d > 0.05 ? 'delta-up' : d < -0.05 ? 'delta-down' : 'delta-flat'
+
   return (
     <div className={getCardClass()}>
       <div className="scenario-header">
-        <h3 className="scenario-title">
-          {isBase ? baseTitle : (scenario.title || `Scenario ${index}`)}
-        </h3>
+        {isBase ? (
+          <h3 className="scenario-title">{baseTitle}</h3>
+        ) : (
+          <div className="scenario-header-main">
+            <h3 className="scenario-title scenario-title-hero">
+              {scenario.title || `Scenario ${index}`}
+            </h3>
+            <span className="scenario-header-sub">{formatDollar(headlinePostMoney)} post</span>
+          </div>
+        )}
         {!isBase && (
           <button
-            className="apply-scenario-btn"
+            className="apply-scenario-btn apply-scenario-icon"
             onClick={handleApplyScenario}
             title="Apply this scenario to inputs"
+            aria-label="Apply this scenario"
           >
-            Apply
+            →
           </button>
         )}
       </div>
+
+      {!isBase && (
+        <div className="scenario-headline">
+          <div className="headline-metric">
+            <span className="headline-label">{investorName}</span>
+            <span className="headline-value">{formatPercent(headlineLsvpPercent)}</span>
+            {deltaLsvp !== null && (
+              <span className={`headline-delta ${deltaClass(deltaLsvp)}`}>{formatDelta(deltaLsvp)}</span>
+            )}
+          </div>
+          <div className="headline-metric">
+            <span className="headline-label">Founders</span>
+            <span className="headline-value">{formatPercent(headlineFoundersPercent)}</span>
+            {deltaFounders !== null && (
+              <span className={`headline-delta ${deltaClass(deltaFounders)}`}>{formatDelta(deltaFounders)}</span>
+            )}
+          </div>
+          <div className="headline-metric">
+            <span className="headline-label">Pre-Money</span>
+            <span className="headline-value">{formatDollar(headlinePreMoney)}</span>
+            {deltaPreMoney !== null && (
+              <span className={`headline-delta ${deltaClass(deltaPreMoney)}`}>{formatDollarDelta(deltaPreMoney)}</span>
+            )}
+          </div>
+        </div>
+      )}
 
       {isBase && onUpdateBase && company && (
         <div className="base-quick-edit">
@@ -571,6 +643,7 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
         </div>
       </div>
       
+      {(isBase || isTwoStep) && (
       <div className="valuation-footer">
         <div className="valuation-items">
           {isTwoStep ? (
@@ -611,6 +684,7 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
           </div>
         )}
       </div>
+      )}
 
       {/* Two-step analytics */}
       {isTwoStep && scenario.analytics && (
@@ -635,7 +709,7 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
       )}
 
       {/* Investor Ownership Summary */}
-      {combinedInvestor && (
+      {isBase && combinedInvestor && (
         <div className="investor-summary">
           <div className="investor-summary-header">
             {investorName} Ownership Summary
