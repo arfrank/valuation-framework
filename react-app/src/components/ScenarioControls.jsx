@@ -36,9 +36,9 @@ const ScenarioControls = ({ offsets = [], onChange }) => {
 
   const commitDraft = () => {
     const parsed = Number(draft)
-    if (Number.isFinite(parsed) && parsed !== 0 && parsed > -100) {
+    if (Number.isFinite(parsed)) {
       const rounded = Math.round(parsed)
-      if (!sorted.includes(rounded)) {
+      if (rounded !== 0 && rounded > -100 && !sorted.includes(rounded)) {
         onChange([...sorted, rounded].sort((a, b) => a - b))
       }
     }
