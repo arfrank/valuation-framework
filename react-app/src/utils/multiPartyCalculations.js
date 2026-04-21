@@ -181,35 +181,45 @@ function calculateSafeProRataAllocations(safeDetails, roundSize, investorName) {
 
 /**
  * Calculate ESOP dilution and timing effects
- * @param {number} currentEsopPercent - Current ESOP pool percentage
- * @param {number} targetEsopPercent - Target ESOP pool percentage after round
+ *
+ * The pool is split into two buckets: already-granted options (persist through
+ * the round as individual shareholders would) and available/unallocated pool
+ * (what VCs negotiate). The top-up formula only applies to the available bucket;
+ * target represents the target AVAILABLE pool post-round.
+ *
+ * @param {number} currentEsopPercent - Total current pool (granted + available), pre-round
+ * @param {number} grantedEsopPercent - Already-issued portion of the pool, pre-round
+ * @param {number} targetEsopPercent - Target AVAILABLE pool percentage post-round
  * @param {string} esopTiming - 'pre-close' or 'post-close'
- * @param {number} baseDilutionPercent - Total dilution from round + SAFEs (not including ESOP)
+ * @param {number} baseDilutionPercent - Total dilution from round + SAFEs (not including ESOP top-up)
  */
-function calculateEsopEffects(currentEsopPercent, targetEsopPercent, esopTiming, baseDilutionPercent) {
+function calculateEsopEffects(currentEsopPercent, grantedEsopPercent, targetEsopPercent, esopTiming, baseDilutionPercent) {
+  const availablePercent = Math.max(0, rp(currentEsopPercent - grantedEsopPercent))
+  const naturalDilutedAvailable = rp(availablePercent * (100 - baseDilutionPercent) / 100)
+  const naturalDilutedGranted = rp(grantedEsopPercent * (100 - baseDilutionPercent) / 100)
+
   let esopIncrease = 0
   let esopIncreasePreClose = 0
   let esopIncreasePostClose = 0
-  let finalEsopPercent = targetEsopPercent
+  let finalEsopAvailablePercent = targetEsopPercent
+  let finalEsopGrantedPercent = naturalDilutedGranted
 
   if (targetEsopPercent > 0) {
-    const naturalDilutedEsop = rp(currentEsopPercent * (100 - baseDilutionPercent) / 100)
-
-    if (targetEsopPercent > naturalDilutedEsop) {
-      const rawIncrease = targetEsopPercent - naturalDilutedEsop
+    if (targetEsopPercent > naturalDilutedAvailable) {
+      const rawIncrease = targetEsopPercent - naturalDilutedAvailable
 
       if (esopTiming === 'pre-close') {
-        // Pre-close: ESOP increase dilutes existing ESOP pool too
-        // Solve: currentEsop * (100 - baseDilution - X) / 100 + X = target
-        const denominator = 1 - currentEsopPercent / 100
+        // Pre-close: top-up dilutes the available pool, granted, founders, priors — not new investors
+        // Solve: available * (100 - baseDilution - X) / 100 + X = target
+        const denominator = 1 - availablePercent / 100
         esopIncrease = denominator > 0.01
           ? rp(rawIncrease / denominator)
           : rawIncrease
         esopIncreasePreClose = esopIncrease
       } else {
-        // Post-close: ESOP increase dilutes everyone including already-diluted ESOP
-        // Solve: naturalDiluted * (100 - X) / 100 + X = target
-        const denominator = 1 - naturalDilutedEsop / 100
+        // Post-close: top-up dilutes everyone including already-diluted pool
+        // Solve: naturalDilutedAvailable * (100 - X) / 100 + X = target
+        const denominator = 1 - naturalDilutedAvailable / 100
         esopIncrease = denominator > 0.01
           ? rp(rawIncrease / denominator)
           : rawIncrease
@@ -221,16 +231,29 @@ function calculateEsopEffects(currentEsopPercent, targetEsopPercent, esopTiming,
       esopIncrease = Math.min(esopIncrease, maxIncrease)
       esopIncreasePreClose = Math.min(esopIncreasePreClose, maxIncrease)
       esopIncreasePostClose = Math.min(esopIncreasePostClose, maxIncrease)
+
+      // Granted portion dilutes like a pre-round shareholder
+      if (esopTiming === 'pre-close') {
+        finalEsopGrantedPercent = rp(grantedEsopPercent * (100 - baseDilutionPercent - esopIncreasePreClose) / 100)
+      } else {
+        finalEsopGrantedPercent = rp(naturalDilutedGranted * (100 - esopIncreasePostClose) / 100)
+      }
     }
-  } else if (targetEsopPercent === 0 && currentEsopPercent > 0) {
-    finalEsopPercent = rp(currentEsopPercent * (100 - baseDilutionPercent) / 100)
+    // else: natural dilution already reaches/exceeds target — treat final available as target
+  } else {
+    // No target specified: available pool just dilutes naturally
+    finalEsopAvailablePercent = naturalDilutedAvailable
   }
+
+  const finalEsopPercent = rp(finalEsopAvailablePercent + finalEsopGrantedPercent)
 
   return {
     esopIncrease,
     esopIncreasePreClose,
     esopIncreasePostClose,
-    finalEsopPercent
+    finalEsopPercent,
+    finalEsopAvailablePercent,
+    finalEsopGrantedPercent
   }
 }
 
@@ -257,6 +280,7 @@ function calculateTwoStepScenario(inputs) {
     founders = [],
     safes = [],
     currentEsopPercent = 0,
+    grantedEsopPercent = 0,
     targetEsopPercent = 0,
     esopTiming = 'pre-close'
   } = migratedInputs
@@ -272,6 +296,7 @@ function calculateTwoStepScenario(inputs) {
   const effectiveFounders = showAdvanced ? founders : []
   const effectiveSafes = showAdvanced ? safes : []
   const effectiveCurrentEsopPercent = showAdvanced ? currentEsopPercent : 0
+  const effectiveGrantedEsopPercent = showAdvanced ? Math.min(grantedEsopPercent, currentEsopPercent) : 0
   const effectiveTargetEsopPercent = showAdvanced ? targetEsopPercent : 0
 
   // --- SAFE conversions at step 1 pre-money ---
@@ -333,7 +358,7 @@ function calculateTwoStepScenario(inputs) {
 
   // --- ESOP ---
   const baseDilutionPercent = totalRoundPercent + safeFinalPercent
-  const esopCalc = calculateEsopEffects(effectiveCurrentEsopPercent, effectiveTargetEsopPercent, esopTiming, baseDilutionPercent)
+  const esopCalc = calculateEsopEffects(effectiveCurrentEsopPercent, effectiveGrantedEsopPercent, effectiveTargetEsopPercent, esopTiming, baseDilutionPercent)
 
   // --- Prior investors ---
   const postRoundPriorInvestors = effectivePriorInvestors.map(investor => {
@@ -528,8 +553,11 @@ function calculateTwoStepScenario(inputs) {
 
     // ESOP details
     currentEsopPercent: effectiveCurrentEsopPercent,
+    grantedEsopPercent: effectiveGrantedEsopPercent,
     targetEsopPercent: effectiveTargetEsopPercent,
     finalEsopPercent: esopCalc.finalEsopPercent,
+    finalEsopAvailablePercent: esopCalc.finalEsopAvailablePercent,
+    finalEsopGrantedPercent: esopCalc.finalEsopGrantedPercent,
     esopIncrease: esopCalc.esopIncrease,
     esopIncreasePreClose: esopCalc.esopIncreasePreClose,
     esopIncreasePostClose: esopCalc.esopIncreasePostClose,
@@ -624,18 +652,20 @@ export function calculateEnhancedScenario(inputs) {
     // New multi-party structures
     priorInvestors = [],
     founders = [],
-    // SAFE and ESOP (unchanged)
+    // SAFE and ESOP
     safes = [],
     currentEsopPercent = 0,
+    grantedEsopPercent = 0,
     targetEsopPercent = 0,
     esopTiming = 'pre-close'
   } = migratedInputs
-  
+
   // When showAdvanced is false, ignore all advanced inputs
   const effectivePriorInvestors = showAdvanced ? priorInvestors : []
   const effectiveFounders = showAdvanced ? founders : []
   const effectiveSafes = showAdvanced ? safes : []
   const effectiveCurrentEsopPercent = showAdvanced ? currentEsopPercent : 0
+  const effectiveGrantedEsopPercent = showAdvanced ? Math.min(grantedEsopPercent, currentEsopPercent) : 0
   const effectiveTargetEsopPercent = showAdvanced ? targetEsopPercent : 0
   
   // Check if pre-round ownership exceeds 100% and return error if so
@@ -700,7 +730,7 @@ export function calculateEnhancedScenario(inputs) {
 
   // Calculate ESOP effects — pass round + SAFEs as the base dilution
   const baseDilutionPercent = roundPercent + safeCalc.totalSafePercent
-  const esopCalc = calculateEsopEffects(effectiveCurrentEsopPercent, effectiveTargetEsopPercent, esopTiming, baseDilutionPercent)
+  const esopCalc = calculateEsopEffects(effectiveCurrentEsopPercent, effectiveGrantedEsopPercent, effectiveTargetEsopPercent, esopTiming, baseDilutionPercent)
 
   // Adjust round percentage for post-close ESOP dilution
   let finalRoundPercent = roundPercent
@@ -899,8 +929,11 @@ export function calculateEnhancedScenario(inputs) {
     
     // ESOP details
     currentEsopPercent: effectiveCurrentEsopPercent || 0,
+    grantedEsopPercent: effectiveGrantedEsopPercent || 0,
     targetEsopPercent: effectiveTargetEsopPercent || 0,
     finalEsopPercent: esopCalc.finalEsopPercent || 0,
+    finalEsopAvailablePercent: esopCalc.finalEsopAvailablePercent || 0,
+    finalEsopGrantedPercent: esopCalc.finalEsopGrantedPercent || 0,
     esopIncrease: esopCalc.esopIncrease || 0,
     esopIncreasePreClose: esopCalc.esopIncreasePreClose || 0,
     esopIncreasePostClose: esopCalc.esopIncreasePostClose || 0,
