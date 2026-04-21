@@ -333,11 +333,11 @@ body {
 }
 
 .top-row.compare-mode {
-  /* Cap the form column so the compare rail takes all remaining viewport width —
-     otherwise a fixed outer max-width forces horizontal scrolling on wide screens
-     even when the viewport has room for more cards. */
+  /* Cap the form column so the compare rail takes most of the viewport width,
+     but keep a loose outer cap so the row stays centered on very wide screens
+     instead of hugging the left edge. */
   grid-template-columns: minmax(320px, 440px) minmax(0, 1fr);
-  max-width: none;
+  max-width: 1600px;
 }
 
 .base-result-compare {
