@@ -97,8 +97,7 @@ const ScenarioControls = ({ offsets = [], onChange }) => {
           </button>
         )}
       </div>
-      <div className="scenario-presets">
-        <span className="scenario-presets-label">Range</span>
+      <div className="scenario-presets" aria-label="Range presets">
         {PRESETS.map(p => {
           const active = arraysEqual(sorted, p.offsets)
           return (
