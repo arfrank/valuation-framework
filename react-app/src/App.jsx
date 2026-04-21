@@ -202,6 +202,7 @@ function App() {
                   company={companies[cid]}
                   onUpdateBase={(patch) => updateCompany(cid, patch)}
                   companyName={isCompareMode ? companies[cid]?.name : undefined}
+                  compareActive={isCompareMode ? cid === activeCompany : undefined}
                 />
               )
             })}

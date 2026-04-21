@@ -352,6 +352,17 @@ body {
   max-width: 460px;
 }
 
+.base-scenario.compare-active {
+  background: #ffffff;
+  border-color: var(--color-border-strong);
+  box-shadow: var(--shadow-md);
+}
+
+.base-scenario.compare-inactive {
+  background: var(--color-bg-subtle);
+  box-shadow: var(--shadow-sm);
+}
+
 /* Scenarios Rows Layout */
 .scenarios-rows {
   display: grid;
