@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalink, investorName = 'US', showAdvanced = false, percentPrecision = 2, onPercentPrecisionChange }) => {
+const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalink, investorName = 'US', showAdvanced = false, percentPrecision = 2, onPercentPrecisionChange, company, onUpdateBase, companyName, compareActive, compareIndex }) => {
   const [copyFeedback, setCopyFeedback] = useState('')
   const [collapsed, setCollapsed] = useState({
     newRound: false,
@@ -17,7 +17,15 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
   }
   
   const getCardClass = () => {
-    if (isBase) return 'scenario-card base-scenario'
+    if (isBase) {
+      let cls = 'scenario-card base-scenario'
+      if (compareActive === true) cls += ' compare-active'
+      else if (compareActive === false) {
+        cls += ' compare-inactive'
+        if (Number.isFinite(compareIndex)) cls += ` compare-tint-${compareIndex % 4}`
+      }
+      return cls
+    }
     return `scenario-card scenario-${index % 5}`
   }
 
@@ -143,15 +151,36 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
     : 0
     
 
+  const handleBaseFieldChange = (field, rawValue) => {
+    if (!onUpdateBase || !company) return
+    let num = parseFloat(rawValue)
+    if (isNaN(num) || rawValue === '' || rawValue === null) num = 0
+    if (num < 0) num = 0
+    const round = (v) => Math.round(v * 100) / 100
+    const patch = { [field]: num }
+    if (field === 'roundSize') {
+      const investor = Number(company.investorPortion) || 0
+      patch.otherPortion = round(Math.max(0, num - investor))
+    } else if (field === 'investorPortion') {
+      const roundSize = Number(company.roundSize) || 0
+      patch.otherPortion = round(Math.max(0, roundSize - num))
+    }
+    onUpdateBase(patch)
+  }
+
+  const baseTitle = companyName
+    ? `Base Case — ${companyName}`
+    : (scenario.title || (isBase ? 'Base Case' : `Scenario ${index}`))
+
   return (
     <div className={getCardClass()}>
       <div className="scenario-header">
         <h3 className="scenario-title">
-          {scenario.title || (isBase ? "Base Case" : `Scenario ${index}`)}
+          {isBase ? baseTitle : (scenario.title || `Scenario ${index}`)}
         </h3>
         {!isBase && (
-          <button 
-            className="apply-scenario-btn" 
+          <button
+            className="apply-scenario-btn"
             onClick={handleApplyScenario}
             title="Apply this scenario to inputs"
           >
@@ -159,7 +188,58 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
           </button>
         )}
       </div>
-      
+
+      {isBase && onUpdateBase && company && (
+        <div className="base-quick-edit">
+          <label className="base-quick-field">
+            <span className="base-quick-label">Post-Money</span>
+            <span className="base-quick-input-wrap">
+              <span className="base-quick-prefix">$</span>
+              <input
+                type="number"
+                className="base-quick-input"
+                value={Number(company.postMoneyVal) || 0}
+                onChange={(e) => handleBaseFieldChange('postMoneyVal', e.target.value)}
+                step="0.5"
+                min="0"
+              />
+              <span className="base-quick-suffix">M</span>
+            </span>
+          </label>
+          <label className="base-quick-field">
+            <span className="base-quick-label">Round</span>
+            <span className="base-quick-input-wrap">
+              <span className="base-quick-prefix">$</span>
+              <input
+                type="number"
+                className="base-quick-input"
+                value={Number(company.roundSize) || 0}
+                onChange={(e) => handleBaseFieldChange('roundSize', e.target.value)}
+                step="0.25"
+                min="0"
+              />
+              <span className="base-quick-suffix">M</span>
+            </span>
+          </label>
+          <label className="base-quick-field">
+            <span className="base-quick-label">{investorName}</span>
+            <span className="base-quick-input-wrap">
+              <span className="base-quick-prefix">$</span>
+              <input
+                type="number"
+                className="base-quick-input"
+                value={Number(company.investorPortion) || 0}
+                onChange={(e) => handleBaseFieldChange('investorPortion', e.target.value)}
+                step="0.25"
+                min="0"
+                max={Number(company.roundSize) || 0}
+              />
+              <span className="base-quick-suffix">M</span>
+            </span>
+          </label>
+        </div>
+      )}
+
       <div className="scenario-table">
         <div className="table-header">
           <div className="label">Party</div>
@@ -440,31 +520,47 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
         
         {/* ESOP */}
         {showAdvanced && scenario.finalEsopPercent > 0 && (
-          <div className="table-row">
-            <div className="label">ESOP Pool</div>
-            <div className="amount">
-              {(() => {
-                // Calculate ESOP dilution if there was a pre-existing ESOP
-                if (scenario.currentEsopPercent > 0) {
-                  const esopDilution = scenario.currentEsopPercent - scenario.finalEsopPercent
-                  if (Math.abs(esopDilution) > 0.01) {
-                    return (
-                      <span className={esopDilution > 0 ? 'amount-negative' : 'amount-positive'}>
-                        {esopDilution > 0 ? `-${esopDilution.toFixed(1)}%` : `+${Math.abs(esopDilution).toFixed(1)}%`}
-                      </span>
-                    )
+          <>
+            <div className="table-row">
+              <div className="label">ESOP Pool</div>
+              <div className="amount">
+                {(() => {
+                  // Calculate ESOP dilution if there was a pre-existing ESOP
+                  if (scenario.currentEsopPercent > 0) {
+                    const esopDilution = scenario.currentEsopPercent - scenario.finalEsopPercent
+                    if (Math.abs(esopDilution) > 0.01) {
+                      return (
+                        <span className={esopDilution > 0 ? 'amount-negative' : 'amount-positive'}>
+                          {esopDilution > 0 ? `-${esopDilution.toFixed(1)}%` : `+${Math.abs(esopDilution).toFixed(1)}%`}
+                        </span>
+                      )
+                    }
                   }
-                }
-                // If ESOP increase, show positive change
-                if (scenario.esopIncrease > 0) {
-                  return <span className='amount-positive'>+{scenario.esopIncrease.toFixed(1)}%</span>
-                }
-                // Otherwise show neutral
-                return <span className='amount-neutral'>—</span>
-              })()}
+                  // If ESOP increase, show positive change
+                  if (scenario.esopIncrease > 0) {
+                    return <span className='amount-positive'>+{scenario.esopIncrease.toFixed(1)}%</span>
+                  }
+                  // Otherwise show neutral
+                  return <span className='amount-neutral'>—</span>
+                })()}
+              </div>
+              <div className="percent percent-bold">{formatPercent(scenario.finalEsopPercent)}</div>
             </div>
-            <div className="percent percent-bold">{formatPercent(scenario.finalEsopPercent)}</div>
-          </div>
+            {(scenario.grantedEsopPercent || 0) > 0 && (
+              <>
+                <div className="table-row sub-row">
+                  <div className="label">├─ Available</div>
+                  <div className="amount amount-neutral">unallocated</div>
+                  <div className="percent">{formatPercent(scenario.finalEsopAvailablePercent || 0)}</div>
+                </div>
+                <div className="table-row sub-row">
+                  <div className="label">└─ Granted</div>
+                  <div className="amount amount-neutral">issued</div>
+                  <div className="percent">{formatPercent(scenario.finalEsopGrantedPercent || 0)}</div>
+                </div>
+              </>
+            )}
+          </>
         )}
         
         {/* Total row */}

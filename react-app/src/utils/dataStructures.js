@@ -124,9 +124,10 @@ export function createDefaultCompany(companyName = 'New Company') {
       createFounder('Founder Team', 85) // Default founder ownership
     ],
     
-    // SAFE and ESOP support (unchanged)
+    // SAFE and ESOP support
     safes: [],
     currentEsopPercent: 0,
+    grantedEsopPercent: 0,
     targetEsopPercent: 0,
     esopTiming: 'pre-close',
     
@@ -196,6 +197,9 @@ export function migrateLegacyCompany(legacyCompany) {
   if (migrated.step2InvestorPortion === undefined) migrated.step2InvestorPortion = 0
   if (migrated.step2OtherPortion === undefined) migrated.step2OtherPortion = 0
 
+  // Ensure ESOP fields exist (grantedEsopPercent added after initial release)
+  if (migrated.grantedEsopPercent === undefined) migrated.grantedEsopPercent = 0
+
   // Ensure Exit Math fields exist
   if (migrated.showExitMath === undefined) migrated.showExitMath = false
   if (!migrated.exitMath || typeof migrated.exitMath !== 'object') {
@@ -208,6 +212,22 @@ export function migrateLegacyCompany(legacyCompany) {
   }
 
   return migrated
+}
+
+/**
+ * Generates the next unique name for a duplicated company.
+ * Appends or increments a trailing numeric suffix, skipping existing names.
+ * @param {string} baseName - Source company name
+ * @param {Object} companies - Map of existing companies keyed by id
+ * @returns {string} Unique name
+ */
+export function nextUniqueName(baseName, companies) {
+  const existing = new Set(Object.values(companies || {}).map(c => c && c.name))
+  const match = (baseName || '').match(/^(.*?)\s+(\d+)$/)
+  const stem = match ? match[1] : (baseName || 'Company')
+  let n = match ? parseInt(match[2], 10) + 1 : 2
+  while (existing.has(`${stem} ${n}`)) n++
+  return `${stem} ${n}`
 }
 
 /**
