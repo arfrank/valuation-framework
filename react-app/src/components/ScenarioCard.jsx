@@ -520,31 +520,47 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
         
         {/* ESOP */}
         {showAdvanced && scenario.finalEsopPercent > 0 && (
-          <div className="table-row">
-            <div className="label">ESOP Pool</div>
-            <div className="amount">
-              {(() => {
-                // Calculate ESOP dilution if there was a pre-existing ESOP
-                if (scenario.currentEsopPercent > 0) {
-                  const esopDilution = scenario.currentEsopPercent - scenario.finalEsopPercent
-                  if (Math.abs(esopDilution) > 0.01) {
-                    return (
-                      <span className={esopDilution > 0 ? 'amount-negative' : 'amount-positive'}>
-                        {esopDilution > 0 ? `-${esopDilution.toFixed(1)}%` : `+${Math.abs(esopDilution).toFixed(1)}%`}
-                      </span>
-                    )
+          <>
+            <div className="table-row">
+              <div className="label">ESOP Pool</div>
+              <div className="amount">
+                {(() => {
+                  // Calculate ESOP dilution if there was a pre-existing ESOP
+                  if (scenario.currentEsopPercent > 0) {
+                    const esopDilution = scenario.currentEsopPercent - scenario.finalEsopPercent
+                    if (Math.abs(esopDilution) > 0.01) {
+                      return (
+                        <span className={esopDilution > 0 ? 'amount-negative' : 'amount-positive'}>
+                          {esopDilution > 0 ? `-${esopDilution.toFixed(1)}%` : `+${Math.abs(esopDilution).toFixed(1)}%`}
+                        </span>
+                      )
+                    }
                   }
-                }
-                // If ESOP increase, show positive change
-                if (scenario.esopIncrease > 0) {
-                  return <span className='amount-positive'>+{scenario.esopIncrease.toFixed(1)}%</span>
-                }
-                // Otherwise show neutral
-                return <span className='amount-neutral'>—</span>
-              })()}
+                  // If ESOP increase, show positive change
+                  if (scenario.esopIncrease > 0) {
+                    return <span className='amount-positive'>+{scenario.esopIncrease.toFixed(1)}%</span>
+                  }
+                  // Otherwise show neutral
+                  return <span className='amount-neutral'>—</span>
+                })()}
+              </div>
+              <div className="percent percent-bold">{formatPercent(scenario.finalEsopPercent)}</div>
             </div>
-            <div className="percent percent-bold">{formatPercent(scenario.finalEsopPercent)}</div>
-          </div>
+            {(scenario.grantedEsopPercent || 0) > 0 && (
+              <>
+                <div className="table-row sub-row">
+                  <div className="label">├─ Available</div>
+                  <div className="amount amount-neutral">unallocated</div>
+                  <div className="percent">{formatPercent(scenario.finalEsopAvailablePercent || 0)}</div>
+                </div>
+                <div className="table-row sub-row">
+                  <div className="label">└─ Granted</div>
+                  <div className="amount amount-neutral">issued</div>
+                  <div className="percent">{formatPercent(scenario.finalEsopGrantedPercent || 0)}</div>
+                </div>
+              </>
+            )}
+          </>
         )}
         
         {/* Total row */}

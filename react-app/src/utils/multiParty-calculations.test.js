@@ -1229,4 +1229,148 @@ describe('Hand-computed scenario verification', () => {
       expect(r.totalOwnership + r.unknownOwnership).toBeCloseTo(100, 0)
     })
   })
+
+  describe('Scenario 13: Granted ESOP + pre-close top-up (user negotiation case)', () => {
+    // Company has 10% authorized pool, 2.5% already granted (7.5% available).
+    // New $3M round at $15M post = 20% dilution. Target 7% AVAILABLE post-close.
+    //
+    // available = 10 - 2.5 = 7.5
+    // naturalDilutedAvailable = 7.5 * (100-20)/100 = 6
+    // rawIncrease = 7 - 6 = 1
+    // denom = 1 - 7.5/100 = 0.925
+    // esopIncreasePreClose = 1 / 0.925 ≈ 1.08
+    //
+    // totalNewOwnership = 20 + 0 + 1.08 = 21.08
+    // Founders 90% → 90 * (100-21.08)/100 ≈ 71.03
+    // Granted 2.5% → 2.5 * (100-21.08)/100 ≈ 1.97
+    // Available = 7.5 * (100-21.08)/100 + 1.08 ≈ 5.92 + 1.08 = 7.00
+    // Round = 20% (unchanged, pre-close doesn't touch new investors)
+    const inputs = {
+      postMoneyVal: 15, roundSize: 3,
+      investorPortion: 2.5, otherPortion: 0.5,
+      showAdvanced: true,
+      priorInvestors: [],
+      founders: [{ id: 1, name: 'Founders', ownershipPercent: 90 }],
+      safes: [],
+      currentEsopPercent: 10, grantedEsopPercent: 2.5, targetEsopPercent: 7,
+      esopTiming: 'pre-close'
+    }
+
+    it('should compute pre-close top-up from available pool only', () => {
+      const r = calculateEnhancedScenario(inputs)
+      expect(r.esopIncreasePreClose).toBeCloseTo(1.08, 1)
+      expect(r.esopIncreasePostClose).toBe(0)
+    })
+
+    it('should land at 7% available post-close', () => {
+      const r = calculateEnhancedScenario(inputs)
+      expect(r.finalEsopAvailablePercent).toBeCloseTo(7, 1)
+    })
+
+    it('should preserve granted portion through natural dilution and top-up', () => {
+      const r = calculateEnhancedScenario(inputs)
+      // Granted diluted by round (20%) AND pre-close top-up (1.08%)
+      expect(r.finalEsopGrantedPercent).toBeCloseTo(1.97, 1)
+    })
+
+    it('should dilute founders by ~18.97% (round 18% + ~0.97% top-up cost)', () => {
+      const r = calculateEnhancedScenario(inputs)
+      const founders = r.founders[0]
+      expect(founders.postRoundPercent).toBeCloseTo(71.03, 1)
+      expect(founders.dilution).toBeCloseTo(18.97, 1)
+    })
+
+    it('should leave new investors at full 20% (pre-close doesn\'t touch round)', () => {
+      const r = calculateEnhancedScenario(inputs)
+      expect(r.roundPercent).toBeCloseTo(20, 1)
+    })
+
+    it('should have finalEsopPercent = available + granted', () => {
+      const r = calculateEnhancedScenario(inputs)
+      expect(r.finalEsopPercent).toBeCloseTo(
+        r.finalEsopAvailablePercent + r.finalEsopGrantedPercent,
+        1
+      )
+    })
+
+    it('should have all percentages summing to 100', () => {
+      const r = calculateEnhancedScenario(inputs)
+      const total = r.roundPercent + r.founders[0].postRoundPercent + r.finalEsopPercent
+      expect(total).toBeCloseTo(100, 1)
+    })
+  })
+
+  describe('Scenario 14: granted=0 backwards-compat matches legacy math', () => {
+    // With granted=0, everything should behave identically to the old engine.
+    const inputs = {
+      postMoneyVal: 15, roundSize: 3,
+      investorPortion: 2.5, otherPortion: 0.5,
+      showAdvanced: true,
+      priorInvestors: [],
+      founders: [{ id: 1, name: 'Founders', ownershipPercent: 90 }],
+      safes: [],
+      currentEsopPercent: 10, grantedEsopPercent: 0, targetEsopPercent: 15,
+      esopTiming: 'pre-close'
+    }
+
+    it('should behave identically whether granted is 0 or undefined', () => {
+      const withZero = calculateEnhancedScenario(inputs)
+      const withoutField = calculateEnhancedScenario({ ...inputs, grantedEsopPercent: undefined })
+      expect(withZero.finalEsopPercent).toBe(withoutField.finalEsopPercent)
+      expect(withZero.esopIncreasePreClose).toBe(withoutField.esopIncreasePreClose)
+      expect(withZero.founders[0].postRoundPercent).toBe(withoutField.founders[0].postRoundPercent)
+    })
+
+    it('should route entire current pool as available when granted=0', () => {
+      const r = calculateEnhancedScenario(inputs)
+      expect(r.finalEsopGrantedPercent).toBe(0)
+      expect(r.finalEsopAvailablePercent).toBe(r.finalEsopPercent)
+    })
+  })
+
+  describe('Scenario 15: Granted ESOP with post-close top-up', () => {
+    // Same inputs as scenario 13 but post-close timing.
+    //
+    // available = 7.5, naturalDilutedAvailable = 6
+    // rawIncrease = 7 - 6 = 1
+    // denom = 1 - 6/100 = 0.94
+    // esopIncreasePostClose = 1 / 0.94 ≈ 1.064
+    //
+    // Everyone gets diluted by (100-1.064)/100 ≈ 0.9894:
+    //   Founders: (90*0.8) * 0.9894 ≈ 72 * 0.9894 ≈ 71.23
+    //   Granted: (2.5*0.8) * 0.9894 ≈ 2 * 0.9894 ≈ 1.98
+    //   Available: 6 * 0.9894 + 1.064 ≈ 5.94 + 1.064 = 7.00
+    //   Round: 20 * 0.9894 ≈ 19.79
+    const inputs = {
+      postMoneyVal: 15, roundSize: 3,
+      investorPortion: 2.5, otherPortion: 0.5,
+      showAdvanced: true,
+      priorInvestors: [],
+      founders: [{ id: 1, name: 'Founders', ownershipPercent: 90 }],
+      safes: [],
+      currentEsopPercent: 10, grantedEsopPercent: 2.5, targetEsopPercent: 7,
+      esopTiming: 'post-close'
+    }
+
+    it('should dilute new investors on post-close top-up', () => {
+      const r = calculateEnhancedScenario(inputs)
+      expect(r.roundPercent).toBeCloseTo(19.79, 1)
+      expect(r.esopIncreasePostClose).toBeCloseTo(1.06, 1)
+    })
+
+    it('should land at 7% available post-close', () => {
+      const r = calculateEnhancedScenario(inputs)
+      expect(r.finalEsopAvailablePercent).toBeCloseTo(7, 1)
+    })
+
+    it('should dilute granted by round then post-close top-up', () => {
+      const r = calculateEnhancedScenario(inputs)
+      expect(r.finalEsopGrantedPercent).toBeCloseTo(1.98, 1)
+    })
+
+    it('should dilute founders less than pre-close (since round absorbs some)', () => {
+      const r = calculateEnhancedScenario(inputs)
+      expect(r.founders[0].postRoundPercent).toBeCloseTo(71.23, 1)
+    })
+  })
 })

@@ -621,10 +621,13 @@ const InputForm = ({ company, onUpdate }) => {
 
           <div className="esop-section">
             <h5>Employee Stock Option Pool (ESOP)</h5>
-            
-            <div className="input-grid">
+            <p className="esop-subtitle">
+              Total pool = Granted + Available. VCs typically negotiate the <em>available</em> slice post-close.
+            </p>
+
+            <div className="input-grid esop-input-grid">
               <FormInput
-                label="Current ESOP"
+                label="Current Pool"
                 type="number"
                 value={values.currentEsopPercent}
                 onChange={(value) => handleChange('currentEsopPercent', value)}
@@ -636,7 +639,19 @@ const InputForm = ({ company, onUpdate }) => {
               />
 
               <FormInput
-                label="Target ESOP"
+                label="Already Granted"
+                type="number"
+                value={values.grantedEsopPercent || 0}
+                onChange={(value) => handleChange('grantedEsopPercent', value)}
+                suffix="%"
+                step="0.01"
+                min="0"
+                max="100"
+                clearable={true}
+              />
+
+              <FormInput
+                label="Target Available"
                 type="number"
                 value={values.targetEsopPercent}
                 onChange={(value) => handleChange('targetEsopPercent', value)}
@@ -648,51 +663,41 @@ const InputForm = ({ company, onUpdate }) => {
               />
             </div>
 
-            {/* ESOP Timing Selection */}
-            {values.targetEsopPercent > 0 && values.currentEsopPercent >= 0 && (
+            {Number(values.grantedEsopPercent || 0) > Number(values.currentEsopPercent || 0) && (
+              <div className="esop-validation-error">
+                Already granted ({Number(values.grantedEsopPercent).toFixed(2)}%) exceeds current pool ({Number(values.currentEsopPercent).toFixed(2)}%).
+              </div>
+            )}
+
+            {values.targetEsopPercent > 0 && (
               <div className="esop-timing-section">
-                <label className="section-label">ESOP Pool Timing</label>
-                <div className="esop-timing-options">
-                  <label className="radio-option">
-                    <input
-                      type="radio"
-                      name="esop-timing"
-                      value="pre-close"
-                      checked={values.esopTiming === 'pre-close'}
-                      onChange={(e) => handleChange('esopTiming', e.target.value)}
-                    />
-                    <span className="radio-label">
-                      <strong>Pre-Close</strong> - Dilutes existing shareholders only
-                    </span>
-                  </label>
-                  <label className="radio-option">
-                    <input
-                      type="radio"
-                      name="esop-timing"
-                      value="post-close"
-                      checked={values.esopTiming === 'post-close'}
-                      onChange={(e) => handleChange('esopTiming', e.target.value)}
-                    />
-                    <span className="radio-label">
-                      <strong>Post-Close</strong> - Dilutes all shareholders including new investors
-                    </span>
-                  </label>
+                <label className="section-label">Top-up timing</label>
+                <div className="esop-timing-toggle" role="tablist">
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={values.esopTiming === 'pre-close'}
+                    className={`esop-timing-option ${values.esopTiming === 'pre-close' ? 'active' : ''}`}
+                    onClick={() => handleChange('esopTiming', 'pre-close')}
+                  >
+                    Pre-Close
+                  </button>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={values.esopTiming === 'post-close'}
+                    className={`esop-timing-option ${values.esopTiming === 'post-close' ? 'active' : ''}`}
+                    onClick={() => handleChange('esopTiming', 'post-close')}
+                  >
+                    Post-Close
+                  </button>
                 </div>
-                
-                {/* Info about the difference */}
-                <div className="esop-timing-info">
-                  {values.esopTiming === 'pre-close' ? (
-                    <p className="timing-explanation">
-                      💡 ESOP shares are allocated before the investment. This affects only existing shareholders 
-                      (founders, employees, previous investors) and uses iterative dilution calculations.
-                    </p>
-                  ) : (
-                    <p className="timing-explanation">
-                      💡 ESOP shares are allocated after the investment. All shareholders including 
-                      the new investors share the dilution proportionally.
-                    </p>
-                  )}
-                </div>
+
+                <p className="esop-timing-explanation">
+                  {values.esopTiming === 'pre-close'
+                    ? 'Top-up happens before the round. Dilutes founders, prior investors, and granted ESOP — not new investors.'
+                    : 'Top-up happens after the round. Dilutes everyone proportionally, including new investors.'}
+                </p>
               </div>
             )}
           </div>

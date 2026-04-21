@@ -124,9 +124,10 @@ export function createDefaultCompany(companyName = 'New Company') {
       createFounder('Founder Team', 85) // Default founder ownership
     ],
     
-    // SAFE and ESOP support (unchanged)
+    // SAFE and ESOP support
     safes: [],
     currentEsopPercent: 0,
+    grantedEsopPercent: 0,
     targetEsopPercent: 0,
     esopTiming: 'pre-close',
     
@@ -195,6 +196,9 @@ export function migrateLegacyCompany(legacyCompany) {
   if (migrated.step2Amount === undefined) migrated.step2Amount = 0
   if (migrated.step2InvestorPortion === undefined) migrated.step2InvestorPortion = 0
   if (migrated.step2OtherPortion === undefined) migrated.step2OtherPortion = 0
+
+  // Ensure ESOP fields exist (grantedEsopPercent added after initial release)
+  if (migrated.grantedEsopPercent === undefined) migrated.grantedEsopPercent = 0
 
   // Ensure Exit Math fields exist
   if (migrated.showExitMath === undefined) migrated.showExitMath = false
