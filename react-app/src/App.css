@@ -2119,8 +2119,60 @@ input.investor-name-input:focus, input.founder-name-input:focus {
 }
 
 .esop-section .input-grid.esop-input-grid {
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-4);
+}
+
+/* ESOP inputs use label-above layout — the absolute-label overlay reserves
+   too much horizontal space for these short-label, narrow 3-column inputs. */
+.esop-section .esop-input-grid .form-input-wrapper {
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-2);
+  min-width: 0;
+  min-height: 0;
+  overflow: visible;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+}
+
+.esop-section .esop-input-grid .form-input-wrapper.focused,
+.esop-section .esop-input-grid .form-input-wrapper.disabled {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.esop-section .esop-input-grid .form-input-label {
+  position: static;
+  transform: none;
+  max-width: none;
+  min-width: 0;
+  padding: 0 0 0 2px;
+  color: var(--color-fg-muted);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-weight: 600;
+  background: none;
+  line-height: 1.2;
+}
+
+.esop-section .esop-input-grid .form-input-field {
+  padding-left: 0;
+  background: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  min-height: 40px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.esop-section .esop-input-grid .form-input-wrapper.focused .form-input-field {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(99, 91, 255, 0.12);
 }
 
 .esop-validation-error {
