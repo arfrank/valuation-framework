@@ -17,11 +17,12 @@ const FormInput = ({
   clearable = false,
   id,
   tooltip,
+  compact = false,
+  ariaLabel,
   ...props
 }) => {
   const [isFocused, setIsFocused] = useState(false)
-  
-  // Generate unique ID if not provided
+
   const inputId = id || `form-input-${label.toLowerCase().replace(/\s+/g, '-')}`
   
   const handleChange = (e) => {
@@ -45,12 +46,14 @@ const FormInput = ({
   const showClearButton = clearable && value && (type === 'number' ? value > 0 : value.length > 0)
 
   return (
-    <div className={`form-input-group ${className}`} title={tooltip || undefined}>
-      <div className={`form-input-wrapper ${isFocused ? 'focused' : ''} ${disabled ? 'disabled' : ''} ${showClearButton ? 'with-clear' : ''}`}>
-        <label htmlFor={inputId} className="form-input-label" title={tooltip || undefined}>
-          {label}
-        </label>
-        
+    <div className={`form-input-group ${compact ? 'compact' : ''} ${className}`} title={tooltip || undefined}>
+      <div className={`form-input-wrapper ${compact ? 'compact' : ''} ${isFocused ? 'focused' : ''} ${disabled ? 'disabled' : ''} ${showClearButton ? 'with-clear' : ''}`}>
+        {!compact && (
+          <label htmlFor={inputId} className="form-input-label" title={tooltip || undefined}>
+            {label}
+          </label>
+        )}
+
         <div className="form-input-field">
           {showClearButton && (
             <button
@@ -63,9 +66,9 @@ const FormInput = ({
               ×
             </button>
           )}
-          
+
           {prefix && <span className="form-input-prefix">{prefix}</span>}
-          
+
           <input
             id={inputId}
             type={type}
@@ -79,9 +82,10 @@ const FormInput = ({
             step={step}
             disabled={disabled}
             className="form-input-control"
+            aria-label={compact ? (ariaLabel || label) : undefined}
             {...props}
           />
-          
+
           {suffix && <span className="form-input-suffix">{suffix}</span>}
         </div>
       </div>
