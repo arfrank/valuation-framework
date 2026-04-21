@@ -1,6 +1,16 @@
 import { useState } from 'react'
 
-const CompanyTabs = ({ companies, activeCompany, onCompanyChange, onAddCompany, onRemoveCompany, onUpdateCompany }) => {
+const CompanyTabs = ({
+  companies,
+  activeCompany,
+  onCompanyChange,
+  onAddCompany,
+  onRemoveCompany,
+  onUpdateCompany,
+  onDuplicateCompany,
+  selectedCompanyIds = [],
+  onToggleCompareSelection,
+}) => {
   const [editingTab, setEditingTab] = useState(null)
   const [editName, setEditName] = useState('')
 
@@ -43,11 +53,22 @@ const CompanyTabs = ({ companies, activeCompany, onCompanyChange, onAddCompany, 
     <div className="company-tabs">
       <div className="tabs-container">
         {Object.entries(companies).map(([companyId, company]) => (
-          <div 
+          <div
             key={companyId}
             className={`tab ${activeCompany === companyId ? 'active' : ''}`}
             onClick={() => handleTabClick(companyId)}
           >
+            {onToggleCompareSelection && (
+              <input
+                type="checkbox"
+                className="tab-compare-checkbox"
+                checked={selectedCompanyIds.includes(companyId)}
+                onChange={() => onToggleCompareSelection(companyId)}
+                onClick={(e) => e.stopPropagation()}
+                title="Include in compare view"
+                aria-label={`Include ${company.name} in compare view`}
+              />
+            )}
             {editingTab === companyId ? (
               <input
                 type="text"
@@ -63,7 +84,7 @@ const CompanyTabs = ({ companies, activeCompany, onCompanyChange, onAddCompany, 
               <>
                 <span className="tab-name">{company.name}</span>
                 <div className="tab-actions">
-                  <button 
+                  <button
                     className="tab-edit-btn"
                     onClick={(e) => {
                       e.stopPropagation()
@@ -73,8 +94,21 @@ const CompanyTabs = ({ companies, activeCompany, onCompanyChange, onAddCompany, 
                   >
                     ✏️
                   </button>
+                  {onDuplicateCompany && (
+                    <button
+                      className="tab-duplicate-btn"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onDuplicateCompany(companyId)
+                      }}
+                      title="Duplicate company"
+                      aria-label="Duplicate company"
+                    >
+                      ⧉
+                    </button>
+                  )}
                   {Object.keys(companies).length > 1 && (
-                    <button 
+                    <button
                       className="tab-remove-btn"
                       onClick={(e) => {
                         e.stopPropagation()

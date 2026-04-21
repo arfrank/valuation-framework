@@ -211,6 +211,22 @@ export function migrateLegacyCompany(legacyCompany) {
 }
 
 /**
+ * Generates the next unique name for a duplicated company.
+ * Appends or increments a trailing numeric suffix, skipping existing names.
+ * @param {string} baseName - Source company name
+ * @param {Object} companies - Map of existing companies keyed by id
+ * @returns {string} Unique name
+ */
+export function nextUniqueName(baseName, companies) {
+  const existing = new Set(Object.values(companies || {}).map(c => c && c.name))
+  const match = (baseName || '').match(/^(.*?)\s+(\d+)$/)
+  const stem = match ? match[1] : (baseName || 'Company')
+  let n = match ? parseInt(match[2], 10) + 1 : 2
+  while (existing.has(`${stem} ${n}`)) n++
+  return `${stem} ${n}`
+}
+
+/**
  * Validates complete company data structure
  * @param {Object} company - Company object
  * @returns {Object} Validation result with success boolean and errors array

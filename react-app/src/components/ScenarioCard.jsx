@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalink, investorName = 'US', showAdvanced = false, percentPrecision = 2, onPercentPrecisionChange }) => {
+const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalink, investorName = 'US', showAdvanced = false, percentPrecision = 2, onPercentPrecisionChange, company, onUpdateBase, companyName }) => {
   const [copyFeedback, setCopyFeedback] = useState('')
   const [collapsed, setCollapsed] = useState({
     newRound: false,
@@ -143,15 +143,36 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
     : 0
     
 
+  const handleBaseFieldChange = (field, rawValue) => {
+    if (!onUpdateBase || !company) return
+    let num = parseFloat(rawValue)
+    if (isNaN(num) || rawValue === '' || rawValue === null) num = 0
+    if (num < 0) num = 0
+    const round = (v) => Math.round(v * 100) / 100
+    const patch = { [field]: num }
+    if (field === 'roundSize') {
+      const investor = Number(company.investorPortion) || 0
+      patch.otherPortion = round(Math.max(0, num - investor))
+    } else if (field === 'investorPortion') {
+      const roundSize = Number(company.roundSize) || 0
+      patch.otherPortion = round(Math.max(0, roundSize - num))
+    }
+    onUpdateBase(patch)
+  }
+
+  const baseTitle = companyName
+    ? `Base Case — ${companyName}`
+    : (scenario.title || (isBase ? 'Base Case' : `Scenario ${index}`))
+
   return (
     <div className={getCardClass()}>
       <div className="scenario-header">
         <h3 className="scenario-title">
-          {scenario.title || (isBase ? "Base Case" : `Scenario ${index}`)}
+          {isBase ? baseTitle : (scenario.title || `Scenario ${index}`)}
         </h3>
         {!isBase && (
-          <button 
-            className="apply-scenario-btn" 
+          <button
+            className="apply-scenario-btn"
             onClick={handleApplyScenario}
             title="Apply this scenario to inputs"
           >
@@ -159,7 +180,58 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
           </button>
         )}
       </div>
-      
+
+      {isBase && onUpdateBase && company && (
+        <div className="base-quick-edit">
+          <label className="base-quick-field">
+            <span className="base-quick-label">Post-Money</span>
+            <span className="base-quick-input-wrap">
+              <span className="base-quick-prefix">$</span>
+              <input
+                type="number"
+                className="base-quick-input"
+                value={Number(company.postMoneyVal) || 0}
+                onChange={(e) => handleBaseFieldChange('postMoneyVal', e.target.value)}
+                step="0.5"
+                min="0"
+              />
+              <span className="base-quick-suffix">M</span>
+            </span>
+          </label>
+          <label className="base-quick-field">
+            <span className="base-quick-label">Round</span>
+            <span className="base-quick-input-wrap">
+              <span className="base-quick-prefix">$</span>
+              <input
+                type="number"
+                className="base-quick-input"
+                value={Number(company.roundSize) || 0}
+                onChange={(e) => handleBaseFieldChange('roundSize', e.target.value)}
+                step="0.25"
+                min="0"
+              />
+              <span className="base-quick-suffix">M</span>
+            </span>
+          </label>
+          <label className="base-quick-field">
+            <span className="base-quick-label">{investorName}</span>
+            <span className="base-quick-input-wrap">
+              <span className="base-quick-prefix">$</span>
+              <input
+                type="number"
+                className="base-quick-input"
+                value={Number(company.investorPortion) || 0}
+                onChange={(e) => handleBaseFieldChange('investorPortion', e.target.value)}
+                step="0.25"
+                min="0"
+                max={Number(company.roundSize) || 0}
+              />
+              <span className="base-quick-suffix">M</span>
+            </span>
+          </label>
+        </div>
+      )}
+
       <div className="scenario-table">
         <div className="table-header">
           <div className="label">Party</div>
