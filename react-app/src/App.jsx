@@ -184,7 +184,7 @@ function App() {
           />
 
           <div className={`base-result${isCompareMode ? ' base-result-compare' : ''}`}>
-            {cardIds.map((cid) => {
+            {cardIds.map((cid, idx) => {
               const base = baseScenariosById[cid]
               if (!base) return null
               return (
@@ -203,6 +203,7 @@ function App() {
                   onUpdateBase={(patch) => updateCompany(cid, patch)}
                   companyName={isCompareMode ? companies[cid]?.name : undefined}
                   compareActive={isCompareMode ? cid === activeCompany : undefined}
+                  compareIndex={isCompareMode ? idx : undefined}
                 />
               )
             })}

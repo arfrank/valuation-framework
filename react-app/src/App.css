@@ -363,6 +363,23 @@ body {
   box-shadow: var(--shadow-sm);
 }
 
+.base-scenario.compare-inactive.compare-tint-0 {
+  background: hsl(210 35% 97%);
+  border-left: 3px solid hsl(210 45% 70%);
+}
+.base-scenario.compare-inactive.compare-tint-1 {
+  background: hsl(42 50% 96%);
+  border-left: 3px solid hsl(42 55% 65%);
+}
+.base-scenario.compare-inactive.compare-tint-2 {
+  background: hsl(142 30% 96%);
+  border-left: 3px solid hsl(142 35% 60%);
+}
+.base-scenario.compare-inactive.compare-tint-3 {
+  background: hsl(280 25% 97%);
+  border-left: 3px solid hsl(280 35% 70%);
+}
+
 /* Scenarios Rows Layout */
 .scenarios-rows {
   display: grid;

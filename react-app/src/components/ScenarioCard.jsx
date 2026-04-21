@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalink, investorName = 'US', showAdvanced = false, percentPrecision = 2, onPercentPrecisionChange, company, onUpdateBase, companyName, compareActive }) => {
+const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalink, investorName = 'US', showAdvanced = false, percentPrecision = 2, onPercentPrecisionChange, company, onUpdateBase, companyName, compareActive, compareIndex }) => {
   const [copyFeedback, setCopyFeedback] = useState('')
   const [collapsed, setCollapsed] = useState({
     newRound: false,
@@ -20,7 +20,10 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
     if (isBase) {
       let cls = 'scenario-card base-scenario'
       if (compareActive === true) cls += ' compare-active'
-      else if (compareActive === false) cls += ' compare-inactive'
+      else if (compareActive === false) {
+        cls += ' compare-inactive'
+        if (Number.isFinite(compareIndex)) cls += ` compare-tint-${compareIndex % 4}`
+      }
       return cls
     }
     return `scenario-card scenario-${index % 5}`
