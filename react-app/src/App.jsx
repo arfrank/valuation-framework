@@ -153,6 +153,7 @@ function App() {
   const isCompareMode = compareIds.length >= 2
   const cardIds = isCompareMode ? compareIds : [activeCompany]
   const showExitMath = !isCompareMode && companies[activeCompany]?.showExitMath
+  const advancedOpen = !isCompareMode && !showExitMath && Boolean(companies[activeCompany]?.showAdvanced)
 
   return (
     <div className="app">
@@ -177,7 +178,7 @@ function App() {
           onToggleCompareSelection={toggleCompareSelection}
         />
 
-        <div className={`top-row${showExitMath ? ' with-exit-math' : ''}${isCompareMode ? ' compare-mode' : ''}`}>
+        <div className={`top-row${showExitMath ? ' with-exit-math' : ''}${isCompareMode ? ' compare-mode' : ''}${advancedOpen ? ' advanced-open' : ''}`}>
           <InputForm
             company={companies[activeCompany]}
             onUpdate={(data) => updateCompany(activeCompany, data)}

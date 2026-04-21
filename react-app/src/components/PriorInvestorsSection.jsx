@@ -1,15 +1,10 @@
-import { useState } from 'react'
 import { createPriorInvestor, calculateTotalOwnership } from '../utils/dataStructures'
 import FormInput from './FormInput'
 
 function PriorInvestorsSection({ priorInvestors = [], onUpdate, roundSize = 0, investorName = '' }) {
-  const [expandedInvestor, setExpandedInvestor] = useState(null)
-
   const addPriorInvestor = () => {
     const newInvestor = createPriorInvestor('New Investor', 0, false)
-    const updatedInvestors = [...priorInvestors, newInvestor]
-    onUpdate(updatedInvestors)
-    setExpandedInvestor(newInvestor.id)
+    onUpdate([...priorInvestors, newInvestor])
   }
 
   const updateInvestor = (investorId, field, value) => {
@@ -18,7 +13,6 @@ function PriorInvestorsSection({ priorInvestors = [], onUpdate, roundSize = 0, i
         const updated = { ...investor }
         if (field === 'ownershipPercent') {
           updated.ownershipPercent = Math.max(0, Math.min(100, Number(value) || 0))
-          // Reset override when ownership changes so it recalculates
           if (updated.proRataOverride != null) {
             updated.proRataOverride = null
           }
@@ -27,7 +21,6 @@ function PriorInvestorsSection({ priorInvestors = [], onUpdate, roundSize = 0, i
           updated.proRataOverride = (isNaN(numVal) || value === '' || value === null) ? null : Math.max(0, numVal)
         } else if (field === 'hasProRataRights') {
           updated.hasProRataRights = value
-          // Clear override when toggling pro-rata off
           if (!value) {
             updated.proRataOverride = null
           }
@@ -42,11 +35,7 @@ function PriorInvestorsSection({ priorInvestors = [], onUpdate, roundSize = 0, i
   }
 
   const removeInvestor = (investorId) => {
-    const updatedInvestors = priorInvestors.filter(investor => investor.id !== investorId)
-    onUpdate(updatedInvestors)
-    if (expandedInvestor === investorId) {
-      setExpandedInvestor(null)
-    }
+    onUpdate(priorInvestors.filter(investor => investor.id !== investorId))
   }
 
   const getCalculatedProRata = (investor) => {
@@ -62,21 +51,21 @@ function PriorInvestorsSection({ priorInvestors = [], onUpdate, roundSize = 0, i
       <div className="founders-investors-header">
         <div className="section-title-row">
           <h5 className="section-label">Prior Investors</h5>
-          <button
-            className="add-investor-btn"
-            onClick={addPriorInvestor}
-            type="button"
-          >
-            + Add Investor
-          </button>
-        </div>
-
-        {totalOwnership > 0 && (
-          <div className="ownership-summary">
-            <span className="summary-label">Total Prior Investor Ownership:</span>
-            <span className="summary-value">{totalOwnership.toFixed(1)}%</span>
+          <div className="section-header-actions">
+            {totalOwnership > 0 && (
+              <span className="section-total-pill">
+                Total: <strong>{totalOwnership.toFixed(1)}%</strong>
+              </span>
+            )}
+            <button
+              className="add-investor-btn"
+              onClick={addPriorInvestor}
+              type="button"
+            >
+              + Add Investor
+            </button>
           </div>
-        )}
+        </div>
       </div>
 
       {priorInvestors.length === 0 ? (
@@ -84,34 +73,33 @@ function PriorInvestorsSection({ priorInvestors = [], onUpdate, roundSize = 0, i
           No prior investors added. Click "Add Investor" to include previous round participants.
         </div>
       ) : (
-        <div className="investors-list">
+        <div className="repeater-table repeater-table--investors">
+          <div className="repeater-header">
+            <span className="repeater-col repeater-col--name">Name</span>
+            <span className="repeater-col repeater-col--pct">Ownership</span>
+            <span className="repeater-col repeater-col--prorata">Pro-rata</span>
+            <span className="repeater-col repeater-col--alloc">Allocation</span>
+            <span className="repeater-col repeater-col--actions" aria-hidden="true" />
+          </div>
           {priorInvestors.map(investor => {
             const calculatedProRata = getCalculatedProRata(investor)
             const hasOverride = investor.proRataOverride != null
             const displayAmount = hasOverride ? investor.proRataOverride : calculatedProRata
-
+            const matchesLead = investor.name === investorName && investor.name
+            const allocActive = investor.hasProRataRights && investor.ownershipPercent > 0 && roundSize > 0
             return (
-              <div key={investor.id} className="investor-row">
-                <div className="investor-row-header">
-                  <span className="investor-label">Prior Investor</span>
-                  <button
-                    className="remove-investor-btn"
-                    onClick={() => removeInvestor(investor.id)}
-                    type="button"
-                    title="Remove investor"
-                  >
-                    ×
-                  </button>
-                </div>
-
-                <div className="investor-inputs">
+              <div key={investor.id} className="repeater-row">
+                <div className="repeater-col repeater-col--name">
                   <FormInput
                     label="Name"
                     type="text"
                     value={investor.name}
                     onChange={(value) => updateInvestor(investor.id, 'name', value)}
                     placeholder="Investor name"
+                    compact
                   />
+                </div>
+                <div className="repeater-col repeater-col--pct">
                   <FormInput
                     label="Ownership"
                     type="number"
@@ -121,66 +109,57 @@ function PriorInvestorsSection({ priorInvestors = [], onUpdate, roundSize = 0, i
                     min="0"
                     max="100"
                     step="0.1"
+                    compact
                   />
                 </div>
-
-                <div className="investor-pro-rata">
-                  <label className="pro-rata-checkbox">
+                <div className="repeater-col repeater-col--prorata">
+                  <label className="repeater-checkbox" title="Pro-rata rights">
                     <input
                       type="checkbox"
                       checked={investor.hasProRataRights}
                       onChange={(e) => updateInvestor(investor.id, 'hasProRataRights', e.target.checked)}
                     />
-                    <span className="checkbox-label">Pro-rata rights</span>
                   </label>
                 </div>
-
-                {/* Show allocation field when pro-rata is enabled and they have ownership */}
-                {investor.hasProRataRights && investor.ownershipPercent > 0 && roundSize > 0 && (
-                  investor.name === investorName ? (
-                    <div className="pro-rata-hint">
-                      <span className="hint-text">
-                        Pro-rata handled via {investorName} round portion
-                      </span>
-                    </div>
+                <div className="repeater-col repeater-col--alloc">
+                  {allocActive && !matchesLead ? (
+                    <FormInput
+                      label="Allocation"
+                      type="number"
+                      value={displayAmount}
+                      onChange={(value) => updateInvestor(investor.id, 'proRataOverride', value)}
+                      prefix="$"
+                      suffix="M"
+                      step="0.01"
+                      min="0"
+                      compact
+                    />
                   ) : (
-                    <div className="pro-rata-allocation">
-                      <div className="pro-rata-allocation-row">
-                        <FormInput
-                          label="Allocation"
-                          type="number"
-                          value={displayAmount}
-                          onChange={(value) => updateInvestor(investor.id, 'proRataOverride', value)}
-                          prefix="$"
-                          suffix="M"
-                          step="0.01"
-                          min="0"
-                        />
-                      </div>
-                      {hasOverride && (
-                        <div className="pro-rata-hint">
-                          <span className="hint-text">
-                            Pro-rata right: ${parseFloat(calculatedProRata.toPrecision(10))}M
-                            {investor.proRataOverride < calculatedProRata
-                              ? ` (taking less)`
-                              : investor.proRataOverride > calculatedProRata
-                                ? ` (taking more)`
-                                : ''}
-                          </span>
-                          <button
-                            type="button"
-                            className="reset-pro-rata-btn"
-                            onClick={() => updateInvestor(investor.id, 'proRataOverride', null)}
-                            title="Reset to calculated pro-rata"
-                          >
-                            reset
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  )
-                )}
-
+                    <span className="repeater-alloc-placeholder" title={matchesLead ? `Handled via ${investorName} round portion` : 'Enable pro-rata to set allocation'}>
+                      {matchesLead ? 'via lead' : '—'}
+                    </span>
+                  )}
+                </div>
+                <div className="repeater-col repeater-col--actions">
+                  {hasOverride && allocActive && !matchesLead && (
+                    <button
+                      type="button"
+                      className="reset-pro-rata-btn"
+                      onClick={() => updateInvestor(investor.id, 'proRataOverride', null)}
+                      title={`Reset to calculated ($${parseFloat(calculatedProRata.toPrecision(10))}M)`}
+                    >
+                      ↺
+                    </button>
+                  )}
+                  <button
+                    className="remove-investor-btn"
+                    onClick={() => removeInvestor(investor.id)}
+                    type="button"
+                    title="Remove investor"
+                  >
+                    ×
+                  </button>
+                </div>
               </div>
             )
           })}
@@ -188,11 +167,10 @@ function PriorInvestorsSection({ priorInvestors = [], onUpdate, roundSize = 0, i
       )}
 
       {hasProRataInvestors && (
-        <div className="pro-rata-explanation">
+        <div className="pro-rata-explanation pro-rata-explanation--compact">
           <div className="explanation-icon">ℹ️</div>
           <div className="explanation-text">
-            Investors with pro-rata rights can participate in the new round proportional to their current ownership.
-            Their allocation is deducted from the "Other" portion. Edit the allocation to adjust.
+            Pro-rata participants buy in proportional to ownership; allocation is deducted from the "Other" portion. Edit inline to adjust.
           </div>
         </div>
       )}

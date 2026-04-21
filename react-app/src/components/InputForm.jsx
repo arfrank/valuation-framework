@@ -329,282 +329,366 @@ const InputForm = ({ company, onUpdate }) => {
         <div className="advanced-section">
           <h4>Cap Table Modeling</h4>
 
-          {/* 2-Step Round */}
-          <div className="two-step-section">
-            <div className="two-step-header">
-              <h5>2-Step Round</h5>
-              <label className="two-step-checkbox">
-                <input
-                  type="checkbox"
-                  checked={values.twoStepEnabled || false}
-                  onChange={(e) => handleChange('twoStepEnabled', e.target.checked)}
-                />
-                <span className="two-step-label">Enable</span>
-              </label>
+          <div className="advanced-split">
+            {/* 2-Step Round */}
+            <div className="two-step-section">
+              <div className="two-step-header">
+                <h5>2-Step Round</h5>
+                <label className="two-step-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={values.twoStepEnabled || false}
+                    onChange={(e) => handleChange('twoStepEnabled', e.target.checked)}
+                  />
+                  <span className="two-step-label">Enable</span>
+                </label>
+              </div>
+
+              {values.twoStepEnabled && (
+                <div className="step2-card">
+                  <div className="step2-card-header">
+                    <span className="step-label">Step 2</span>
+                    <span className="step-note">Step 1 uses main inputs above</span>
+                  </div>
+                  {values.step2PostMoney > 0 && values.step2PostMoney <= values.postMoneyVal && (
+                    <div className="warning">
+                      V2 (${values.step2PostMoney}M) should be greater than V1 (${values.postMoneyVal}M)
+                    </div>
+                  )}
+                  <div className="input-grid step2-input-grid">
+                    <FormInput
+                      label="Post-Money Valuation"
+                      type="number"
+                      value={values.step2PostMoney || 0}
+                      onChange={(value) => handleChange('step2PostMoney', value)}
+                      prefix="$"
+                      suffix="M"
+                      step="0.1"
+                      min="0"
+                    />
+
+                    <FormInput
+                      label="Amount"
+                      type="number"
+                      value={values.step2Amount || 0}
+                      onChange={(value) => handleChange('step2Amount', value)}
+                      prefix="$"
+                      suffix="M"
+                      step="0.1"
+                      min="0"
+                    />
+
+                    <FormInput
+                      label={`${values.investorName || 'US'} Portion`}
+                      type="number"
+                      value={values.step2InvestorPortion || 0}
+                      onChange={(value) => handleChange('step2InvestorPortion', value)}
+                      prefix="$"
+                      suffix="M"
+                      step="0.01"
+                      min="0"
+                      max={values.step2Amount || 0}
+                    />
+
+                    <FormInput
+                      label="Other Portion"
+                      type="number"
+                      value={values.step2OtherPortion || 0}
+                      onChange={(value) => handleChange('step2OtherPortion', value)}
+                      prefix="$"
+                      suffix="M"
+                      step="0.01"
+                      min="0"
+                      max={values.step2Amount || 0}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
-            {values.twoStepEnabled && (
-              <div className="step2-card">
-                <div className="step2-card-header">
-                  <span className="step-label">Step 2</span>
-                  <span className="step-note">Step 1 uses main inputs above</span>
-                </div>
-                {values.step2PostMoney > 0 && values.step2PostMoney <= values.postMoneyVal && (
-                  <div className="warning">
-                    V2 (${values.step2PostMoney}M) should be greater than V1 (${values.postMoneyVal}M)
-                  </div>
-                )}
-                <div className="input-grid">
-                  <FormInput
-                    label="Post-Money Valuation"
-                    type="number"
-                    value={values.step2PostMoney || 0}
-                    onChange={(value) => handleChange('step2PostMoney', value)}
-                    prefix="$"
-                    suffix="M"
-                    step="0.1"
-                    min="0"
-                  />
+            <div className="esop-section">
+              <h5>Employee Stock Option Pool (ESOP)</h5>
+              <p className="esop-subtitle">
+                Total pool = Granted + Available. VCs typically negotiate the <em>available</em> slice post-close.
+              </p>
 
-                  <FormInput
-                    label="Amount"
-                    type="number"
-                    value={values.step2Amount || 0}
-                    onChange={(value) => handleChange('step2Amount', value)}
-                    prefix="$"
-                    suffix="M"
-                    step="0.1"
-                    min="0"
-                  />
+              <div className="input-grid esop-input-grid">
+                <FormInput
+                  label="Current Pool"
+                  type="number"
+                  value={values.currentEsopPercent || ''}
+                  onChange={(value) => handleChange('currentEsopPercent', value)}
+                  suffix="%"
+                  step="0.01"
+                  min="0"
+                  max="100"
+                  placeholder="0"
+                  clearable={true}
+                  tooltip="Total ESOP pool today, including both granted and unallocated shares (as a % of fully-diluted shares)."
+                />
 
-                  <FormInput
-                    label={`${values.investorName || 'US'} Portion`}
-                    type="number"
-                    value={values.step2InvestorPortion || 0}
-                    onChange={(value) => handleChange('step2InvestorPortion', value)}
-                    prefix="$"
-                    suffix="M"
-                    step="0.01"
-                    min="0"
-                    max={values.step2Amount || 0}
-                  />
+                <FormInput
+                  label="Already Granted"
+                  type="number"
+                  value={values.grantedEsopPercent || ''}
+                  onChange={(value) => handleChange('grantedEsopPercent', value)}
+                  suffix="%"
+                  step="0.01"
+                  min="0"
+                  max="100"
+                  placeholder="0"
+                  clearable={true}
+                  tooltip="Portion of the current pool that has already been issued to employees. The rest is the unallocated pool VCs negotiate over."
+                />
 
-                  <FormInput
-                    label="Other Portion"
-                    type="number"
-                    value={values.step2OtherPortion || 0}
-                    onChange={(value) => handleChange('step2OtherPortion', value)}
-                    prefix="$"
-                    suffix="M"
-                    step="0.01"
-                    min="0"
-                    max={values.step2Amount || 0}
-                  />
-                </div>
+                <FormInput
+                  label="Target Available"
+                  type="number"
+                  value={values.targetEsopPercent || ''}
+                  onChange={(value) => handleChange('targetEsopPercent', value)}
+                  suffix="%"
+                  step="0.01"
+                  min="0"
+                  max="100"
+                  placeholder="0"
+                  clearable={true}
+                  tooltip="Desired unallocated pool post-round (as a % of post-money fully-diluted). Set to 0 to skip any top-up."
+                />
               </div>
-            )}
+
+              {Number(values.grantedEsopPercent || 0) > Number(values.currentEsopPercent || 0) && (
+                <div className="esop-validation-error">
+                  Already granted ({Number(values.grantedEsopPercent).toFixed(2)}%) exceeds current pool ({Number(values.currentEsopPercent).toFixed(2)}%).
+                </div>
+              )}
+
+              {values.targetEsopPercent > 0 && (
+                <div className="esop-timing-section">
+                  <label className="section-label">Top-up timing</label>
+                  <div className="esop-timing-toggle" role="tablist">
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={values.esopTiming === 'pre-close'}
+                      className={`esop-timing-option ${values.esopTiming === 'pre-close' ? 'active' : ''}`}
+                      onClick={() => handleChange('esopTiming', 'pre-close')}
+                    >
+                      Pre-Close
+                    </button>
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={values.esopTiming === 'post-close'}
+                      className={`esop-timing-option ${values.esopTiming === 'post-close' ? 'active' : ''}`}
+                      onClick={() => handleChange('esopTiming', 'post-close')}
+                    >
+                      Post-Close
+                    </button>
+                  </div>
+
+                  <p className="esop-timing-explanation">
+                    {values.esopTiming === 'pre-close'
+                      ? 'Top-up happens before the round. Dilutes founders, prior investors, and granted ESOP — not new investors.'
+                      : 'Top-up happens after the round. Dilutes everyone proportionally, including new investors.'}
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="safes-section">
-            <div className="safes-header">
-              <h5>SAFE Notes</h5>
-              <button 
-                type="button"
-                className="add-safe-btn"
-                onClick={addSafe}
-                title="Add SAFE"
-              >
-                + Add SAFE
-              </button>
+            <div className="section-title-row">
+              <h5 className="section-label">SAFE Notes</h5>
+              <div className="section-header-actions">
+                <button
+                  type="button"
+                  className="add-safe-btn"
+                  onClick={addSafe}
+                  title="Add SAFE"
+                >
+                  + Add SAFE
+                </button>
+              </div>
             </div>
 
-            {(!values.safes || values.safes.length === 0) && (
+            {(!values.safes || values.safes.length === 0) ? (
               <div className="no-safes-message">
                 No SAFE notes added. Click "Add SAFE" to get started.
               </div>
-            )}
-
-            {values.safes && values.safes.map((safe, index) => (
-              <div key={safe.id} className="safe-row">
-                <div className="safe-row-header">
-                  <span className="safe-label">SAFE #{index + 1}</span>
-                  <button 
-                    type="button"
-                    className="remove-safe-btn"
-                    onClick={() => removeSafe(safe.id)}
-                    title="Remove SAFE"
-                  >
-                    ×
-                  </button>
+            ) : (
+              <div className="repeater-table repeater-table--safes">
+                <div className="repeater-header">
+                  <span className="repeater-col repeater-col--name">Investor</span>
+                  <span className="repeater-col repeater-col--amount">Amount</span>
+                  <span className="repeater-col repeater-col--cap">Cap</span>
+                  <span className="repeater-col repeater-col--discount">Discount</span>
+                  <span className="repeater-col repeater-col--prorata">Pro-rata</span>
+                  <span className="repeater-col repeater-col--alloc">Allocation</span>
+                  <span className="repeater-col repeater-col--actions" aria-hidden="true" />
                 </div>
-                
-                <div className="safe-inputs">
-                  <FormInput
-                    label="Amount"
-                    type="number"
-                    value={safe.amount}
-                    onChange={(value) => updateSafe(safe.id, 'amount', value)}
-                    prefix="$"
-                    suffix="M"
-                    step="0.1"
-                    min="0"
-                    id={`safe-amount-${safe.id}`}
-                  />
+                {values.safes.map((safe) => {
+                  // Conversion valuation for the caption under the row
+                  const conversionInfo = (() => {
+                    if (!(safe.amount > 0 && (safe.cap > 0 || safe.discount > 0))) return null
+                    let val, note
+                    if (safe.cap > 0 && safe.discount > 0) {
+                      const capPrice = safe.cap
+                      const discountPrice = safePreMoneyVal * (1 - safe.discount / 100)
+                      if (capPrice < discountPrice) {
+                        val = capPrice
+                        note = `cap vs ${safe.discount}% discount`
+                      } else {
+                        val = discountPrice
+                        note = `discount vs $${capPrice.toFixed(1)}M cap`
+                      }
+                    } else if (safe.cap > 0) {
+                      val = Math.min(safe.cap, safePreMoneyVal)
+                      note = `cap $${safe.cap.toFixed(1)}M`
+                    } else {
+                      val = safePreMoneyVal * (1 - safe.discount / 100)
+                      note = `${safe.discount}% discount`
+                    }
+                    return `Converts at $${val.toFixed(1)}M (${note})`
+                  })()
 
-                  <FormInput
-                    label="Valuation"
-                    type="number"
-                    value={safe.cap}
-                    onChange={(value) => updateSafe(safe.id, 'cap', value)}
-                    prefix="$"
-                    suffix="M"
-                    step="0.5"
-                    min="0"
-                    placeholder="0 = uncapped"
-                    id={`safe-cap-${safe.id}`}
-                  />
-
-                  <FormInput
-                    label="Discount"
-                    type="number"
-                    value={safe.discount}
-                    onChange={(value) => updateSafe(safe.id, 'discount', value)}
-                    suffix="%"
-                    step="1"
-                    min="0"
-                    max="100"
-                    id={`safe-discount-${safe.id}`}
-                  />
-
-                  <FormInput
-                    label="Investor"
-                    type="text"
-                    value={safe.investorName || ''}
-                    onChange={(value) => updateSafe(safe.id, 'investorName', value)}
-                    placeholder="Optional"
-                    id={`safe-investor-${safe.id}`}
-                  />
-                </div>
-
-                {/* Individual SAFE Conversion Info */}
-                {safe.amount > 0 && (safe.cap > 0 || safe.discount > 0) && (
-                  <div className="safe-conversion-info">
-                    <div className="conversion-display">
-                      <span className="conversion-label">Conversion Valuation:</span>
-                      <span className="conversion-value">
-                        {(() => {
-                          if (safe.cap > 0 && safe.discount > 0) {
-                            const capPrice = safe.cap
-                            const discountPrice = safePreMoneyVal * (1 - safe.discount / 100)
-                            return capPrice < discountPrice
-                              ? `$${capPrice.toFixed(1)}M`
-                              : `$${discountPrice.toFixed(1)}M`
-                          } else if (safe.cap > 0) {
-                            return `$${Math.min(safe.cap, safePreMoneyVal).toFixed(1)}M`
-                          } else if (safe.discount > 0) {
-                            return `$${(safePreMoneyVal * (1 - safe.discount / 100)).toFixed(1)}M`
-                          }
-                          return '$0.0M'
-                        })()}
-                      </span>
-                      <span className="conversion-note">
-                        {(() => {
-                          if (safe.cap > 0 && safe.discount > 0) {
-                            const capPrice = safe.cap
-                            const discountPrice = safePreMoneyVal * (1 - safe.discount / 100)
-                            return capPrice < discountPrice
-                              ? `(Using cap vs ${safe.discount}% discount)`
-                              : `(Using discount vs $${capPrice.toFixed(1)}M cap)`
-                          } else if (safe.cap > 0) {
-                            return `(Cap: $${safe.cap.toFixed(1)}M)`
-                          } else if (safe.discount > 0) {
-                            return `(${safe.discount}% discount)`
-                          }
-                          return ''
-                        })()}
-                      </span>
-                    </div>
-                  </div>
-                )}
-
-                {/* Pro-rata rights for this SAFE */}
-                <div className="investor-pro-rata">
-                  <label className="pro-rata-checkbox">
-                    <input
-                      type="checkbox"
-                      checked={Boolean(safe.proRata)}
-                      onChange={(e) => updateSafe(safe.id, 'proRata', e.target.checked)}
-                    />
-                    <span className="checkbox-label">Pro-rata rights</span>
-                  </label>
-                </div>
-
-                {safe.proRata && safe.amount > 0 && values.roundSize > 0 && (() => {
-                  // Compute conversion price matching calculateSafeConversions
-                  let conversionPrice = 0
-                  if (safe.cap > 0 && safe.discount > 0) {
-                    conversionPrice = Math.min(safe.cap, safePreMoneyVal * (1 - safe.discount / 100))
-                  } else if (safe.cap > 0) {
-                    conversionPrice = Math.min(safe.cap, safePreMoneyVal)
-                  } else if (safe.discount > 0) {
-                    conversionPrice = safePreMoneyVal * (1 - safe.discount / 100)
-                  } else {
-                    conversionPrice = safePreMoneyVal
+                  // Pro-rata allocation calculation
+                  let proRataBlock = null
+                  if (safe.proRata && safe.amount > 0 && values.roundSize > 0) {
+                    let conversionPrice = 0
+                    if (safe.cap > 0 && safe.discount > 0) {
+                      conversionPrice = Math.min(safe.cap, safePreMoneyVal * (1 - safe.discount / 100))
+                    } else if (safe.cap > 0) {
+                      conversionPrice = Math.min(safe.cap, safePreMoneyVal)
+                    } else if (safe.discount > 0) {
+                      conversionPrice = safePreMoneyVal * (1 - safe.discount / 100)
+                    } else {
+                      conversionPrice = safePreMoneyVal
+                    }
+                    if (conversionPrice > 0) {
+                      const safeOwnership = (safe.amount / conversionPrice) * 100
+                      const calculatedProRata = (safeOwnership / 100) * values.roundSize
+                      const hasOverride = safe.proRataOverride != null
+                      const displayAmount = hasOverride ? safe.proRataOverride : calculatedProRata
+                      const matchesLead = (safe.investorName || '').trim() === (values.investorName || 'US').trim()
+                      proRataBlock = { calculatedProRata, hasOverride, displayAmount, matchesLead: matchesLead && !!safe.investorName }
+                    }
                   }
-                  if (conversionPrice <= 0) return null
-                  const safeOwnership = (safe.amount / conversionPrice) * 100
-                  const calculatedProRata = (safeOwnership / 100) * values.roundSize
-                  const hasOverride = safe.proRataOverride != null
-                  const displayAmount = hasOverride ? safe.proRataOverride : calculatedProRata
-                  const matchesLead = (safe.investorName || '').trim() === (values.investorName || 'US').trim()
-                  if (matchesLead && safe.investorName) {
-                    return (
-                      <div className="pro-rata-hint">
-                        <span className="hint-text">
-                          Pro-rata handled via {values.investorName || 'US'} round portion
-                        </span>
-                      </div>
-                    )
-                  }
+
                   return (
-                    <div className="pro-rata-allocation">
-                      <div className="pro-rata-allocation-row">
+                    <div key={safe.id} className="repeater-row repeater-row--safe">
+                      <div className="repeater-col repeater-col--name">
                         <FormInput
-                          label="Allocation"
-                          type="number"
-                          value={displayAmount}
-                          onChange={(value) => updateSafe(safe.id, 'proRataOverride', value)}
-                          prefix="$"
-                          suffix="M"
-                          step="0.01"
-                          min="0"
+                          label="Investor"
+                          type="text"
+                          value={safe.investorName || ''}
+                          onChange={(value) => updateSafe(safe.id, 'investorName', value)}
+                          placeholder="Optional"
+                          id={`safe-investor-${safe.id}`}
+                          compact
                         />
                       </div>
-                      {hasOverride && (
-                        <div className="pro-rata-hint">
-                          <span className="hint-text">
-                            Pro-rata right: ${parseFloat(calculatedProRata.toPrecision(10))}M
-                            {safe.proRataOverride < calculatedProRata
-                              ? ` (taking less)`
-                              : safe.proRataOverride > calculatedProRata
-                                ? ` (taking more)`
-                                : ''}
+                      <div className="repeater-col repeater-col--amount">
+                        <FormInput
+                          label="Amount"
+                          type="number"
+                          value={safe.amount}
+                          onChange={(value) => updateSafe(safe.id, 'amount', value)}
+                          prefix="$"
+                          suffix="M"
+                          step="0.1"
+                          min="0"
+                          id={`safe-amount-${safe.id}`}
+                          compact
+                        />
+                      </div>
+                      <div className="repeater-col repeater-col--cap">
+                        <FormInput
+                          label="Cap"
+                          type="number"
+                          value={safe.cap}
+                          onChange={(value) => updateSafe(safe.id, 'cap', value)}
+                          prefix="$"
+                          suffix="M"
+                          step="0.5"
+                          min="0"
+                          placeholder="0 = uncapped"
+                          id={`safe-cap-${safe.id}`}
+                          compact
+                        />
+                      </div>
+                      <div className="repeater-col repeater-col--discount">
+                        <FormInput
+                          label="Discount"
+                          type="number"
+                          value={safe.discount}
+                          onChange={(value) => updateSafe(safe.id, 'discount', value)}
+                          suffix="%"
+                          step="1"
+                          min="0"
+                          max="100"
+                          id={`safe-discount-${safe.id}`}
+                          compact
+                        />
+                      </div>
+                      <div className="repeater-col repeater-col--prorata">
+                        <label className="repeater-checkbox" title="Pro-rata rights">
+                          <input
+                            type="checkbox"
+                            checked={Boolean(safe.proRata)}
+                            onChange={(e) => updateSafe(safe.id, 'proRata', e.target.checked)}
+                          />
+                        </label>
+                      </div>
+                      <div className="repeater-col repeater-col--alloc">
+                        {proRataBlock && !proRataBlock.matchesLead ? (
+                          <FormInput
+                            label="Allocation"
+                            type="number"
+                            value={proRataBlock.displayAmount}
+                            onChange={(value) => updateSafe(safe.id, 'proRataOverride', value)}
+                            prefix="$"
+                            suffix="M"
+                            step="0.01"
+                            min="0"
+                            compact
+                          />
+                        ) : (
+                          <span
+                            className="repeater-alloc-placeholder"
+                            title={proRataBlock?.matchesLead ? `Handled via ${values.investorName || 'US'} round portion` : 'Enable pro-rata to set allocation'}
+                          >
+                            {proRataBlock?.matchesLead ? 'via lead' : '—'}
                           </span>
+                        )}
+                      </div>
+                      <div className="repeater-col repeater-col--actions">
+                        {proRataBlock?.hasOverride && !proRataBlock.matchesLead && (
                           <button
                             type="button"
                             className="reset-pro-rata-btn"
                             onClick={() => updateSafe(safe.id, 'proRataOverride', null)}
-                            title="Reset to calculated pro-rata"
+                            title={`Reset to calculated ($${parseFloat(proRataBlock.calculatedProRata.toPrecision(10))}M)`}
                           >
-                            reset
+                            ↺
                           </button>
-                        </div>
+                        )}
+                        <button
+                          type="button"
+                          className="remove-safe-btn"
+                          onClick={() => removeSafe(safe.id)}
+                          title="Remove SAFE"
+                        >
+                          ×
+                        </button>
+                      </div>
+                      {conversionInfo && (
+                        <div className="repeater-row-caption">{conversionInfo}</div>
                       )}
                     </div>
                   )
-                })()}
+                })}
               </div>
-            ))}
+            )}
           </div>
 
           <PriorInvestorsSection
@@ -614,99 +698,10 @@ const InputForm = ({ company, onUpdate }) => {
             investorName={values.investorName || 'US'}
           />
 
-          <FoundersSection 
+          <FoundersSection
             founders={values.founders || []}
             onUpdate={handleFoundersUpdate}
           />
-
-          <div className="esop-section">
-            <h5>Employee Stock Option Pool (ESOP)</h5>
-            <p className="esop-subtitle">
-              Total pool = Granted + Available. VCs typically negotiate the <em>available</em> slice post-close.
-            </p>
-
-            <div className="input-grid esop-input-grid">
-              <FormInput
-                label="Current Pool"
-                type="number"
-                value={values.currentEsopPercent || ''}
-                onChange={(value) => handleChange('currentEsopPercent', value)}
-                suffix="%"
-                step="0.01"
-                min="0"
-                max="100"
-                placeholder="0"
-                clearable={true}
-                tooltip="Total ESOP pool today, including both granted and unallocated shares (as a % of fully-diluted shares)."
-              />
-
-              <FormInput
-                label="Already Granted"
-                type="number"
-                value={values.grantedEsopPercent || ''}
-                onChange={(value) => handleChange('grantedEsopPercent', value)}
-                suffix="%"
-                step="0.01"
-                min="0"
-                max="100"
-                placeholder="0"
-                clearable={true}
-                tooltip="Portion of the current pool that has already been issued to employees. The rest is the unallocated pool VCs negotiate over."
-              />
-
-              <FormInput
-                label="Target Available"
-                type="number"
-                value={values.targetEsopPercent || ''}
-                onChange={(value) => handleChange('targetEsopPercent', value)}
-                suffix="%"
-                step="0.01"
-                min="0"
-                max="100"
-                placeholder="0"
-                clearable={true}
-                tooltip="Desired unallocated pool post-round (as a % of post-money fully-diluted). Set to 0 to skip any top-up."
-              />
-            </div>
-
-            {Number(values.grantedEsopPercent || 0) > Number(values.currentEsopPercent || 0) && (
-              <div className="esop-validation-error">
-                Already granted ({Number(values.grantedEsopPercent).toFixed(2)}%) exceeds current pool ({Number(values.currentEsopPercent).toFixed(2)}%).
-              </div>
-            )}
-
-            {values.targetEsopPercent > 0 && (
-              <div className="esop-timing-section">
-                <label className="section-label">Top-up timing</label>
-                <div className="esop-timing-toggle" role="tablist">
-                  <button
-                    type="button"
-                    role="tab"
-                    aria-selected={values.esopTiming === 'pre-close'}
-                    className={`esop-timing-option ${values.esopTiming === 'pre-close' ? 'active' : ''}`}
-                    onClick={() => handleChange('esopTiming', 'pre-close')}
-                  >
-                    Pre-Close
-                  </button>
-                  <button
-                    type="button"
-                    role="tab"
-                    aria-selected={values.esopTiming === 'post-close'}
-                    className={`esop-timing-option ${values.esopTiming === 'post-close' ? 'active' : ''}`}
-                    onClick={() => handleChange('esopTiming', 'post-close')}
-                  >
-                    Post-Close
-                  </button>
-                </div>
-
-                <p className="esop-timing-explanation">
-                  {values.esopTiming === 'pre-close'
-                    ? 'Top-up happens before the round. Dilutes founders, prior investors, and granted ESOP — not new investors.'
-                    : 'Top-up happens after the round. Dilutes everyone proportionally, including new investors.'}
-                </p>
-              </div>
-            )}
-          </div>
 
         </div>
       )}
