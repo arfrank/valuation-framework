@@ -341,11 +341,20 @@ body {
 }
 
 .top-row.compare-mode {
-  /* Cap the form column so the compare rail takes all remaining viewport width —
-     otherwise a fixed outer max-width forces horizontal scrolling on wide screens
-     even when the viewport has room for more cards. */
-  grid-template-columns: minmax(320px, 440px) minmax(0, 1fr);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 2rem;
   max-width: none;
+}
+
+.top-row.compare-mode > .input-form {
+  flex: 0 0 clamp(320px, 28vw, 440px);
+}
+
+.top-row.compare-mode > .base-result-compare {
+  flex: 0 1 auto;
+  min-width: 0;
 }
 
 .base-result-compare {
@@ -2403,6 +2412,16 @@ input.investor-name-input:focus, input.founder-name-input:focus {
     grid-template-columns: 1fr;
     gap: 1.5rem;
     margin-bottom: 1.5rem;
+  }
+
+  .top-row.compare-mode {
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .top-row.compare-mode > .input-form {
+    flex: 0 0 auto;
+    width: 100%;
   }
 
   .scenarios-rows {
