@@ -86,6 +86,101 @@ export function calculateTotalOwnership(stakeholders) {
   }, 0)
 }
 
+function getOptionalNumber(...values) {
+  for (const value of values) {
+    if (value === '' || value === null || value === undefined) continue
+    const parsed = Number(value)
+    if (Number.isFinite(parsed)) return parsed
+  }
+  return undefined
+}
+
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value))
+}
+
+function normalizePriorInvestor(investor = {}) {
+  const {
+    proRataAmount: _legacyProRataAmount,
+    ...restInvestor
+  } = investor
+  const base = createPriorInvestor(
+    typeof restInvestor.name === 'string' ? restInvestor.name : '',
+    clamp(getOptionalNumber(restInvestor.ownershipPercent) ?? 0, 0, 100),
+    Boolean(restInvestor.hasProRataRights)
+  )
+  const proRataOverride = getOptionalNumber(restInvestor.proRataOverride, investor.proRataAmount)
+
+  return {
+    ...base,
+    ...restInvestor,
+    name: typeof restInvestor.name === 'string' ? restInvestor.name.trim() : '',
+    ownershipPercent: clamp(getOptionalNumber(restInvestor.ownershipPercent) ?? 0, 0, 100),
+    hasProRataRights: Boolean(restInvestor.hasProRataRights),
+    proRataOverride: proRataOverride === undefined ? null : Math.max(0, proRataOverride)
+  }
+}
+
+function normalizeFounder(founder = {}) {
+  const base = createFounder(
+    typeof founder.name === 'string' ? founder.name : '',
+    clamp(getOptionalNumber(founder.ownershipPercent) ?? 0, 0, 100)
+  )
+
+  return {
+    ...base,
+    ...founder,
+    name: typeof founder.name === 'string' ? founder.name.trim() : '',
+    ownershipPercent: clamp(getOptionalNumber(founder.ownershipPercent) ?? 0, 0, 100)
+  }
+}
+
+function normalizeSafe(safe = {}) {
+  const {
+    proRataAmount: _legacyProRataAmount,
+    ...restSafe
+  } = safe
+  const proRataOverride = getOptionalNumber(restSafe.proRataOverride, safe.proRataAmount)
+  const base = {
+    proRata: false,
+    proRataOverride: null
+  }
+
+  return {
+    ...base,
+    ...restSafe,
+    proRata: Boolean(restSafe.proRata),
+    proRataOverride: proRataOverride === undefined ? null : Math.max(0, proRataOverride)
+  }
+}
+
+function looksLikeSingleStoredCompany(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+
+  return [
+    'postMoneyVal',
+    'postMoney',
+    'roundSize',
+    'round',
+    'investorPortion',
+    'investor',
+    'otherPortion',
+    'other',
+    'investorName',
+    'showAdvanced',
+    'proRataPercent',
+    'preRoundFounderOwnership',
+    'priorInvestors',
+    'founders',
+    'safes',
+    'currentEsopPercent',
+    'targetEsopPercent',
+    'twoStepEnabled',
+    'showExitMath',
+    'exitMath'
+  ].some((key) => Object.prototype.hasOwnProperty.call(value, key))
+}
+
 /**
  * Creates default company data structure with new multi-party support
  * @param {string} companyName - Company name
@@ -147,15 +242,45 @@ export function createDefaultCompany(companyName = 'New Company') {
  * @param {Object} legacyCompany - Company object with legacy fields
  * @returns {Object} Migrated company object
  */
-export function migrateLegacyCompany(legacyCompany) {
-  if (!legacyCompany) {
-    return createDefaultCompany()
+export function migrateLegacyCompany(legacyCompany, fallbackName = 'New Company') {
+  if (!legacyCompany || typeof legacyCompany !== 'object' || Array.isArray(legacyCompany)) {
+    return createDefaultCompany(fallbackName)
   }
-  
-  const migrated = { ...legacyCompany }
-  
+
+  const resolvedName = typeof legacyCompany.name === 'string' && legacyCompany.name.trim()
+    ? legacyCompany.name.trim()
+    : fallbackName
+  const defaults = createDefaultCompany(resolvedName)
+  const migrated = {
+    ...defaults,
+    ...legacyCompany,
+    name: resolvedName
+  }
+
+  migrated.postMoneyVal = Math.max(0, getOptionalNumber(legacyCompany.postMoneyVal, legacyCompany.postMoney) ?? defaults.postMoneyVal)
+  migrated.roundSize = Math.max(0, getOptionalNumber(legacyCompany.roundSize, legacyCompany.round) ?? defaults.roundSize)
+  migrated.investorPortion = clamp(
+    Math.max(0, getOptionalNumber(legacyCompany.investorPortion, legacyCompany.investor) ?? defaults.investorPortion),
+    0,
+    migrated.roundSize
+  )
+
+  const explicitOtherPortion = getOptionalNumber(legacyCompany.otherPortion, legacyCompany.other)
+  migrated.otherPortion = explicitOtherPortion === undefined
+    ? Math.max(0, migrated.roundSize - migrated.investorPortion)
+    : clamp(Math.max(0, explicitOtherPortion), 0, Math.max(0, migrated.roundSize - migrated.investorPortion))
+  migrated.investorName = typeof migrated.investorName === 'string' && migrated.investorName.trim()
+    ? migrated.investorName.trim()
+    : defaults.investorName
+  migrated.showAdvanced = Boolean(migrated.showAdvanced)
+  migrated.esopTiming = migrated.esopTiming === 'post-close' ? 'post-close' : defaults.esopTiming
+  delete migrated.postMoney
+  delete migrated.round
+  delete migrated.investor
+  delete migrated.other
+
   // Migrate legacy proRataPercent and preRoundFounderOwnership
-  if (!migrated.priorInvestors || !migrated.founders) {
+  if (!Array.isArray(legacyCompany.priorInvestors) && !Array.isArray(legacyCompany.founders)) {
     const legacyProRata = Number(legacyCompany.proRataPercent) || 0
     const legacyFounderOwnership = Number(legacyCompany.preRoundFounderOwnership) || 85
     
@@ -187,39 +312,83 @@ export function migrateLegacyCompany(legacyCompany) {
   }
   
   // Ensure arrays exist even if empty
-  migrated.priorInvestors = migrated.priorInvestors || []
-  migrated.founders = migrated.founders || [createFounder('Founder Team', 85)]
-  migrated.safes = (migrated.safes || []).map(safe => ({
-    proRata: false,
-    proRataOverride: null,
-    ...safe
-  }))
+  migrated.priorInvestors = Array.isArray(migrated.priorInvestors)
+    ? migrated.priorInvestors.map((investor) => normalizePriorInvestor(investor))
+    : []
+  migrated.founders = Array.isArray(migrated.founders)
+    ? migrated.founders.map((founder) => normalizeFounder(founder))
+    : [createFounder('Founder Team', 85)]
+  migrated.safes = Array.isArray(migrated.safes)
+    ? migrated.safes.map((safe) => normalizeSafe(safe))
+    : []
 
   // Ensure 2-step round fields exist
-  if (migrated.twoStepEnabled === undefined) migrated.twoStepEnabled = false
-  if (migrated.step2PostMoney === undefined) migrated.step2PostMoney = 0
-  if (migrated.step2Amount === undefined) migrated.step2Amount = 0
-  if (migrated.step2InvestorPortion === undefined) migrated.step2InvestorPortion = 0
-  if (migrated.step2OtherPortion === undefined) migrated.step2OtherPortion = 0
+  migrated.twoStepEnabled = Boolean(migrated.twoStepEnabled)
+  migrated.step2PostMoney = Math.max(0, getOptionalNumber(migrated.step2PostMoney) ?? 0)
+  migrated.step2Amount = Math.max(0, getOptionalNumber(migrated.step2Amount) ?? 0)
+  migrated.step2InvestorPortion = clamp(
+    Math.max(0, getOptionalNumber(migrated.step2InvestorPortion) ?? 0),
+    0,
+    migrated.step2Amount
+  )
+  migrated.step2OtherPortion = clamp(
+    Math.max(0, getOptionalNumber(migrated.step2OtherPortion) ?? Math.max(0, migrated.step2Amount - migrated.step2InvestorPortion)),
+    0,
+    Math.max(0, migrated.step2Amount - migrated.step2InvestorPortion)
+  )
 
   // Ensure ESOP fields exist (grantedEsopPercent added after initial release)
-  if (migrated.grantedEsopPercent === undefined) migrated.grantedEsopPercent = 0
+  migrated.currentEsopPercent = Math.max(0, getOptionalNumber(migrated.currentEsopPercent) ?? defaults.currentEsopPercent)
+  migrated.grantedEsopPercent = Math.max(0, getOptionalNumber(migrated.grantedEsopPercent) ?? defaults.grantedEsopPercent)
+  migrated.targetEsopPercent = Math.max(0, getOptionalNumber(migrated.targetEsopPercent) ?? defaults.targetEsopPercent)
+  migrated.percentPrecision = clamp(getOptionalNumber(migrated.percentPrecision) ?? defaults.percentPrecision, 0, 6)
 
   // Ensure scenarioOffsets exist
   migrated.scenarioOffsets = normalizeScenarioOffsets(migrated.scenarioOffsets)
 
   // Ensure Exit Math fields exist
-  if (migrated.showExitMath === undefined) migrated.showExitMath = false
-  if (!migrated.exitMath || typeof migrated.exitMath !== 'object') {
-    migrated.exitMath = {
-      exitValuation: 5000,
-      numRounds: 3,
-      uniformDilution: 20,
-      perRoundOverrides: []
+  migrated.showExitMath = Boolean(migrated.showExitMath)
+  migrated.exitMath = migrated.exitMath && typeof migrated.exitMath === 'object' && !Array.isArray(migrated.exitMath)
+    ? {
+        ...defaults.exitMath,
+        ...migrated.exitMath,
+        perRoundOverrides: Array.isArray(migrated.exitMath.perRoundOverrides)
+          ? migrated.exitMath.perRoundOverrides
+          : defaults.exitMath.perRoundOverrides
+      }
+    : defaults.exitMath
+
+  return migrated
+}
+
+export function normalizeStoredCompanies(storedCompanies, fallbackName = 'Startup Alpha') {
+  const fallback = { company1: createDefaultCompany(fallbackName) }
+
+  if (looksLikeSingleStoredCompany(storedCompanies)) {
+    return {
+      company1: migrateLegacyCompany(storedCompanies, storedCompanies.name || fallbackName)
     }
   }
 
-  return migrated
+  if (!storedCompanies || typeof storedCompanies !== 'object' || Array.isArray(storedCompanies)) {
+    return fallback
+  }
+
+  const entries = Object.entries(storedCompanies).filter(([, company]) => (
+    company &&
+    typeof company === 'object' &&
+    !Array.isArray(company)
+  ))
+
+  if (entries.length === 0) {
+    return fallback
+  }
+
+  return entries.reduce((acc, [companyId, company], index) => {
+    const defaultName = index === 0 ? fallbackName : `Startup ${index + 1}`
+    acc[companyId] = migrateLegacyCompany(company, company?.name || defaultName)
+    return acc
+  }, {})
 }
 
 /**

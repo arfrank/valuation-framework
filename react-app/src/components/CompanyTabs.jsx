@@ -72,6 +72,7 @@ const CompanyTabs = ({
                 key={companyId}
                 data-company-id={companyId}
                 className={`tab ${activeCompany === companyId ? 'active' : ''}`}
+                aria-current={activeCompany === companyId ? 'page' : undefined}
                 onClick={() => handleTabClick(companyId)}
               >
                 {onToggleCompareSelection && (

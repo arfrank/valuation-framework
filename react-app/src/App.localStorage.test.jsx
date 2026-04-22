@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import App from './App'
 
 describe('App Component - Local Storage Integration', () => {
@@ -171,6 +171,32 @@ describe('App Component - Local Storage Integration', () => {
   })
 
   describe('Data Migration Scenarios', () => {
+    it('should migrate old single-company browser storage into the multi-company format', async () => {
+      const legacySingleCompany = {
+        name: 'Legacy Browser Company',
+        postMoney: 15,
+        round: 3,
+        investor: 2
+      }
+
+      localStorage.setItem('valuationFramework', JSON.stringify(legacySingleCompany))
+
+      render(<App />)
+
+      expect(screen.getByText('Legacy Browser Company')).toBeInTheDocument()
+
+      await waitFor(() => {
+        const migrated = JSON.parse(localStorage.getItem('valuationFramework'))
+        expect(migrated).toHaveProperty('company1')
+        expect(migrated.company1.postMoneyVal).toBe(15)
+        expect(migrated.company1.roundSize).toBe(3)
+        expect(migrated.company1.investorPortion).toBe(2)
+        expect(migrated.company1.otherPortion).toBe(1)
+        expect(Array.isArray(migrated.company1.priorInvestors)).toBe(true)
+        expect(Array.isArray(migrated.company1.founders)).toBe(true)
+      })
+    })
+
     it('should handle old data format gracefully', () => {
       // Simulate data from an older version of the app
       const oldFormatData = {

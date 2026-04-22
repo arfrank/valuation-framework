@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import './App.css'
 import CompanyTabs from './components/CompanyTabs'
 import InputForm from './components/InputForm'
@@ -12,7 +12,7 @@ import { useNotifications } from './hooks/useNotifications'
 import { calculateEnhancedScenarios } from './utils/multiPartyCalculations'
 import { copyPermalinkToClipboard, loadScenarioFromURL } from './utils/permalink'
 import { updateSocialSharingMeta } from './utils/socialSharing'
-import { createDefaultCompany, nextUniqueName } from './utils/dataStructures'
+import { createDefaultCompany, nextUniqueName, normalizeStoredCompanies } from './utils/dataStructures'
 
 function getFirstCompanyId(companies) {
   return Object.keys(companies || {})[0] || 'company1'
@@ -27,9 +27,10 @@ function getNextCompanyNumber(companies) {
 }
 
 function App() {
-  const [companies, setCompanies] = useLocalStorage('valuationFramework', {
+  const [storedCompanies, setStoredCompanies] = useLocalStorage('valuationFramework', {
     company1: createDefaultCompany('Startup Alpha')
   })
+  const companies = useMemo(() => normalizeStoredCompanies(storedCompanies), [storedCompanies])
   const [activeCompany, setActiveCompany] = useState(() => getFirstCompanyId(companies))
   const [nextCompanyId, setNextCompanyId] = useState(() => getNextCompanyNumber(companies))
   const [selectedCompanyIds, setSelectedCompanyIds] = useLocalStorage('valuationFrameworkSelected', [])
@@ -40,11 +41,14 @@ function App() {
   const { notifications, removeNotification, showSuccess, showInfo, showError } = useNotifications()
 
   const updateCompany = useCallback((companyId, data) => {
-    setCompanies(prev => ({
-      ...prev,
-      [companyId]: { ...prev[companyId], ...data }
-    }))
-  }, [setCompanies])
+    setStoredCompanies((prev) => {
+      const normalizedPrev = normalizeStoredCompanies(prev)
+      return {
+        ...normalizedPrev,
+        [companyId]: { ...normalizedPrev[companyId], ...data }
+      }
+    })
+  }, [setStoredCompanies])
 
   const applyScenario = (scenarioData) => {
     updateCompany(activeCompany, scenarioData)
@@ -63,7 +67,7 @@ function App() {
       : `Startup ${nextCompanyId}`
     const newCompany = createDefaultCompany(companyName)
 
-    setCompanies(prev => ({ ...prev, [newCompanyId]: newCompany }))
+    setStoredCompanies(prev => ({ ...normalizeStoredCompanies(prev), [newCompanyId]: newCompany }))
     setActiveCompany(newCompanyId)
     setNextCompanyId(prev => prev + 1)
   }
@@ -76,7 +80,7 @@ function App() {
       ? structuredClone(source)
       : JSON.parse(JSON.stringify(source))
     copy.name = nextUniqueName(source.name, companies)
-    setCompanies(prev => ({ ...prev, [newCompanyId]: copy }))
+    setStoredCompanies(prev => ({ ...normalizeStoredCompanies(prev), [newCompanyId]: copy }))
     setActiveCompany(newCompanyId)
     setNextCompanyId(prev => prev + 1)
   }
@@ -86,7 +90,7 @@ function App() {
 
     const newCompanies = { ...companies }
     delete newCompanies[companyId]
-    setCompanies(newCompanies)
+    setStoredCompanies(newCompanies)
 
     setSelectedCompanyIds(prev => prev.filter(id => id !== companyId))
 
@@ -103,13 +107,22 @@ function App() {
     ))
   }
 
+  useEffect(() => {
+    const raw = JSON.stringify(storedCompanies)
+    const normalized = JSON.stringify(companies)
+
+    if (raw !== normalized) {
+      setStoredCompanies(companies)
+    }
+  }, [storedCompanies, companies, setStoredCompanies])
+
   // Load scenario from URL on mount (only once)
   useEffect(() => {
     const companyIds = Object.keys(companies || {})
 
     if (companyIds.length === 0) {
       const fallback = { company1: createDefaultCompany('Startup Alpha') }
-      setCompanies(fallback)
+      setStoredCompanies(fallback)
       setActiveCompany('company1')
       setNextCompanyId(2)
       return
@@ -123,7 +136,7 @@ function App() {
     if (nextCompanyId !== derivedNextCompanyId) {
       setNextCompanyId(derivedNextCompanyId)
     }
-  }, [companies, activeCompany, nextCompanyId, setCompanies])
+  }, [companies, activeCompany, nextCompanyId, setStoredCompanies])
 
   useEffect(() => {
     if (!hasLoadedFromURL) {

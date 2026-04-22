@@ -71,6 +71,13 @@ describe('CompanyTabs duplicate + compare', () => {
     expect(props.onCompanyChange).not.toHaveBeenCalled()
   })
 
+  it('marks the active tab as current', () => {
+    render(<CompanyTabs {...props} />)
+
+    expect(screen.getByText('Startup Alpha').closest('.tab')).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByText('Startup Beta').closest('.tab')).not.toHaveAttribute('aria-current')
+  })
+
   it('scrolls the active tab into view when selection changes', () => {
     const { rerender } = render(<CompanyTabs {...props} />)
     expect(HTMLElement.prototype.scrollIntoView).toHaveBeenCalledTimes(1)
