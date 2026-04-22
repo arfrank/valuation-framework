@@ -400,8 +400,9 @@ body {
   justify-content: flex-start;
   align-items: flex-start;
   gap: clamp(1rem, 1.5vw, 2rem);
-  width: 100%;
+  width: fit-content;
   max-width: 100%;
+  margin-inline: auto;
   padding-inline: clamp(var(--space-3), 1.5vw, var(--space-5));
   box-sizing: border-box;
 }

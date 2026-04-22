@@ -272,6 +272,7 @@ function App() {
               investorName={companies[activeCompany]?.investorName || 'US'}
               exitMath={companies[activeCompany]?.exitMath}
               onUpdate={(exitMath) => updateCompany(activeCompany, { exitMath })}
+              companyName={isCompareMode ? companies[activeCompany]?.name : undefined}
             />
           )}
         </div>

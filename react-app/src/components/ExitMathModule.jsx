@@ -17,7 +17,7 @@ function formatMoney(valueM) {
   return `$${valueM.toFixed(2)}M`
 }
 
-const ExitMathModule = ({ baseScenario, investorName = 'US', exitMath, onUpdate }) => {
+const ExitMathModule = ({ baseScenario, investorName = 'US', exitMath, onUpdate, companyName }) => {
   const [showOverrides, setShowOverrides] = useState(false)
 
   const state = {
@@ -72,7 +72,7 @@ const ExitMathModule = ({ baseScenario, investorName = 'US', exitMath, onUpdate 
   return (
     <div className="exit-math-module">
       <div className="exit-math-header">
-        <h3>Exit Math</h3>
+        <h3>{companyName ? `Exit Math — ${companyName}` : 'Exit Math'}</h3>
         <span className="exit-math-subtitle">{investorName} returns at exit</span>
       </div>
 
