@@ -399,15 +399,15 @@ body {
   display: flex;
   justify-content: flex-start;
   align-items: flex-start;
-  gap: 2rem;
-  width: fit-content;
-  max-width: min(1600px, 100%);
+  gap: clamp(1rem, 1.5vw, 2rem);
+  width: 100%;
+  max-width: 100%;
   padding-inline: clamp(var(--space-3), 1.5vw, var(--space-5));
   box-sizing: border-box;
 }
 
 .top-row.compare-mode > .input-form {
-  flex: 0 0 clamp(320px, 28vw, 440px);
+  flex: 0 0 clamp(300px, 24vw, 400px);
 }
 
 .top-row.compare-mode > .base-result-compare {
@@ -422,21 +422,21 @@ body {
 .base-result-compare {
   display: flex;
   flex-direction: row;
+  flex-wrap: wrap;
   width: 100%;
   max-width: 100%;
-  /* `safe center` keeps cards centered in the rail until they exceed it, then
-     falls back to flex-start so the leftmost card stays reachable via scroll. */
-  justify-content: safe center;
-  /* Scale gap with viewport so wide screens get breathing room without cramping narrow ones. */
-  gap: clamp(var(--space-2), 1.2vw, var(--space-5));
-  overflow-x: auto;
+  justify-content: flex-start;
+  align-content: flex-start;
+  gap: clamp(var(--space-2), 1vw, var(--space-4));
+  overflow-x: visible;
   padding-bottom: var(--space-2);
 }
 
 .base-result-compare > .scenario-card {
   --card-pad-x: var(--space-3);
-  flex: 0 0 340px;
-  max-width: 380px;
+  flex: 1 1 280px;
+  min-width: 260px;
+  max-width: 420px;
   padding: var(--space-3);
 }
 
