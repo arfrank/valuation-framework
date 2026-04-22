@@ -5,6 +5,7 @@ import FormInput from './FormInput'
 import { migrateLegacyCompany } from '../utils/dataStructures'
 
 const InputForm = ({ company, onUpdate }) => {
+  const roundToCents = (value) => Math.round(Math.max(0, value) * 100) / 100
   const [values, setValues] = useState({
     postMoneyVal: 13,
     roundSize: 3,
@@ -72,28 +73,36 @@ const InputForm = ({ company, onUpdate }) => {
     // Auto-calculate step 2 other portion
     if (field === 'step2Amount' || field === 'step2InvestorPortion') {
       if (field === 'step2Amount') {
-        newValues.step2OtherPortion = Math.round(Math.max(0, numValue - (values.step2InvestorPortion || 0)) * 100) / 100
+        const clampedInvestor = Math.min(values.step2InvestorPortion || 0, numValue)
+        newValues.step2InvestorPortion = roundToCents(clampedInvestor)
+        newValues.step2OtherPortion = roundToCents(numValue - clampedInvestor)
       } else if (field === 'step2InvestorPortion') {
-        newValues.step2OtherPortion = Math.round(Math.max(0, (values.step2Amount || 0) - numValue) * 100) / 100
+        const clampedInvestor = Math.min(numValue, values.step2Amount || 0)
+        newValues.step2InvestorPortion = roundToCents(clampedInvestor)
+        newValues.step2OtherPortion = roundToCents((values.step2Amount || 0) - clampedInvestor)
       }
     }
     if (field === 'step2OtherPortion') {
       const clampedOther = Math.min(numValue, values.step2Amount || 0)
-      newValues.step2OtherPortion = Math.round(Math.max(0, clampedOther) * 100) / 100
-      newValues.step2InvestorPortion = Math.round(Math.max(0, (values.step2Amount || 0) - newValues.step2OtherPortion) * 100) / 100
+      newValues.step2OtherPortion = roundToCents(clampedOther)
+      newValues.step2InvestorPortion = roundToCents((values.step2Amount || 0) - newValues.step2OtherPortion)
     }
 
     // Auto-calculate other portion when round size or investor portion changes
     if (field === 'roundSize' || field === 'investorPortion') {
       if (field === 'roundSize') {
-        newValues.otherPortion = Math.round(Math.max(0, numValue - values.investorPortion) * 100) / 100
+        const clampedInvestor = Math.min(values.investorPortion || 0, numValue)
+        newValues.investorPortion = roundToCents(clampedInvestor)
+        newValues.otherPortion = roundToCents(numValue - clampedInvestor)
         // Update post-money if in pre-money mode
         if (inputMode === 'pre-money') {
           const currentPreMoney = values.postMoneyVal - values.roundSize
-          newValues.postMoneyVal = Math.round((currentPreMoney + numValue) * 100) / 100
+          newValues.postMoneyVal = roundToCents(currentPreMoney + numValue)
         }
       } else if (field === 'investorPortion') {
-        newValues.otherPortion = Math.round(Math.max(0, values.roundSize - numValue) * 100) / 100
+        const clampedInvestor = Math.min(numValue, values.roundSize || 0)
+        newValues.investorPortion = roundToCents(clampedInvestor)
+        newValues.otherPortion = roundToCents((values.roundSize || 0) - clampedInvestor)
       }
     }
 
@@ -101,8 +110,8 @@ const InputForm = ({ company, onUpdate }) => {
     if (field === 'otherPortion') {
       // Clamp to round size
       const clampedOther = Math.min(numValue, values.roundSize)
-      newValues.otherPortion = Math.round(Math.max(0, clampedOther) * 100) / 100
-      newValues.investorPortion = Math.round(Math.max(0, values.roundSize - newValues.otherPortion) * 100) / 100
+      newValues.otherPortion = roundToCents(clampedOther)
+      newValues.investorPortion = roundToCents((values.roundSize || 0) - newValues.otherPortion)
     }
     
     

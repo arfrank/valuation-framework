@@ -153,13 +153,27 @@ body {
 
 .tabs-container {
   display: flex;
-  gap: 2px;
-  align-items: center;
+  align-items: stretch;
   background: var(--color-bg);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   overflow: hidden;
   box-shadow: var(--shadow-sm);
+}
+
+.tabs-scroll {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+}
+
+.tabs-list {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  min-width: 100%;
 }
 
 .tab {
@@ -169,14 +183,15 @@ body {
   border: none;
   border-right: 1px solid #e2e8f0;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
   color: #4a5568;
   font-weight: 500;
   font-size: 0.9rem;
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  min-width: 140px;
+  flex: 1 1 0;
+  min-width: clamp(170px, 12vw, 210px);
   justify-content: space-between;
 }
 
@@ -189,15 +204,23 @@ body {
 }
 
 .tab.active {
-  background: var(--color-bg);
-  color: var(--color-accent);
-  font-weight: 600;
-  box-shadow: inset 0 -2px 0 var(--color-accent);
+  background: linear-gradient(180deg, rgba(13, 110, 253, 0.16) 0%, rgba(13, 110, 253, 0.06) 100%);
+  color: #0b5ed7;
+  font-weight: 700;
+  box-shadow: inset 0 0 0 1px rgba(13, 110, 253, 0.28), inset 0 -3px 0 var(--color-accent);
+}
+
+.tab.active:hover {
+  background: linear-gradient(180deg, rgba(13, 110, 253, 0.2) 0%, rgba(13, 110, 253, 0.08) 100%);
 }
 
 .tab-name {
   font-size: 0.9rem;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .tab-actions {
@@ -205,9 +228,14 @@ body {
   gap: 0.25rem;
   opacity: 0;
   transition: opacity 0.2s ease;
+  flex-shrink: 0;
 }
 
 .tab:hover .tab-actions {
+  opacity: 1;
+}
+
+.tab.active .tab-actions {
   opacity: 1;
 }
 
@@ -261,7 +289,8 @@ body {
   font-weight: 500;
   color: #333;
   outline: none;
-  min-width: 100px;
+  min-width: 0;
+  width: 100%;
 }
 
 .tab-indicator {
@@ -269,7 +298,7 @@ body {
   bottom: 0;
   left: 0;
   right: 0;
-  height: 2px;
+  height: 3px;
   background: #0d6efd;
   opacity: 0;
   transition: opacity 0.2s ease;
@@ -303,6 +332,14 @@ body {
 
 .add-company-btn {
   margin-left: var(--space-2);
+}
+
+.tabs-container > .add-company-btn {
+  flex: 0 0 auto;
+  margin-left: 0;
+  border-left: 1px solid var(--color-border);
+  border-radius: 0;
+  align-self: stretch;
 }
 
 .add-company-btn:hover,
@@ -350,10 +387,13 @@ body {
 
 .top-row.compare-mode {
   display: flex;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: flex-start;
   gap: 2rem;
-  max-width: none;
+  width: fit-content;
+  max-width: min(1600px, 100%);
+  padding-inline: clamp(var(--space-3), 1.5vw, var(--space-5));
+  box-sizing: border-box;
 }
 
 .top-row.compare-mode > .input-form {
@@ -361,13 +401,15 @@ body {
 }
 
 .top-row.compare-mode > .base-result-compare {
-  flex: 0 1 auto;
+  flex: 1 1 auto;
   min-width: 0;
 }
 
 .base-result-compare {
   display: flex;
   flex-direction: row;
+  width: 100%;
+  max-width: 100%;
   /* `safe center` keeps cards centered in the rail until they exceed it, then
      falls back to flex-start so the leftmost card stays reachable via scroll. */
   justify-content: safe center;
@@ -375,7 +417,6 @@ body {
   gap: clamp(var(--space-2), 1.2vw, var(--space-5));
   overflow-x: auto;
   padding-bottom: var(--space-2);
-  width: 100%;
 }
 
 .base-result-compare > .scenario-card {
@@ -2889,6 +2930,16 @@ input.investor-name-input:focus, input.founder-name-input:focus {
     flex-direction: column;
   }
 
+  .tabs-scroll {
+    width: 100%;
+  }
+
+  .tabs-list {
+    width: 100%;
+    min-width: 0;
+    flex-direction: column;
+  }
+
   .tab {
     width: 100%;
     border-right: none;
@@ -2898,6 +2949,13 @@ input.investor-name-input:focus, input.founder-name-input:focus {
 
   .tab:last-of-type {
     border-bottom: none;
+  }
+
+  .tabs-container > .add-company-btn {
+    width: 100%;
+    justify-content: center;
+    border-left: none;
+    border-top: 1px solid var(--color-border);
   }
 
   .top-row,
@@ -2910,6 +2968,9 @@ input.investor-name-input:focus, input.founder-name-input:focus {
   .top-row.compare-mode {
     flex-direction: column;
     gap: 1.5rem;
+    width: 100%;
+    max-width: none;
+    padding-inline: 0;
   }
 
   .top-row.compare-mode > .input-form {

@@ -92,8 +92,7 @@ describe('InputForm with Pre-Money Toggle', () => {
     
     // Change round size
     const roundSizeInput = screen.getByLabelText('Round Size')
-    await user.clear(roundSizeInput)
-    await user.type(roundSizeInput, '4')
+    fireEvent.change(roundSizeInput, { target: { value: '4' } })
 
     // Post-money should be recalculated: current pre-money (10) + new round size (4) = 14
     expect(mockOnUpdate).toHaveBeenCalledWith(
@@ -161,5 +160,32 @@ describe('InputForm with Pre-Money Toggle', () => {
     
     // Should have reduced padding for compact layout
     expect(inputForm).toHaveClass('input-form')
+  })
+
+  it('should clamp investor portion to round size', () => {
+    render(<InputForm company={defaultCompany} onUpdate={mockOnUpdate} />)
+
+    fireEvent.change(screen.getByLabelText('US Portion'), { target: { value: '5' } })
+
+    expect(mockOnUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        investorPortion: 3,
+        otherPortion: 0
+      })
+    )
+  })
+
+  it('should clamp investor portion when round size drops below it', () => {
+    render(<InputForm company={defaultCompany} onUpdate={mockOnUpdate} />)
+
+    fireEvent.change(screen.getByLabelText('Round Size'), { target: { value: '2' } })
+
+    expect(mockOnUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        roundSize: 2,
+        investorPortion: 2,
+        otherPortion: 0
+      })
+    )
   })
 })

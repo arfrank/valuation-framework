@@ -170,6 +170,13 @@ describe('Permalink Utilities', () => {
       expect(decoded.investorName).toBe('US & Partners')
     })
 
+    it('should not double-decode percent signs in investor names', () => {
+      const urlParams = 'pmv=13&rs=3&ip=2.75&op=0.25&in=100%25+Ventures'
+      const decoded = decodeScenarioFromURL(urlParams)
+
+      expect(decoded.investorName).toBe('100% Ventures')
+    })
+
     it('should return null for invalid URL parameters', () => {
       expect(decodeScenarioFromURL('')).toBe(null)
       expect(decodeScenarioFromURL('invalid=data')).toBe(null)
@@ -364,7 +371,7 @@ describe('Permalink Utilities', () => {
           id: 1,
           name: 'Seed VC',
           ownershipPercent: 15,
-          proRataAmount: 0.5,
+          proRataOverride: 0.5,
           hasProRataRights: true,
           postRoundPercent: 11.5,
           dilution: 3.5
@@ -373,7 +380,7 @@ describe('Permalink Utilities', () => {
           id: 2,
           name: 'Angel Group',
           ownershipPercent: 10,
-          proRataAmount: 0,
+          proRataOverride: null,
           hasProRataRights: false,
           postRoundPercent: 7.7,
           dilution: 2.3
@@ -408,8 +415,8 @@ describe('Permalink Utilities', () => {
         const piData = JSON.parse(piParam)
         
         expect(piData).toHaveLength(2)
-        expect(piData[0]).toEqual({ n: 'Seed VC', o: 15, p: 0.5, r: true })
-        expect(piData[1]).toEqual({ n: 'Angel Group', o: 10, p: 0, r: false })
+        expect(piData[0]).toEqual({ n: 'Seed VC', o: 15, po: 0.5, r: true })
+        expect(piData[1]).toEqual({ n: 'Angel Group', o: 10, r: false })
       })
 
       it('should encode founders array to URL', () => {
@@ -430,8 +437,8 @@ describe('Permalink Utilities', () => {
         const scenarioWithZeroOwnership = {
           ...multiPartyScenario,
           priorInvestors: [
-            { id: 1, name: 'Valid Investor', ownershipPercent: 15, proRataAmount: 0.5 },
-            { id: 2, name: 'Zero Investor', ownershipPercent: 0, proRataAmount: 0 }
+            { id: 1, name: 'Valid Investor', ownershipPercent: 15, proRataOverride: 0.5, hasProRataRights: true },
+            { id: 2, name: 'Zero Investor', ownershipPercent: 0, proRataOverride: null, hasProRataRights: false }
           ]
         }
         
@@ -481,7 +488,7 @@ describe('Permalink Utilities', () => {
         expect(decoded.priorInvestors).toHaveLength(2)
         expect(decoded.priorInvestors[0].name).toBe('Seed VC')
         expect(decoded.priorInvestors[0].ownershipPercent).toBe(15)
-        expect(decoded.priorInvestors[0].proRataAmount).toBe(0.5)
+        expect(decoded.priorInvestors[0].proRataOverride).toBe(0.5)
         expect(decoded.priorInvestors[0].hasProRataRights).toBe(true)
         expect(decoded.priorInvestors[0]).toHaveProperty('id')
         expect(decoded.priorInvestors[0].postRoundPercent).toBe(0) // Should be 0, calculated later
@@ -489,7 +496,7 @@ describe('Permalink Utilities', () => {
         
         expect(decoded.priorInvestors[1].name).toBe('Angel Group')
         expect(decoded.priorInvestors[1].ownershipPercent).toBe(10)
-        expect(decoded.priorInvestors[1].proRataAmount).toBe(0)
+        expect(decoded.priorInvestors[1].proRataOverride).toBe(null)
         expect(decoded.priorInvestors[1].hasProRataRights).toBe(false)
       })
 
@@ -512,7 +519,7 @@ describe('Permalink Utilities', () => {
         const scenarioWithoutAdvancedFlag = {
           ...mockScenario,
           // Note: showAdvanced is false, but we have multi-party data
-          priorInvestors: [{ id: 1, name: 'Investor', ownershipPercent: 15, proRataAmount: 0 }]
+          priorInvestors: [{ id: 1, name: 'Investor', ownershipPercent: 15, proRataOverride: null }]
         }
         
         const encoded = encodeScenarioToURL(scenarioWithoutAdvancedFlag)
@@ -547,7 +554,7 @@ describe('Permalink Utilities', () => {
               id: 1, 
               name: 'VC with Rights', 
               ownershipPercent: 20, 
-              proRataAmount: 1.0,
+              proRataOverride: 1.0,
               hasProRataRights: true,
               postRoundPercent: 15.4,
               dilution: 4.6
@@ -556,7 +563,7 @@ describe('Permalink Utilities', () => {
               id: 2, 
               name: 'VC without Rights', 
               ownershipPercent: 15, 
-              proRataAmount: 0,
+              proRataOverride: null,
               hasProRataRights: false,
               postRoundPercent: 11.5,
               dilution: 3.5
@@ -576,6 +583,36 @@ describe('Permalink Utilities', () => {
         expect(encoded).toMatch(/pi=.*%22r%22%3Afalse/) // r:false in URL encoding
       })
 
+      it('should preserve prior investor pro-rata overrides in round-trip', () => {
+        const scenarioWithOverride = {
+          ...mockScenario,
+          showAdvanced: true,
+          priorInvestors: [
+            {
+              id: 1,
+              name: 'Seed Fund',
+              ownershipPercent: 15,
+              proRataOverride: 0.8,
+              hasProRataRights: true
+            }
+          ]
+        }
+
+        const encoded = encodeScenarioToURL(scenarioWithOverride)
+        const decoded = decodeScenarioFromURL(encoded)
+
+        expect(encoded).toMatch(/pi=.*%22po%22%3A0.8/)
+        expect(decoded.priorInvestors[0].proRataOverride).toBe(0.8)
+      })
+
+      it('should treat legacy prior-investor p field as a pro-rata override on decode', () => {
+        const legacyPiJson = JSON.stringify([{ n: 'Seed Fund', o: 15, p: 0.8, r: true }])
+        const decoded = decodeScenarioFromURL(`pmv=13&rs=3&ip=2.75&op=0.25&in=US&pi=${encodeURIComponent(legacyPiJson)}`)
+
+        expect(decoded.priorInvestors[0].hasProRataRights).toBe(true)
+        expect(decoded.priorInvestors[0].proRataOverride).toBe(0.8)
+      })
+
       it('should generate unique IDs for decoded arrays', () => {
         const encoded = encodeScenarioToURL(multiPartyScenario)
         const decoded = decodeScenarioFromURL(encoded)
@@ -593,7 +630,7 @@ describe('Permalink Utilities', () => {
       it('should provide default names for unnamed entities', () => {
         const scenarioWithUnnamedEntities = {
           ...mockScenario,
-          priorInvestors: [{ ownershipPercent: 15, proRataAmount: 0.5 }],
+          priorInvestors: [{ ownershipPercent: 15, proRataOverride: 0.5, hasProRataRights: true }],
           founders: [{ ownershipPercent: 50 }]
         }
         
@@ -634,7 +671,7 @@ describe('Permalink Utilities', () => {
       it('should create compact URLs by excluding default values', () => {
         const scenarioWithDefaults = {
           ...mockScenario,
-          priorInvestors: [{ id: 1, name: 'Investor', ownershipPercent: 15, proRataAmount: 0 }],
+          priorInvestors: [{ id: 1, name: 'Investor', ownershipPercent: 15, proRataOverride: null, hasProRataRights: false }],
           currentEsopPercent: 0, // Default value, should be excluded
           targetEsopPercent: 0,  // Default value, should be excluded
           esopTiming: 'pre-close' // Default value, should be excluded
@@ -656,8 +693,8 @@ describe('Permalink Utilities', () => {
           investorName: 'Lead Investor',
           showAdvanced: true,
           priorInvestors: [
-            { id: 1, name: 'Seed Fund', ownershipPercent: 12.5, proRataAmount: 0.75 },
-            { id: 2, name: 'Strategic', ownershipPercent: 8.25, proRataAmount: 0 }
+            { id: 1, name: 'Seed Fund', ownershipPercent: 12.5, proRataOverride: 0.75, hasProRataRights: true },
+            { id: 2, name: 'Strategic', ownershipPercent: 8.25, proRataOverride: null, hasProRataRights: false }
           ],
           founders: [
             { id: 1, name: 'CEO & Founder', ownershipPercent: 55 },
@@ -682,7 +719,7 @@ describe('Permalink Utilities', () => {
         // Verify multi-party data
         expect(decoded.priorInvestors[0].name).toBe('Seed Fund')
         expect(decoded.priorInvestors[0].ownershipPercent).toBe(12.5)
-        expect(decoded.priorInvestors[0].proRataAmount).toBe(0.75)
+        expect(decoded.priorInvestors[0].proRataOverride).toBe(0.75)
         
         expect(decoded.founders[0].name).toBe('CEO & Founder')
         expect(decoded.founders[0].ownershipPercent).toBe(55)
@@ -709,7 +746,7 @@ describe('Permalink Utilities', () => {
               id: 1,
               name: 'Seed Fund',
               ownershipPercent: 15,
-              proRataAmount: 0.5,
+              proRataOverride: 0.5,
               hasProRataRights: true,
               postRoundPercent: 12.5,
               dilution: 2.5
@@ -718,7 +755,7 @@ describe('Permalink Utilities', () => {
               id: 2,
               name: 'Angel Group',
               ownershipPercent: 10,
-              proRataAmount: 0,
+              proRataOverride: null,
               hasProRataRights: false,
               postRoundPercent: 7.69,
               dilution: 2.31
@@ -772,11 +809,11 @@ describe('Permalink Utilities', () => {
         // Verify prior investors data
         expect(decodedScenario.priorInvestors[0].name).toBe('Seed Fund')
         expect(decodedScenario.priorInvestors[0].ownershipPercent).toBe(15)
-        expect(decodedScenario.priorInvestors[0].proRataAmount).toBe(0.5)
+        expect(decodedScenario.priorInvestors[0].proRataOverride).toBe(0.5)
         expect(decodedScenario.priorInvestors[0].hasProRataRights).toBe(true)
         expect(decodedScenario.priorInvestors[1].name).toBe('Angel Group')
         expect(decodedScenario.priorInvestors[1].ownershipPercent).toBe(10)
-        expect(decodedScenario.priorInvestors[1].proRataAmount).toBe(0)
+        expect(decodedScenario.priorInvestors[1].proRataOverride).toBe(null)
         expect(decodedScenario.priorInvestors[1].hasProRataRights).toBe(false)
         
         // Verify founders data

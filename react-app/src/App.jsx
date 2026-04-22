@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import './App.css'
 import CompanyTabs from './components/CompanyTabs'
 import InputForm from './components/InputForm'
@@ -12,14 +12,27 @@ import { useNotifications } from './hooks/useNotifications'
 import { calculateEnhancedScenarios } from './utils/multiPartyCalculations'
 import { copyPermalinkToClipboard, loadScenarioFromURL } from './utils/permalink'
 import { updateSocialSharingMeta } from './utils/socialSharing'
-import { createDefaultCompany, nextUniqueName } from './utils/dataStructures'
+import { createDefaultCompany, nextUniqueName, normalizeStoredCompanies } from './utils/dataStructures'
+
+function getFirstCompanyId(companies) {
+  return Object.keys(companies || {})[0] || 'company1'
+}
+
+function getNextCompanyNumber(companies) {
+  const maxExisting = Object.keys(companies || {}).reduce((max, id) => {
+    const match = /^company(\d+)$/.exec(id)
+    return match ? Math.max(max, Number(match[1])) : max
+  }, 0)
+  return Math.max(2, maxExisting + 1)
+}
 
 function App() {
-  const [activeCompany, setActiveCompany] = useState('company1')
-  const [companies, setCompanies] = useLocalStorage('valuationFramework', {
+  const [storedCompanies, setStoredCompanies] = useLocalStorage('valuationFramework', {
     company1: createDefaultCompany('Startup Alpha')
   })
-  const [nextCompanyId, setNextCompanyId] = useState(2)
+  const companies = useMemo(() => normalizeStoredCompanies(storedCompanies), [storedCompanies])
+  const [activeCompany, setActiveCompany] = useState(() => getFirstCompanyId(companies))
+  const [nextCompanyId, setNextCompanyId] = useState(() => getNextCompanyNumber(companies))
   const [selectedCompanyIds, setSelectedCompanyIds] = useLocalStorage('valuationFrameworkSelected', [])
   const [hasLoadedFromURL, setHasLoadedFromURL] = useState(false)
 
@@ -28,11 +41,14 @@ function App() {
   const { notifications, removeNotification, showSuccess, showInfo, showError } = useNotifications()
 
   const updateCompany = useCallback((companyId, data) => {
-    setCompanies(prev => ({
-      ...prev,
-      [companyId]: { ...prev[companyId], ...data }
-    }))
-  }, [setCompanies])
+    setStoredCompanies((prev) => {
+      const normalizedPrev = normalizeStoredCompanies(prev)
+      return {
+        ...normalizedPrev,
+        [companyId]: { ...normalizedPrev[companyId], ...data }
+      }
+    })
+  }, [setStoredCompanies])
 
   const applyScenario = (scenarioData) => {
     updateCompany(activeCompany, scenarioData)
@@ -51,7 +67,7 @@ function App() {
       : `Startup ${nextCompanyId}`
     const newCompany = createDefaultCompany(companyName)
 
-    setCompanies(prev => ({ ...prev, [newCompanyId]: newCompany }))
+    setStoredCompanies(prev => ({ ...normalizeStoredCompanies(prev), [newCompanyId]: newCompany }))
     setActiveCompany(newCompanyId)
     setNextCompanyId(prev => prev + 1)
   }
@@ -64,7 +80,7 @@ function App() {
       ? structuredClone(source)
       : JSON.parse(JSON.stringify(source))
     copy.name = nextUniqueName(source.name, companies)
-    setCompanies(prev => ({ ...prev, [newCompanyId]: copy }))
+    setStoredCompanies(prev => ({ ...normalizeStoredCompanies(prev), [newCompanyId]: copy }))
     setActiveCompany(newCompanyId)
     setNextCompanyId(prev => prev + 1)
   }
@@ -74,7 +90,7 @@ function App() {
 
     const newCompanies = { ...companies }
     delete newCompanies[companyId]
-    setCompanies(newCompanies)
+    setStoredCompanies(newCompanies)
 
     setSelectedCompanyIds(prev => prev.filter(id => id !== companyId))
 
@@ -91,7 +107,37 @@ function App() {
     ))
   }
 
+  useEffect(() => {
+    const raw = JSON.stringify(storedCompanies)
+    const normalized = JSON.stringify(companies)
+
+    if (raw !== normalized) {
+      setStoredCompanies(companies)
+    }
+  }, [storedCompanies, companies, setStoredCompanies])
+
   // Load scenario from URL on mount (only once)
+  useEffect(() => {
+    const companyIds = Object.keys(companies || {})
+
+    if (companyIds.length === 0) {
+      const fallback = { company1: createDefaultCompany('Startup Alpha') }
+      setStoredCompanies(fallback)
+      setActiveCompany('company1')
+      setNextCompanyId(2)
+      return
+    }
+
+    if (!companies[activeCompany]) {
+      setActiveCompany(companyIds[0])
+    }
+
+    const derivedNextCompanyId = getNextCompanyNumber(companies)
+    if (nextCompanyId !== derivedNextCompanyId) {
+      setNextCompanyId(derivedNextCompanyId)
+    }
+  }, [companies, activeCompany, nextCompanyId, setStoredCompanies])
+
   useEffect(() => {
     if (!hasLoadedFromURL) {
       const urlScenario = loadScenarioFromURL()
@@ -237,22 +283,25 @@ function App() {
           />
         )}
 
-        <div className="scenarios-rows">
-          {scenarios.slice(1).map((scenario, index) => (
-            <ScenarioCard
-              key={scenario.offsetPercent ?? index + 1}
-              scenario={scenario}
-              index={index + 1}
-              isBase={false}
-              onApplyScenario={applyScenario}
-              investorName={companies[activeCompany]?.investorName || 'US'}
-              showAdvanced={companies[activeCompany]?.showAdvanced || false}
-              percentPrecision={companies[activeCompany]?.percentPrecision || 2}
-              onPercentPrecisionChange={(pp) => updateCompany(activeCompany, { percentPrecision: pp })}
-              baseScenario={scenarios[0]}
-            />
-          ))}
-        </div>
+        {!isCompareMode && (
+          <div className="scenarios-rows">
+            {scenarios.slice(1).map((scenario, index) => (
+              <ScenarioCard
+                key={scenario.offsetPercent ?? index + 1}
+                scenario={scenario}
+                index={index + 1}
+                isBase={false}
+                onApplyScenario={applyScenario}
+                investorName={companies[activeCompany]?.investorName || 'US'}
+                showAdvanced={companies[activeCompany]?.showAdvanced || false}
+                percentPrecision={companies[activeCompany]?.percentPrecision || 2}
+                onPercentPrecisionChange={(pp) => updateCompany(activeCompany, { percentPrecision: pp })}
+                baseScenario={scenarios[0]}
+                company={companies[activeCompany]}
+              />
+            ))}
+          </div>
+        )}
       </main>
     </div>
   )
