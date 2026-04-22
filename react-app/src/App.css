@@ -368,6 +368,8 @@ body {
 .base-result-compare {
   display: flex;
   flex-direction: row;
+  width: fit-content;
+  max-width: 100%;
   /* `safe center` keeps cards centered in the rail until they exceed it, then
      falls back to flex-start so the leftmost card stays reachable via scroll. */
   justify-content: safe center;
@@ -375,7 +377,6 @@ body {
   gap: clamp(var(--space-2), 1.2vw, var(--space-5));
   overflow-x: auto;
   padding-bottom: var(--space-2);
-  width: 100%;
 }
 
 .base-result-compare > .scenario-card {
