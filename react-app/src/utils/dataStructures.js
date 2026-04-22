@@ -1,3 +1,5 @@
+import { buildScenarioOffsets, normalizeScenarioOffsets } from './scenarioOffsets'
+
 /**
  * Data structure definitions for the enhanced valuation framework
  * Supporting multiple prior investors and founders
@@ -132,7 +134,7 @@ export function createDefaultCompany(companyName = 'New Company') {
     esopTiming: 'pre-close',
 
     // Sensitivity scenarios: valuation % offsets to render as alternative cards
-    scenarioOffsets: [-30, -20, -10, 10, 20, 30],
+    scenarioOffsets: buildScenarioOffsets(30),
     
     // Legacy fields - to be removed after migration
     proRataPercent: 0, // DEPRECATED: Use priorInvestors with hasProRataRights
@@ -204,9 +206,7 @@ export function migrateLegacyCompany(legacyCompany) {
   if (migrated.grantedEsopPercent === undefined) migrated.grantedEsopPercent = 0
 
   // Ensure scenarioOffsets exist
-  if (!Array.isArray(migrated.scenarioOffsets) || migrated.scenarioOffsets.length === 0) {
-    migrated.scenarioOffsets = [-30, -20, -10, 10, 20, 30]
-  }
+  migrated.scenarioOffsets = normalizeScenarioOffsets(migrated.scenarioOffsets)
 
   // Ensure Exit Math fields exist
   if (migrated.showExitMath === undefined) migrated.showExitMath = false

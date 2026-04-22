@@ -4,6 +4,7 @@
  */
 
 import { migrateLegacyCompany, validateCompanyData } from './dataStructures'
+import { buildScenarioOffsets, formatScenarioOffsetValue, normalizeScenarioOffsets } from './scenarioOffsets'
 
 // Use 6 decimal places internally for percentages so the UI can display up to 4
 const P = 1e6
@@ -991,12 +992,12 @@ export function calculateEnhancedScenario(inputs) {
   }
 }
 
-const DEFAULT_SCENARIO_OFFSETS = [-30, -20, -10, 10, 20, 30]
+const DEFAULT_SCENARIO_OFFSETS = buildScenarioOffsets(30)
 
 const formatOffsetTitle = (offset) => {
   if (offset === 0) return 'Base Case'
   const sign = offset > 0 ? '+' : '−'
-  return `${sign}${Math.abs(offset)}%`
+  return `${sign}${formatScenarioOffsetValue(Math.abs(offset))}%`
 }
 
 /**
@@ -1025,11 +1026,7 @@ export function calculateEnhancedScenarios(company, options = {}) {
   }]
 
   const rawOffsets = Array.isArray(options.offsets) ? options.offsets : DEFAULT_SCENARIO_OFFSETS
-  const offsets = Array.from(new Set(
-    rawOffsets
-      .map(n => Number(n))
-      .filter(n => Number.isFinite(n) && n !== 0)
-  )).sort((a, b) => a - b)
+  const offsets = normalizeScenarioOffsets(rawOffsets)
 
   const isTwoStep = company.twoStepEnabled && company.step2PostMoney > 0 && company.step2Amount > 0
 

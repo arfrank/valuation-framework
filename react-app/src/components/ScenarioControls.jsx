@@ -1,45 +1,36 @@
 import { useState } from 'react'
+import { buildScenarioOffsets, formatScenarioOffsetValue, normalizeScenarioOffsets } from '../utils/scenarioOffsets'
 
 const PRESETS = [
-  { label: '±10', offsets: [-10, 10] },
-  { label: '±20', offsets: [-20, -10, 10, 20] },
-  { label: '±30', offsets: [-30, -20, -10, 10, 20, 30] }
+  { label: '±10', max: 10 },
+  { label: '±20', max: 20 },
+  { label: '±30', max: 30 }
 ]
 
 const formatOffset = (n) => {
-  if (n > 0) return `+${n}%`
-  return `−${Math.abs(n)}%`
+  const value = formatScenarioOffsetValue(Math.abs(n))
+  if (n > 0) return `+${value}%`
+  return `−${value}%`
 }
 
-const arraysEqual = (a, b) => {
-  if (a.length !== b.length) return false
-  const sa = [...a].sort((x, y) => x - y)
-  const sb = [...b].sort((x, y) => x - y)
-  return sa.every((v, i) => v === sb[i])
-}
+const isSameBand = (a, b) => JSON.stringify(a) === JSON.stringify(b)
 
 const ScenarioControls = ({ offsets = [], onChange }) => {
   const [adding, setAdding] = useState(false)
   const [draft, setDraft] = useState('')
 
-  const sorted = [...offsets].sort((a, b) => a - b)
-  const allKnown = Array.from(new Set([...sorted, -30, -20, -10, 10, 20, 30])).sort((a, b) => a - b)
+  const currentBand = normalizeScenarioOffsets(offsets)
 
-  const toggle = (n) => {
-    const next = sorted.includes(n) ? sorted.filter(x => x !== n) : [...sorted, n]
-    onChange(next.sort((a, b) => a - b))
-  }
-
-  const applyPreset = (presetOffsets) => {
-    onChange([...presetOffsets])
+  const applyPreset = (max) => {
+    onChange(buildScenarioOffsets(max))
   }
 
   const commitDraft = () => {
     const parsed = Number(draft)
     if (Number.isFinite(parsed)) {
-      const rounded = Math.round(parsed)
-      if (rounded !== 0 && rounded > -100 && !sorted.includes(rounded)) {
-        onChange([...sorted, rounded].sort((a, b) => a - b))
+      const max = Math.abs(parsed)
+      if (max > 0 && max < 100) {
+        onChange(buildScenarioOffsets(max))
       }
     }
     setDraft('')
@@ -55,19 +46,15 @@ const ScenarioControls = ({ offsets = [], onChange }) => {
     <div className="scenario-controls" role="group" aria-label="Sensitivity scenarios">
       <span className="scenario-controls-label">Sensitivity</span>
       <div className="scenario-pills">
-        {allKnown.map(n => {
-          const active = sorted.includes(n)
+        {currentBand.map(n => {
           const direction = n < 0 ? 'down' : 'up'
           return (
-            <button
+            <span
               key={n}
-              type="button"
-              className={`scenario-pill scenario-pill-${direction}${active ? ' active' : ''}`}
-              onClick={() => toggle(n)}
-              aria-pressed={active}
+              className={`scenario-pill scenario-pill-${direction} active`}
             >
               {formatOffset(n)}
-            </button>
+            </span>
           )
         })}
         {adding ? (
@@ -82,8 +69,8 @@ const ScenarioControls = ({ offsets = [], onChange }) => {
                 if (e.key === 'Enter') { e.preventDefault(); commitDraft() }
                 if (e.key === 'Escape') { e.preventDefault(); cancelDraft() }
               }}
-              placeholder="±%"
-              step="5"
+              placeholder="max %"
+              step="2.5"
             />
           </span>
         ) : (
@@ -91,7 +78,7 @@ const ScenarioControls = ({ offsets = [], onChange }) => {
             type="button"
             className="scenario-pill scenario-pill-add"
             onClick={() => setAdding(true)}
-            aria-label="Add custom offset"
+            aria-label="Set custom max delta"
           >
             +
           </button>
@@ -99,13 +86,13 @@ const ScenarioControls = ({ offsets = [], onChange }) => {
       </div>
       <div className="scenario-presets" aria-label="Range presets">
         {PRESETS.map(p => {
-          const active = arraysEqual(sorted, p.offsets)
+          const active = isSameBand(currentBand, buildScenarioOffsets(p.max))
           return (
             <button
               key={p.label}
               type="button"
               className={`scenario-preset${active ? ' active' : ''}`}
-              onClick={() => applyPreset(p.offsets)}
+              onClick={() => applyPreset(p.max)}
             >
               {p.label}
             </button>
