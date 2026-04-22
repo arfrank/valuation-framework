@@ -350,10 +350,13 @@ body {
 
 .top-row.compare-mode {
   display: flex;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: flex-start;
   gap: 2rem;
-  max-width: none;
+  width: fit-content;
+  max-width: min(1600px, 100%);
+  padding-inline: clamp(var(--space-3), 1.5vw, var(--space-5));
+  box-sizing: border-box;
 }
 
 .top-row.compare-mode > .input-form {
@@ -361,14 +364,14 @@ body {
 }
 
 .top-row.compare-mode > .base-result-compare {
-  flex: 0 1 auto;
+  flex: 1 1 auto;
   min-width: 0;
 }
 
 .base-result-compare {
   display: flex;
   flex-direction: row;
-  width: fit-content;
+  width: 100%;
   max-width: 100%;
   /* `safe center` keeps cards centered in the rail until they exceed it, then
      falls back to flex-start so the leftmost card stays reachable via scroll. */
@@ -2911,6 +2914,9 @@ input.investor-name-input:focus, input.founder-name-input:focus {
   .top-row.compare-mode {
     flex-direction: column;
     gap: 1.5rem;
+    width: 100%;
+    max-width: none;
+    padding-inline: 0;
   }
 
   .top-row.compare-mode > .input-form {
