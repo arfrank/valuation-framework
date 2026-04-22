@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import CompanyTabs from './CompanyTabs'
 
@@ -21,8 +21,16 @@ const baseProps = () => ({
 
 describe('CompanyTabs duplicate + compare', () => {
   let props
+  let originalScrollIntoView
+
   beforeEach(() => {
     props = baseProps()
+    originalScrollIntoView = HTMLElement.prototype.scrollIntoView
+    HTMLElement.prototype.scrollIntoView = vi.fn()
+  })
+
+  afterEach(() => {
+    HTMLElement.prototype.scrollIntoView = originalScrollIntoView
   })
 
   it('renders duplicate button and calls onDuplicateCompany on click', () => {
@@ -61,5 +69,13 @@ describe('CompanyTabs duplicate + compare', () => {
     const boxes = screen.getAllByRole('checkbox', { name: /include .* in compare/i })
     fireEvent.click(boxes[1])
     expect(props.onCompanyChange).not.toHaveBeenCalled()
+  })
+
+  it('scrolls the active tab into view when selection changes', () => {
+    const { rerender } = render(<CompanyTabs {...props} />)
+    expect(HTMLElement.prototype.scrollIntoView).toHaveBeenCalledTimes(1)
+
+    rerender(<CompanyTabs {...props} activeCompany="c2" />)
+    expect(HTMLElement.prototype.scrollIntoView).toHaveBeenCalledTimes(2)
   })
 })

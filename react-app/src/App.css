@@ -153,13 +153,27 @@ body {
 
 .tabs-container {
   display: flex;
-  gap: 2px;
-  align-items: center;
+  align-items: stretch;
   background: var(--color-bg);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   overflow: hidden;
   box-shadow: var(--shadow-sm);
+}
+
+.tabs-scroll {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+}
+
+.tabs-list {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  min-width: 100%;
 }
 
 .tab {
@@ -176,7 +190,8 @@ body {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  min-width: 140px;
+  flex: 1 1 0;
+  min-width: clamp(170px, 12vw, 210px);
   justify-content: space-between;
 }
 
@@ -198,6 +213,10 @@ body {
 .tab-name {
   font-size: 0.9rem;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .tab-actions {
@@ -205,6 +224,7 @@ body {
   gap: 0.25rem;
   opacity: 0;
   transition: opacity 0.2s ease;
+  flex-shrink: 0;
 }
 
 .tab:hover .tab-actions {
@@ -261,7 +281,8 @@ body {
   font-weight: 500;
   color: #333;
   outline: none;
-  min-width: 100px;
+  min-width: 0;
+  width: 100%;
 }
 
 .tab-indicator {
@@ -303,6 +324,14 @@ body {
 
 .add-company-btn {
   margin-left: var(--space-2);
+}
+
+.tabs-container > .add-company-btn {
+  flex: 0 0 auto;
+  margin-left: 0;
+  border-left: 1px solid var(--color-border);
+  border-radius: 0;
+  align-self: stretch;
 }
 
 .add-company-btn:hover,
@@ -2893,6 +2922,16 @@ input.investor-name-input:focus, input.founder-name-input:focus {
     flex-direction: column;
   }
 
+  .tabs-scroll {
+    width: 100%;
+  }
+
+  .tabs-list {
+    width: 100%;
+    min-width: 0;
+    flex-direction: column;
+  }
+
   .tab {
     width: 100%;
     border-right: none;
@@ -2902,6 +2941,13 @@ input.investor-name-input:focus, input.founder-name-input:focus {
 
   .tab:last-of-type {
     border-bottom: none;
+  }
+
+  .tabs-container > .add-company-btn {
+    width: 100%;
+    justify-content: center;
+    border-left: none;
+    border-top: 1px solid var(--color-border);
   }
 
   .top-row,
