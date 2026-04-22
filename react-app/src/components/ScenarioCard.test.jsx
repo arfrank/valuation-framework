@@ -21,7 +21,9 @@ describe('ScenarioCard with Permalink', () => {
     safes: [],
     totalSafePercent: 0,
     postRoundFounderPercent: 76.9,
-    founderDilution: 23.1
+    founderDilution: 23.1,
+    priorInvestors: [],
+    founders: []
   }
 
   const mockOnApplyScenario = vi.fn()
@@ -240,6 +242,183 @@ describe('ScenarioCard with Permalink', () => {
             dilution: 6.9
           }
         ]
+      })
+    )
+  })
+
+  it('should prefer company input state for permalink payloads when company is provided', async () => {
+    const company = {
+      name: 'Startup Alpha',
+      postMoneyVal: 13,
+      roundSize: 3,
+      investorPortion: 2,
+      otherPortion: 1,
+      investorName: 'US',
+      showAdvanced: true,
+      priorInvestors: [
+        {
+          id: 1,
+          name: 'Previous Investors',
+          ownershipPercent: 15,
+          hasProRataRights: true,
+          proRataOverride: 0.8
+        }
+      ],
+      founders: [
+        {
+          id: 1,
+          name: 'Founder Team',
+          ownershipPercent: 85
+        }
+      ],
+      safes: [],
+      currentEsopPercent: 10,
+      grantedEsopPercent: 2.5,
+      targetEsopPercent: 7,
+      esopTiming: 'pre-close'
+    }
+
+    const derivedScenario = {
+      ...mockScenario,
+      priorInvestors: [
+        {
+          id: 1,
+          name: 'Previous Investors',
+          ownershipPercent: 13.5,
+          hasProRataRights: true,
+          proRataAmount: 0.8,
+          postRoundPercent: 11.5,
+          dilution: 2
+        }
+      ],
+      founders: [
+        {
+          id: 1,
+          name: 'Founder Team',
+          ownershipPercent: 76.5,
+          postRoundPercent: 58.8,
+          dilution: 17.7
+        }
+      ],
+      currentEsopPercent: 10,
+      grantedEsopPercent: 2.5,
+      targetEsopPercent: 7
+    }
+
+    mockOnCopyPermalink.mockResolvedValue({ success: true })
+    const user = userEvent.setup()
+
+    render(
+      <ScenarioCard
+        scenario={derivedScenario}
+        index={0}
+        isBase={true}
+        company={company}
+        onCopyPermalink={mockOnCopyPermalink}
+        investorName="US"
+        showAdvanced={true}
+      />
+    )
+
+    await user.click(screen.getByRole('button', { name: /🔗/ }))
+
+    expect(mockOnCopyPermalink).toHaveBeenCalledWith(
+      expect.objectContaining({
+        investorPortion: 2,
+        otherPortion: 1,
+        priorInvestors: company.priorInvestors,
+        founders: company.founders,
+        currentEsopPercent: 10,
+        grantedEsopPercent: 2.5,
+        targetEsopPercent: 7
+      })
+    )
+  })
+
+  it('should prefer company input state when applying a non-base scenario', async () => {
+    const company = {
+      postMoneyVal: 13,
+      roundSize: 3,
+      investorPortion: 2,
+      otherPortion: 1,
+      investorName: 'US',
+      showAdvanced: true,
+      priorInvestors: [
+        {
+          id: 1,
+          name: 'Previous Investors',
+          ownershipPercent: 15,
+          hasProRataRights: true,
+          proRataOverride: 0.8
+        }
+      ],
+      founders: [
+        {
+          id: 1,
+          name: 'Founder Team',
+          ownershipPercent: 85
+        }
+      ],
+      safes: [],
+      currentEsopPercent: 10,
+      grantedEsopPercent: 2.5,
+      targetEsopPercent: 7,
+      esopTiming: 'pre-close'
+    }
+
+    const altScenario = {
+      ...mockScenario,
+      title: '−25%',
+      postMoneyVal: 9.75,
+      priorInvestors: [
+        {
+          id: 1,
+          name: 'Previous Investors',
+          ownershipPercent: 13.5,
+          hasProRataRights: true,
+          proRataAmount: 0.8,
+          postRoundPercent: 11.5,
+          dilution: 2
+        }
+      ],
+      founders: [
+        {
+          id: 1,
+          name: 'Founder Team',
+          ownershipPercent: 76.5,
+          postRoundPercent: 58.8,
+          dilution: 17.7
+        }
+      ],
+      currentEsopPercent: 10,
+      grantedEsopPercent: 2.5,
+      targetEsopPercent: 7
+    }
+
+    const user = userEvent.setup()
+
+    render(
+      <ScenarioCard
+        scenario={altScenario}
+        index={1}
+        isBase={false}
+        company={company}
+        onApplyScenario={mockOnApplyScenario}
+        investorName="US"
+        showAdvanced={true}
+      />
+    )
+
+    await user.click(screen.getByRole('button', { name: /apply this scenario/i }))
+
+    expect(mockOnApplyScenario).toHaveBeenCalledWith(
+      expect.objectContaining({
+        postMoneyVal: 9.75,
+        investorPortion: 2,
+        otherPortion: 1,
+        priorInvestors: company.priorInvestors,
+        founders: company.founders,
+        grantedEsopPercent: 2.5
       })
     )
   })

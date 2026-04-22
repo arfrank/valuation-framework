@@ -126,12 +126,17 @@ export function encodeScenarioToURL(scenarioData) {
       if (field === 'priorInvestors') {
         if (Array.isArray(value) && value.length > 0) {
           // Encode prior investors with essential data
-          const piData = value.map((investor, index) => ({
-            n: investor.name || `Investor ${index + 1}`,
-            o: investor.ownershipPercent || 0,
-            p: investor.proRataAmount || 0,
-            r: investor.hasProRataRights || false
-          })).filter(pi => pi.o > 0) // Only include investors with ownership > 0
+          const piData = value.map((investor, index) => {
+            const encoded = {
+              n: investor.name || `Investor ${index + 1}`,
+              o: investor.ownershipPercent || 0,
+              r: investor.hasProRataRights || false
+            }
+            if (investor.proRataOverride != null && investor.proRataOverride >= 0) {
+              encoded.po = investor.proRataOverride
+            }
+            return encoded
+          }).filter(pi => pi.o > 0) // Only include investors with ownership > 0
           
           if (piData.length > 0) {
             params.set(param, JSON.stringify(piData))
@@ -228,7 +233,7 @@ export function decodeScenarioFromURL(urlParams) {
       
       if (value !== null) {
         if (field === 'investorName') {
-          scenarioData[field] = decodeURIComponent(value)
+          scenarioData[field] = value
         } else if (field === 'showAdvanced' || field === 'twoStepEnabled') {
           scenarioData[field] = value === '1'
         } else if (field === 'esopTiming') {
@@ -264,8 +269,10 @@ export function decodeScenarioFromURL(urlParams) {
                 id: Date.now() + index + 1000, // Generate unique IDs offset from SAFEs
                 name: investor.n || `Investor ${index + 1}`,
                 ownershipPercent: investor.o || 0,
-                proRataAmount: investor.p || 0,
                 hasProRataRights: investor.r || false,
+                proRataOverride: (typeof investor.po === 'number' && investor.po >= 0)
+                  ? investor.po
+                  : (typeof investor.p === 'number' && investor.p >= 0 ? investor.p : null),
                 // These will be calculated by the engine:
                 postRoundPercent: 0,
                 dilution: 0

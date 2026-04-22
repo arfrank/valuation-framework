@@ -163,4 +163,48 @@ describe('InputForm - Two-Step Round', () => {
     const investorLabels = screen.getAllByText(/Acme VC Portion/)
     expect(investorLabels.length).toBe(2)
   })
+
+  it('should clamp step 2 investor portion to step 2 amount', () => {
+    render(<InputForm company={{
+      ...defaultCompany,
+      twoStepEnabled: true,
+      step2PostMoney: 1000,
+      step2Amount: 200,
+      step2InvestorPortion: 100,
+      step2OtherPortion: 100
+    }} onUpdate={mockOnUpdate} />)
+
+    const inputs = screen.getAllByRole('spinbutton')
+    const step2InvestorInput = inputs[6]
+    fireEvent.change(step2InvestorInput, { target: { value: '250' } })
+
+    expect(mockOnUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        step2InvestorPortion: 200,
+        step2OtherPortion: 0
+      })
+    )
+  })
+
+  it('should clamp step 2 investor portion when step 2 amount shrinks', () => {
+    render(<InputForm company={{
+      ...defaultCompany,
+      twoStepEnabled: true,
+      step2PostMoney: 1000,
+      step2Amount: 200,
+      step2InvestorPortion: 150,
+      step2OtherPortion: 50
+    }} onUpdate={mockOnUpdate} />)
+
+    const amountInput = screen.getByLabelText('Amount')
+    fireEvent.change(amountInput, { target: { value: '120' } })
+
+    expect(mockOnUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        step2Amount: 120,
+        step2InvestorPortion: 120,
+        step2OtherPortion: 0
+      })
+    )
+  })
 })

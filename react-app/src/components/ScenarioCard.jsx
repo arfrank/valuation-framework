@@ -38,24 +38,30 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
   const isTwoStep = !!(scenario.twoStepEnabled && scenario.step1 && scenario.step2)
 
   const buildScenarioData = () => {
+    const sourceCompany = company || {}
+    const useCompanyInputs = Boolean(company)
+
     const data = {
       postMoneyVal: isTwoStep ? scenario.step1.postMoney : scenario.postMoneyVal,
-      roundSize: isTwoStep ? scenario.step1.amount : scenario.roundSize,
-      investorPortion: isTwoStep ? scenario.step1.investorAmount : scenario.investorAmount,
-      otherPortion: isTwoStep ? scenario.step1.otherAmount : (scenario.otherAmountOriginal || scenario.otherAmount),
-      proRataPercent: scenario.proRataPercentInput || 0,
-      safes: scenario.safes || [],
-      preRoundFounderOwnership: scenario.preRoundFounderPercent ?? 0,
-      priorInvestors: scenario.priorInvestors || [],
-      founders: scenario.founders || [],
-      currentEsopPercent: scenario.currentEsopPercent || 0,
-      targetEsopPercent: scenario.targetEsopPercent || 0,
-      esopTiming: scenario.esopTiming || 'pre-close',
-      twoStepEnabled: isTwoStep,
-      step2PostMoney: isTwoStep ? scenario.step2.postMoney : 0,
-      step2Amount: isTwoStep ? scenario.step2.amount : 0,
-      step2InvestorPortion: isTwoStep ? scenario.step2.investorAmount : 0,
-      step2OtherPortion: isTwoStep ? scenario.step2.otherAmount : 0
+      roundSize: useCompanyInputs ? (sourceCompany.roundSize || 0) : (isTwoStep ? scenario.step1.amount : scenario.roundSize),
+      investorPortion: useCompanyInputs ? (sourceCompany.investorPortion || 0) : (isTwoStep ? scenario.step1.investorAmount : scenario.investorAmount),
+      otherPortion: useCompanyInputs ? (sourceCompany.otherPortion || 0) : (isTwoStep ? scenario.step1.otherAmount : (scenario.otherAmountOriginal || scenario.otherAmount)),
+      investorName: sourceCompany.investorName || investorName,
+      showAdvanced: sourceCompany.showAdvanced ?? showAdvanced,
+      proRataPercent: useCompanyInputs ? (sourceCompany.proRataPercent || 0) : (scenario.proRataPercentInput || 0),
+      safes: useCompanyInputs ? (sourceCompany.safes || []) : (scenario.safes || []),
+      preRoundFounderOwnership: useCompanyInputs ? (sourceCompany.preRoundFounderOwnership || 0) : (scenario.preRoundFounderPercent ?? 0),
+      priorInvestors: useCompanyInputs ? (sourceCompany.priorInvestors || []) : (scenario.priorInvestors || []),
+      founders: useCompanyInputs ? (sourceCompany.founders || []) : (scenario.founders || []),
+      currentEsopPercent: useCompanyInputs ? (sourceCompany.currentEsopPercent || 0) : (scenario.currentEsopPercent || 0),
+      grantedEsopPercent: useCompanyInputs ? (sourceCompany.grantedEsopPercent || 0) : (scenario.grantedEsopPercent || 0),
+      targetEsopPercent: useCompanyInputs ? (sourceCompany.targetEsopPercent || 0) : (scenario.targetEsopPercent || 0),
+      esopTiming: sourceCompany.esopTiming || scenario.esopTiming || 'pre-close',
+      twoStepEnabled: useCompanyInputs ? Boolean(sourceCompany.twoStepEnabled) : isTwoStep,
+      step2PostMoney: isTwoStep ? scenario.step2.postMoney : (sourceCompany.step2PostMoney || 0),
+      step2Amount: useCompanyInputs ? (sourceCompany.step2Amount || 0) : (isTwoStep ? scenario.step2.amount : 0),
+      step2InvestorPortion: useCompanyInputs ? (sourceCompany.step2InvestorPortion || 0) : (isTwoStep ? scenario.step2.investorAmount : 0),
+      step2OtherPortion: useCompanyInputs ? (sourceCompany.step2OtherPortion || 0) : (isTwoStep ? scenario.step2.otherAmount : 0)
     }
     return data
   }
@@ -70,13 +76,7 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
     if (!onCopyPermalink) return
 
     try {
-      const scenarioData = {
-        ...buildScenarioData(),
-        investorName,
-        showAdvanced
-      }
-
-      const result = await onCopyPermalink(scenarioData)
+      const result = await onCopyPermalink(buildScenarioData())
       
       if (result.success) {
         setCopyFeedback('Copied!')
