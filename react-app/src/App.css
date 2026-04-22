@@ -855,13 +855,14 @@ body {
    Collapses to single column on narrow viewports. */
 .advanced-split {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: var(--space-4);
   align-items: start;
 }
 
 .advanced-split > .two-step-section,
 .advanced-split > .esop-section {
+  min-width: 0;
   margin-top: 0;
   padding-top: 0;
   border-top: 0;
@@ -2818,9 +2819,10 @@ input.investor-name-input:focus, input.founder-name-input:focus {
   line-height: 1.4;
 }
 
-/* 2-Step Step 2 card — tighten gap between fields when paired in 2-col */
+/* 2-Step Step 2 card — stack inputs vertically so each stays wide enough to
+   show its $ prefix and value inside half of .advanced-split. */
 .advanced-split .step2-input-grid {
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr);
   gap: 0.5rem;
 }
 
