@@ -200,7 +200,7 @@ function App() {
   const compareIds = selectedCompanyIds.filter(id => companies[id])
   const isCompareMode = compareIds.length >= 2
   const cardIds = isCompareMode ? compareIds : [activeCompany]
-  const showExitMath = !isCompareMode && companies[activeCompany]?.showExitMath
+  const showExitMath = Boolean(companies[activeCompany]?.showExitMath)
   const advancedOpen = !isCompareMode && !showExitMath && Boolean(companies[activeCompany]?.showAdvanced)
 
   return (

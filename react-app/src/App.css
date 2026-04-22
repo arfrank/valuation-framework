@@ -415,6 +415,10 @@ body {
   min-width: 0;
 }
 
+.top-row.compare-mode > .exit-math-module {
+  flex: 0 0 clamp(280px, 22vw, 380px);
+}
+
 .base-result-compare {
   display: flex;
   flex-direction: row;
