@@ -140,7 +140,7 @@ describe('InputForm with Pre-Money Toggle', () => {
     // const user = userEvent.setup()
     render(<InputForm company={defaultCompany} onUpdate={mockOnUpdate} />)
 
-    const investorInput = screen.getByLabelText('Investor:')
+    const investorInput = screen.getByLabelText('Your firm:')
     
     // Fire a change event directly to test the handler
     fireEvent.change(investorInput, { target: { value: 'Acme VC' } })
