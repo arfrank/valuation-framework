@@ -74,7 +74,7 @@ function calculateProRataAllocations(priorInvestors, roundSize) {
 /**
  * Calculate SAFE conversions (unchanged from original logic)
  */
-function calculateSafeConversions(safes, preMoneyVal) {
+export function calculateSafeConversions(safes, preMoneyVal) {
   let totalSafePercent = 0
   let totalSafeAmount = 0
   let safeDetails = []

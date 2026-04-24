@@ -705,6 +705,9 @@ const InputForm = ({ company, onUpdate }) => {
             onUpdate={handlePriorInvestorsUpdate}
             roundSize={values.roundSize}
             investorName={values.investorName || 'US'}
+            safes={values.safes || []}
+            postMoneyVal={values.postMoneyVal}
+            investorPortion={values.investorPortion}
           />
 
           <FoundersSection

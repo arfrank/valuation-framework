@@ -2729,6 +2729,78 @@ input.investor-name-input:focus, input.founder-name-input:focus {
   line-height: 1.3;
 }
 
+/* Read-only rows (SAFE, lead) inside the Investors table — tinted, non-editable */
+.repeater-table--investors .repeater-row--safe {
+  background: var(--color-bg-subtle);
+  padding-bottom: 0.35rem;
+}
+
+.repeater-table--investors .repeater-row--lead {
+  background: color-mix(in srgb, var(--color-accent) 8%, transparent);
+}
+
+.repeater-table--investors .repeater-row--safe:hover,
+.repeater-table--investors .repeater-row--lead:hover {
+  background: var(--color-bg-muted);
+}
+
+.repeater-readonly-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--color-fg);
+  padding: 4px 6px;
+}
+
+.repeater-readonly-value {
+  display: block;
+  text-align: right;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--color-fg);
+  padding: 4px 6px;
+}
+
+.repeater-kind-tag {
+  display: inline-block;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: var(--color-bg-muted);
+  color: var(--color-fg-muted);
+  text-transform: uppercase;
+}
+
+.repeater-kind-tag--lead {
+  background: color-mix(in srgb, var(--color-accent) 20%, transparent);
+  color: var(--color-accent);
+}
+
+/* Greyed pro-rata readout for prior investors whose pro-rata is disabled */
+.repeater-prorata-readonly {
+  display: block;
+  text-align: right;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--color-fg-faint);
+  font-style: italic;
+  padding: 4px 6px;
+  cursor: help;
+}
+
+.repeater-prorata-active {
+  display: block;
+  text-align: right;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-fg);
+  padding: 4px 6px;
+}
+
 /* ---- Compact FormInput variant (used inside repeater tables) ---- */
 .form-input-wrapper.compact {
   min-height: 30px;
