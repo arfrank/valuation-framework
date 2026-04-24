@@ -64,3 +64,41 @@ export function calculateExitReturn({ initialCheck, currentOwnership, dilutions,
 
   return { finalOwnership, exitProceeds, moic, perRound }
 }
+
+/**
+ * Compute exit economics for multiple exit valuations sharing the same dilution path.
+ * @param {Object} args
+ * @param {number} args.initialCheck - initial investment in $M
+ * @param {number} args.currentOwnership - current ownership percentage
+ * @param {Array<number>} args.dilutions - per-round dilutions as decimals
+ * @param {Array<number>} args.exitValuations - exit valuations in $M
+ * @returns {{finalOwnership:number, perRound:Array<{round:number, dilution:number, ownership:number}>, outcomes:Array<{exitValuation:number, exitProceeds:number, moic:number}>}}
+ */
+export function calculateExitReturnsForValues({ initialCheck, currentOwnership, dilutions, exitValuations }) {
+  const check = Number(initialCheck) || 0
+  const startOwnershipPct = Number(currentOwnership) || 0
+  const safeDilutions = Array.isArray(dilutions) ? dilutions : []
+  const values = Array.isArray(exitValuations) ? exitValuations : []
+
+  let ownershipPct = startOwnershipPct
+  const perRound = []
+  safeDilutions.forEach((d, i) => {
+    const dec = Math.max(0, Math.min(1, Number(d) || 0))
+    ownershipPct = ownershipPct * (1 - dec)
+    perRound.push({
+      round: i + 1,
+      dilution: dec,
+      ownership: ownershipPct,
+    })
+  })
+
+  const finalOwnership = ownershipPct
+  const outcomes = values.map((v) => {
+    const exitVal = Number(v) || 0
+    const exitProceeds = (finalOwnership / 100) * exitVal
+    const moic = check > 0 ? exitProceeds / check : 0
+    return { exitValuation: exitVal, exitProceeds, moic }
+  })
+
+  return { finalOwnership, perRound, outcomes }
+}
