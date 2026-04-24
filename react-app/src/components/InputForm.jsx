@@ -505,6 +505,28 @@ const InputForm = ({ company, onUpdate }) => {
             </div>
           </div>
 
+          <div className="warrants-section">
+            <h5>Outstanding Warrants</h5>
+            <p className="warrants-subtitle">
+              Rough model — assumes all outstanding warrants exercise on a fully-diluted basis and dilute like other pre-round equity.
+            </p>
+            <div className="warrants-input-grid">
+              <FormInput
+                label="Warrants"
+                type="number"
+                value={values.preRoundWarrantsPercent || ''}
+                onChange={(value) => handleChange('preRoundWarrantsPercent', value)}
+                suffix="%"
+                step="0.01"
+                min="0"
+                max="100"
+                placeholder="0"
+                clearable={true}
+                tooltip="Pre-round warrants outstanding, as a % of fully-diluted shares."
+              />
+            </div>
+          </div>
+
           <div className="safes-section">
             <div className="section-title-row">
               <h5 className="section-label">SAFE Notes</h5>

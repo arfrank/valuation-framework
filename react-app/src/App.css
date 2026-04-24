@@ -2402,14 +2402,16 @@ input.investor-name-input:focus, input.founder-name-input:focus {
   border-top: 1px solid var(--color-border);
 }
 
-.esop-section h5 {
+.esop-section h5,
+.warrants-section h5 {
   font-size: var(--text-md);
   font-weight: 600;
   color: var(--color-fg);
   margin: 0 0 var(--space-2);
 }
 
-.esop-subtitle {
+.esop-subtitle,
+.warrants-subtitle {
   margin: 0 0 var(--space-4);
   font-size: var(--text-sm);
   color: var(--color-fg-subtle);
@@ -2420,6 +2422,18 @@ input.investor-name-input:focus, input.founder-name-input:focus {
   color: var(--color-fg-muted);
   font-style: normal;
   font-weight: 600;
+}
+
+.warrants-section {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.warrants-input-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 16rem);
+  gap: var(--space-4);
 }
 
 .esop-section .input-grid.esop-input-grid {

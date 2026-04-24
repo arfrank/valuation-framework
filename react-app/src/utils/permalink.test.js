@@ -834,4 +834,49 @@ describe('Permalink Utilities', () => {
       })
     })
   })
+
+  describe('Warrants permalink support', () => {
+    it('roundtrips preRoundWarrantsPercent via wp param', () => {
+      const data = {
+        postMoneyVal: 13,
+        roundSize: 3,
+        investorPortion: 2.75,
+        otherPortion: 0.25,
+        investorName: 'US',
+        showAdvanced: true,
+        preRoundWarrantsPercent: 4.5
+      }
+      const encoded = encodeScenarioToURL(data)
+      expect(encoded).toContain('wp=4.5')
+      const decoded = decodeScenarioFromURL(encoded)
+      expect(decoded.preRoundWarrantsPercent).toBe(4.5)
+    })
+
+    it('omits wp when warrants are zero', () => {
+      const encoded = encodeScenarioToURL({
+        postMoneyVal: 13,
+        roundSize: 3,
+        investorPortion: 2.75,
+        otherPortion: 0.25,
+        investorName: 'US',
+        preRoundWarrantsPercent: 0
+      })
+      expect(encoded).not.toContain('wp=')
+    })
+
+    it('auto-enables showAdvanced when wp is present', () => {
+      const encoded = encodeScenarioToURL({
+        postMoneyVal: 13,
+        roundSize: 3,
+        investorPortion: 2.75,
+        otherPortion: 0.25,
+        investorName: 'US',
+        showAdvanced: false,
+        preRoundWarrantsPercent: 3
+      })
+      const decoded = decodeScenarioFromURL(encoded)
+      expect(decoded.showAdvanced).toBe(true)
+      expect(decoded.preRoundWarrantsPercent).toBe(3)
+    })
+  })
 })

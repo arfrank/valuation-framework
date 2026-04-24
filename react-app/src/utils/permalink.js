@@ -23,6 +23,8 @@ const URL_PARAM_MAP = {
   grantedEsopPercent: 'ge',
   targetEsopPercent: 'te',
   esopTiming: 'et',
+  // Warrants
+  preRoundWarrantsPercent: 'wp',
   percentPrecision: 'pp',
   // 2-Step Round
   twoStepEnabled: 'ts',
@@ -163,6 +165,7 @@ export function encodeScenarioToURL(scenarioData) {
       
       // Only include non-zero values for optional fields
       if (['proRataPercent', 'currentEsopPercent', 'grantedEsopPercent', 'targetEsopPercent',
+           'preRoundWarrantsPercent',
            'step2PostMoney', 'step2Amount', 'step2InvestorPortion', 'step2OtherPortion'].includes(field) && value === 0) {
         return
       }
@@ -218,6 +221,8 @@ export function decodeScenarioFromURL(urlParams) {
       grantedEsopPercent: 0,
       targetEsopPercent: 0,
       esopTiming: 'pre-close',
+      // Warrants default
+      preRoundWarrantsPercent: 0,
       percentPrecision: 2,
       // 2-Step Round defaults
       twoStepEnabled: false,
@@ -314,7 +319,9 @@ export function decodeScenarioFromURL(urlParams) {
     if (!params.has('adv') && (scenarioData.proRataPercent > 0 || scenarioData.preRoundFounderOwnership > 0 ||
         (scenarioData.safes && scenarioData.safes.length > 0) || scenarioData.currentEsopPercent > 0 ||
         scenarioData.grantedEsopPercent > 0 ||
-        scenarioData.targetEsopPercent > 0 || (scenarioData.priorInvestors && scenarioData.priorInvestors.length > 0) ||
+        scenarioData.targetEsopPercent > 0 ||
+        scenarioData.preRoundWarrantsPercent > 0 ||
+        (scenarioData.priorInvestors && scenarioData.priorInvestors.length > 0) ||
         (scenarioData.founders && scenarioData.founders.length > 0))) {
       scenarioData.showAdvanced = true
     }

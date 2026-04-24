@@ -177,7 +177,8 @@ function looksLikeSingleStoredCompany(value) {
     'targetEsopPercent',
     'twoStepEnabled',
     'showExitMath',
-    'exitMath'
+    'exitMath',
+    'preRoundWarrantsPercent'
   ].some((key) => Object.prototype.hasOwnProperty.call(value, key))
 }
 
@@ -227,6 +228,10 @@ export function createDefaultCompany(companyName = 'New Company') {
     grantedEsopPercent: 0,
     targetEsopPercent: 0,
     esopTiming: 'pre-close',
+
+    // Warrants: rough model — assume all outstanding warrants exercised on a
+    // fully-diluted basis. Dilutes like other pre-round equity when the round closes.
+    preRoundWarrantsPercent: 0,
 
     // Sensitivity scenarios: valuation % offsets to render as alternative cards
     scenarioOffsets: buildScenarioOffsets(30),
@@ -341,6 +346,11 @@ export function migrateLegacyCompany(legacyCompany, fallbackName = 'New Company'
   migrated.currentEsopPercent = Math.max(0, getOptionalNumber(migrated.currentEsopPercent) ?? defaults.currentEsopPercent)
   migrated.grantedEsopPercent = Math.max(0, getOptionalNumber(migrated.grantedEsopPercent) ?? defaults.grantedEsopPercent)
   migrated.targetEsopPercent = Math.max(0, getOptionalNumber(migrated.targetEsopPercent) ?? defaults.targetEsopPercent)
+  migrated.preRoundWarrantsPercent = clamp(
+    Math.max(0, getOptionalNumber(migrated.preRoundWarrantsPercent) ?? 0),
+    0,
+    100
+  )
   migrated.percentPrecision = clamp(getOptionalNumber(migrated.percentPrecision) ?? defaults.percentPrecision, 0, 6)
 
   // Ensure scenarioOffsets exist
