@@ -254,13 +254,13 @@ const InputForm = ({ company, onUpdate }) => {
         <h3>Investment Parameters</h3>
         <div className="header-controls">
           <div className="investor-name-input">
-            <label htmlFor="investor-name">Investor:</label>
+            <label htmlFor="investor-name">Your firm:</label>
             <input
               id="investor-name"
               type="text"
               value={values.investorName || 'US'}
               onChange={(e) => handleChange('investorName', e.target.value)}
-              placeholder="US"
+              placeholder="e.g. LSVP"
             />
           </div>
           <div className="calculated-money-toggle" onClick={handleToggleInputMode}>
