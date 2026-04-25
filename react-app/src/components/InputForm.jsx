@@ -53,8 +53,9 @@ const InputForm = ({ company, onUpdate }) => {
       }
       // Prevent negative values
       if (numValue < 0) numValue = 0
-      // Prevent unreasonably large values (> 1 trillion)
-      if (numValue > 1000000) numValue = 1000000
+      // Prevent unreasonably large values. Share counts can be much larger than $M values.
+      const maxValue = field === 'fdSharesOutstanding' ? 10_000_000_000 : 1_000_000
+      if (numValue > maxValue) numValue = maxValue
     }
     
     const newValues = { ...values, [field]: numValue }
@@ -223,6 +224,62 @@ const InputForm = ({ company, onUpdate }) => {
         safe.id === safeId
           ? { ...safe, [field]: numValue }
           : safe
+      )
+    }
+    setValues(newValues)
+    onUpdate(newValues)
+  }
+
+  // Warrant management functions
+  const addWarrant = () => {
+    const newWarrant = {
+      id: Date.now(),
+      name: '',
+      shares: 0,
+      strike: 0
+    }
+    const newValues = {
+      ...values,
+      warrants: [...(values.warrants || []), newWarrant]
+    }
+    setValues(newValues)
+    onUpdate(newValues)
+  }
+
+  const removeWarrant = (warrantId) => {
+    const newValues = {
+      ...values,
+      warrants: (values.warrants || []).filter(w => w.id !== warrantId)
+    }
+    setValues(newValues)
+    onUpdate(newValues)
+  }
+
+  const updateWarrant = (warrantId, field, value) => {
+    if (field === 'name') {
+      const newValues = {
+        ...values,
+        warrants: (values.warrants || []).map(w =>
+          w.id === warrantId ? { ...w, name: value } : w
+        )
+      }
+      setValues(newValues)
+      onUpdate(newValues)
+      return
+    }
+    let numValue = parseFloat(value)
+    if (isNaN(numValue) || value === '' || value === null || value === undefined) {
+      numValue = 0
+    }
+    if (numValue < 0) numValue = 0
+    // Shares can be very large; strike is $/share so a smaller cap is fine.
+    const maxValue = field === 'shares' ? 10_000_000_000 : 1_000_000
+    if (numValue > maxValue) numValue = maxValue
+
+    const newValues = {
+      ...values,
+      warrants: (values.warrants || []).map(w =>
+        w.id === warrantId ? { ...w, [field]: numValue } : w
       )
     }
     setValues(newValues)
@@ -506,25 +563,121 @@ const InputForm = ({ company, onUpdate }) => {
           </div>
 
           <div className="warrants-section">
-            <h5>Outstanding Warrants</h5>
+            <div className="section-title-row">
+              <h5 className="section-label">Outstanding Warrants</h5>
+              <div className="section-header-actions">
+                <button
+                  type="button"
+                  className="add-safe-btn"
+                  onClick={addWarrant}
+                  title="Add warrant"
+                >
+                  + Add Warrant
+                </button>
+              </div>
+            </div>
             <p className="warrants-subtitle">
-              Rough model — assumes all outstanding warrants exercise on a fully-diluted basis and dilute like other pre-round equity.
+              Rough model — assumes all warrants exercise on a fully-diluted basis. Strike payment is ignored for dilution math.
             </p>
-            <div className="warrants-input-grid">
+
+            <div className="warrants-anchor-row">
               <FormInput
-                label="Warrants"
+                label="FD Shares Outstanding"
                 type="number"
-                value={values.preRoundWarrantsPercent || ''}
-                onChange={(value) => handleChange('preRoundWarrantsPercent', value)}
-                suffix="%"
-                step="0.01"
+                value={values.fdSharesOutstanding || ''}
+                onChange={(value) => handleChange('fdSharesOutstanding', value)}
+                step="1"
                 min="0"
-                max="100"
                 placeholder="0"
                 clearable={true}
-                tooltip="Pre-round warrants outstanding, as a % of fully-diluted shares."
+                tooltip="Total fully-diluted shares outstanding pre-round (including warrants, ESOP, etc.). Used to convert warrant share counts to %."
               />
+              {values.fdSharesOutstanding > 0 && (values.warrants || []).length > 0 && (
+                <div className="warrants-summary">
+                  Total warrants: {(values.warrants || []).reduce((s, w) => s + (Number(w.shares) || 0), 0).toLocaleString()} shares
+                  {' '}({(((values.warrants || []).reduce((s, w) => s + (Number(w.shares) || 0), 0) / values.fdSharesOutstanding) * 100).toFixed(2)}% of FD)
+                </div>
+              )}
             </div>
+
+            {(!values.warrants || values.warrants.length === 0) ? (
+              <div className="no-safes-message">
+                No warrants added. Click "Add Warrant" to get started.
+              </div>
+            ) : (
+              <div className="repeater-table repeater-table--warrants">
+                <div className="repeater-header">
+                  <span className="repeater-col repeater-col--name">Holder</span>
+                  <span className="repeater-col repeater-col--shares">Shares</span>
+                  <span className="repeater-col repeater-col--strike">Strike</span>
+                  <span className="repeater-col repeater-col--alloc">% of FD</span>
+                  <span className="repeater-col repeater-col--actions" aria-hidden="true" />
+                </div>
+                {values.warrants.map((warrant) => {
+                  const shares = Number(warrant.shares) || 0
+                  const fdPercent = values.fdSharesOutstanding > 0
+                    ? (shares / values.fdSharesOutstanding) * 100
+                    : 0
+                  return (
+                    <div key={warrant.id} className="repeater-row repeater-row--warrant">
+                      <div className="repeater-col repeater-col--name">
+                        <FormInput
+                          label="Holder"
+                          type="text"
+                          value={warrant.name || ''}
+                          onChange={(value) => updateWarrant(warrant.id, 'name', value)}
+                          placeholder="Optional"
+                          id={`warrant-name-${warrant.id}`}
+                          compact
+                        />
+                      </div>
+                      <div className="repeater-col repeater-col--shares">
+                        <FormInput
+                          label="Shares"
+                          type="number"
+                          value={warrant.shares}
+                          onChange={(value) => updateWarrant(warrant.id, 'shares', value)}
+                          step="1"
+                          min="0"
+                          placeholder="0"
+                          id={`warrant-shares-${warrant.id}`}
+                          compact
+                        />
+                      </div>
+                      <div className="repeater-col repeater-col--strike">
+                        <FormInput
+                          label="Strike"
+                          type="number"
+                          value={warrant.strike}
+                          onChange={(value) => updateWarrant(warrant.id, 'strike', value)}
+                          prefix="$"
+                          step="0.01"
+                          min="0"
+                          placeholder="0.01"
+                          id={`warrant-strike-${warrant.id}`}
+                          compact
+                        />
+                      </div>
+                      <div className="repeater-col repeater-col--alloc">
+                        <span className="warrants-fd-percent">
+                          {values.fdSharesOutstanding > 0 ? `${fdPercent.toFixed(2)}%` : '—'}
+                        </span>
+                      </div>
+                      <div className="repeater-col repeater-col--actions">
+                        <button
+                          type="button"
+                          className="remove-safe-btn"
+                          onClick={() => removeWarrant(warrant.id)}
+                          title="Remove warrant"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
           </div>
 
           <div className="safes-section">

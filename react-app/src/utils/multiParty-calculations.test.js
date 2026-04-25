@@ -1374,8 +1374,8 @@ describe('Hand-computed scenario verification', () => {
     })
   })
 
-  describe('Warrants (pre-round outstanding)', () => {
-    it('dilutes warrants like pre-round equity and sums to 100%', () => {
+  describe('Warrants (shares + strike + FD anchor)', () => {
+    it('derives % from FD shares and dilutes like pre-round equity', () => {
       const result = calculateEnhancedScenario({
         postMoneyVal: 20,
         roundSize: 5,
@@ -1387,10 +1387,14 @@ describe('Hand-computed scenario verification', () => {
         safes: [],
         currentEsopPercent: 0,
         targetEsopPercent: 0,
-        preRoundWarrantsPercent: 5
+        // 500k shares of penny warrants in a 10M FD cap = 5% of pre-round
+        fdSharesOutstanding: 10_000_000,
+        warrants: [{ id: 100, name: 'Venture Debt', shares: 500_000, strike: 0.01 }]
       })
 
-      // roundPercent = 25. Pre-round equity * 0.75. Warrants 5 * 0.75 = 3.75
+      // Pre-round warrants = 500k / 10M = 5%
+      expect(result.preRoundWarrantsPercent).toBeCloseTo(5, 2)
+      // roundPercent = 25 → warrants dilute to 5 * 0.75 = 3.75
       expect(result.finalWarrantsPercent).toBeCloseTo(3.75, 2)
 
       const total = result.roundPercent
@@ -1398,6 +1402,52 @@ describe('Hand-computed scenario verification', () => {
         + result.founders.reduce((s, f) => s + f.postRoundPercent, 0)
         + result.finalWarrantsPercent
       expect(total).toBeCloseTo(100, 1)
+    })
+
+    it('exposes per-warrant breakdown with shares, strike, and exerciseProceeds', () => {
+      const result = calculateEnhancedScenario({
+        postMoneyVal: 20,
+        roundSize: 5,
+        investorPortion: 5,
+        otherPortion: 0,
+        showAdvanced: true,
+        priorInvestors: [],
+        founders: [{ id: 1, name: 'Founders', ownershipPercent: 100 }],
+        safes: [],
+        currentEsopPercent: 0,
+        targetEsopPercent: 0,
+        fdSharesOutstanding: 10_000_000,
+        warrants: [
+          { id: 1, name: 'SVB', shares: 200_000, strike: 0.01 },
+          { id: 2, name: 'Advisor', shares: 100_000, strike: 1.50 }
+        ]
+      })
+      expect(result.warrantDetails).toHaveLength(2)
+      expect(result.warrantDetails[0].name).toBe('SVB')
+      expect(result.warrantDetails[0].shares).toBe(200_000)
+      expect(result.warrantDetails[0].exerciseProceeds).toBeCloseTo(2000, 2) // 200k * $0.01
+      expect(result.warrantDetails[1].exerciseProceeds).toBeCloseTo(150_000, 2) // 100k * $1.50
+      // Combined = 300k / 10M = 3% of pre-round → 3 * 0.75 = 2.25 final
+      expect(result.finalWarrantsPercent).toBeCloseTo(2.25, 2)
+    })
+
+    it('contributes 0% when fdSharesOutstanding is zero', () => {
+      const result = calculateEnhancedScenario({
+        postMoneyVal: 20,
+        roundSize: 5,
+        investorPortion: 5,
+        otherPortion: 0,
+        showAdvanced: true,
+        priorInvestors: [],
+        founders: [{ id: 1, name: 'Founders', ownershipPercent: 100 }],
+        safes: [],
+        currentEsopPercent: 0,
+        targetEsopPercent: 0,
+        fdSharesOutstanding: 0,
+        warrants: [{ id: 1, name: 'X', shares: 500_000, strike: 0.01 }]
+      })
+      expect(result.preRoundWarrantsPercent).toBe(0)
+      expect(result.finalWarrantsPercent).toBe(0)
     })
 
     it('auto-scales founders + priors when warrants + ESOP claim pre-round space', () => {
@@ -1412,11 +1462,9 @@ describe('Hand-computed scenario verification', () => {
         safes: [],
         currentEsopPercent: 10,
         targetEsopPercent: 0,
-        preRoundWarrantsPercent: 5
+        fdSharesOutstanding: 10_000_000,
+        warrants: [{ id: 100, name: 'Bank', shares: 500_000, strike: 0.01 }]
       })
-
-      // Pre-round space = 100 - 10 (ESOP) - 5 (warrants) = 85. Founders+priors (100) scale to 85.
-      // Check totals sum to ~100%.
       const total = result.roundPercent
         + result.priorInvestors.reduce((s, i) => s + i.postRoundPercent, 0)
         + result.founders.reduce((s, f) => s + f.postRoundPercent, 0)
@@ -1426,7 +1474,7 @@ describe('Hand-computed scenario verification', () => {
     })
 
     it('applies post-close ESOP top-up dilution to warrants too', () => {
-      const withTopUp = calculateEnhancedScenario({
+      const base = {
         postMoneyVal: 20,
         roundSize: 5,
         investorPortion: 5,
@@ -1437,24 +1485,18 @@ describe('Hand-computed scenario verification', () => {
         safes: [],
         currentEsopPercent: 5,
         grantedEsopPercent: 0,
+        fdSharesOutstanding: 10_000_000,
+        warrants: [{ id: 100, name: 'Bank', shares: 1_000_000, strike: 0.01 }]
+      }
+      const withTopUp = calculateEnhancedScenario({
+        ...base,
         targetEsopPercent: 10,
-        esopTiming: 'post-close',
-        preRoundWarrantsPercent: 10
+        esopTiming: 'post-close'
       })
       const withoutTopUp = calculateEnhancedScenario({
-        postMoneyVal: 20,
-        roundSize: 5,
-        investorPortion: 5,
-        otherPortion: 0,
-        showAdvanced: true,
-        priorInvestors: [],
-        founders: [{ id: 1, name: 'Founders', ownershipPercent: 85 }],
-        safes: [],
-        currentEsopPercent: 5,
-        targetEsopPercent: 0,
-        preRoundWarrantsPercent: 10
+        ...base,
+        targetEsopPercent: 0
       })
-      // Warrants are further diluted by the post-close top-up
       expect(withTopUp.finalWarrantsPercent).toBeLessThan(withoutTopUp.finalWarrantsPercent)
     })
   })

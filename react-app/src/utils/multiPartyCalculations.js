@@ -284,7 +284,8 @@ function calculateTwoStepScenario(inputs) {
     grantedEsopPercent = 0,
     targetEsopPercent = 0,
     esopTiming = 'pre-close',
-    preRoundWarrantsPercent = 0
+    fdSharesOutstanding = 0,
+    warrants = []
   } = migratedInputs
 
   if (V1 <= 0 || S1 <= 0 || V1 <= S1 || V2 <= 0 || S2 <= 0 || V2 <= S2) {
@@ -300,7 +301,12 @@ function calculateTwoStepScenario(inputs) {
   const effectiveCurrentEsopPercent = showAdvanced ? currentEsopPercent : 0
   const effectiveGrantedEsopPercent = showAdvanced ? Math.min(grantedEsopPercent, currentEsopPercent) : 0
   const effectiveTargetEsopPercent = showAdvanced ? targetEsopPercent : 0
-  const effectivePreRoundWarrantsPercent = showAdvanced ? preRoundWarrantsPercent : 0
+  const effectiveFdSharesOutstanding = showAdvanced ? fdSharesOutstanding : 0
+  const effectiveWarrants = showAdvanced ? (Array.isArray(warrants) ? warrants : []) : []
+  const totalWarrantShares = effectiveWarrants.reduce((s, w) => s + (Number(w.shares) || 0), 0)
+  const effectivePreRoundWarrantsPercent = (effectiveFdSharesOutstanding > 0 && totalWarrantShares > 0)
+    ? Math.min(100, (totalWarrantShares / effectiveFdSharesOutstanding) * 100)
+    : 0
 
   // Validate founders + priors ≤ 100% on their own; auto-scale to accommodate ESOP otherwise.
   // See single-step path for rationale.
@@ -439,6 +445,29 @@ function calculateTwoStepScenario(inputs) {
   if (esopCalc.esopIncreasePostClose > 0) {
     finalWarrantsPercent = rp(finalWarrantsPercent * (100 - esopCalc.esopIncreasePostClose) / 100)
   }
+
+  const warrantDetails = effectiveWarrants.map(w => {
+    const shares = Number(w.shares) || 0
+    const strike = Number(w.strike) || 0
+    const preRoundPercent = effectiveFdSharesOutstanding > 0
+      ? rp((shares / effectiveFdSharesOutstanding) * 100)
+      : 0
+    let postRoundPercent = rp(
+      preRoundPercent * (100 - step1RoundPercent - safeCalc.totalSafePercent - esopCalc.esopIncreasePreClose) / 100 * step2DilutionFactor
+    )
+    if (esopCalc.esopIncreasePostClose > 0) {
+      postRoundPercent = rp(postRoundPercent * (100 - esopCalc.esopIncreasePostClose) / 100)
+    }
+    return {
+      id: w.id,
+      name: w.name || '',
+      shares,
+      strike,
+      exerciseProceeds: r$(shares * strike),
+      preRoundPercent,
+      postRoundPercent
+    }
+  })
 
   // Apply post-close ESOP to round percentages
   let finalRoundPercent = totalRoundPercent
@@ -601,6 +630,10 @@ function calculateTwoStepScenario(inputs) {
     esopTiming,
 
     // Warrants
+    fdSharesOutstanding: effectiveFdSharesOutstanding,
+    warrants: effectiveWarrants,
+    warrantDetails,
+    totalWarrantShares,
     preRoundWarrantsPercent: effectivePreRoundWarrantsPercent,
     finalWarrantsPercent,
 
@@ -699,7 +732,8 @@ export function calculateEnhancedScenario(inputs) {
     grantedEsopPercent = 0,
     targetEsopPercent = 0,
     esopTiming = 'pre-close',
-    preRoundWarrantsPercent = 0
+    fdSharesOutstanding = 0,
+    warrants = []
   } = migratedInputs
 
   // When showAdvanced is false, ignore all advanced inputs
@@ -709,7 +743,14 @@ export function calculateEnhancedScenario(inputs) {
   const effectiveCurrentEsopPercent = showAdvanced ? currentEsopPercent : 0
   const effectiveGrantedEsopPercent = showAdvanced ? Math.min(grantedEsopPercent, currentEsopPercent) : 0
   const effectiveTargetEsopPercent = showAdvanced ? targetEsopPercent : 0
-  const effectivePreRoundWarrantsPercent = showAdvanced ? preRoundWarrantsPercent : 0
+  const effectiveFdSharesOutstanding = showAdvanced ? fdSharesOutstanding : 0
+  const effectiveWarrants = showAdvanced ? (Array.isArray(warrants) ? warrants : []) : []
+  const totalWarrantShares = effectiveWarrants.reduce((s, w) => s + (Number(w.shares) || 0), 0)
+  // Warrant % of pre-round FD cap. fdSharesOutstanding is the "100%" of the pre-round cap
+  // (FD basis, including warrants). If fds is 0 or no warrants, contributes 0%.
+  const effectivePreRoundWarrantsPercent = (effectiveFdSharesOutstanding > 0 && totalWarrantShares > 0)
+    ? Math.min(100, (totalWarrantShares / effectiveFdSharesOutstanding) * 100)
+    : 0
   
   // Validate founders + priors can't exceed 100% on their own (obvious user error).
   const rawFoundersTotal = effectiveFounders.reduce((sum, f) => sum + (f.ownershipPercent || 0), 0)
@@ -850,6 +891,28 @@ export function calculateEnhancedScenario(inputs) {
   if (esopCalc.esopIncreasePostClose > 0) {
     finalWarrantsPercent = rp(finalWarrantsPercent * (100 - esopCalc.esopIncreasePostClose) / 100)
   }
+
+  // Per-warrant breakdown (each warrant's slice diluted the same way)
+  const warrantDetails = effectiveWarrants.map(w => {
+    const shares = Number(w.shares) || 0
+    const strike = Number(w.strike) || 0
+    const preRoundPercent = effectiveFdSharesOutstanding > 0
+      ? rp((shares / effectiveFdSharesOutstanding) * 100)
+      : 0
+    let postRoundPercent = rp(preRoundPercent * (100 - totalNewOwnership) / 100)
+    if (esopCalc.esopIncreasePostClose > 0) {
+      postRoundPercent = rp(postRoundPercent * (100 - esopCalc.esopIncreasePostClose) / 100)
+    }
+    return {
+      id: w.id,
+      name: w.name || '',
+      shares,
+      strike,
+      exerciseProceeds: r$(shares * strike),
+      preRoundPercent,
+      postRoundPercent
+    }
+  })
 
   // Calculate total ownership for verification
   const totalPriorInvestorOwnership = postRoundPriorInvestors.reduce((sum, inv) => sum + inv.postRoundPercent, 0)
@@ -1005,6 +1068,10 @@ export function calculateEnhancedScenario(inputs) {
     esopTiming: esopTiming || 'pre-close',
 
     // Warrants
+    fdSharesOutstanding: effectiveFdSharesOutstanding || 0,
+    warrants: effectiveWarrants || [],
+    warrantDetails: warrantDetails || [],
+    totalWarrantShares: totalWarrantShares || 0,
     preRoundWarrantsPercent: effectivePreRoundWarrantsPercent || 0,
     finalWarrantsPercent: finalWarrantsPercent || 0,
 

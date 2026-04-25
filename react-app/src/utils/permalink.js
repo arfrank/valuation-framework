@@ -24,7 +24,8 @@ const URL_PARAM_MAP = {
   targetEsopPercent: 'te',
   esopTiming: 'et',
   // Warrants
-  preRoundWarrantsPercent: 'wp',
+  fdSharesOutstanding: 'fds',
+  warrants: 'wts',
   percentPrecision: 'pp',
   // 2-Step Round
   twoStepEnabled: 'ts',
@@ -124,6 +125,26 @@ export function encodeScenarioToURL(scenarioData) {
         return
       }
       
+      // Handle warrants array encoding
+      if (field === 'warrants') {
+        if (Array.isArray(value) && value.length > 0) {
+          const wtsData = value.map(w => {
+            const encoded = {
+              s: Number(w.shares) || 0,
+              k: Number(w.strike) || 0
+            }
+            if (w.name && String(w.name).trim()) {
+              encoded.n = String(w.name).trim()
+            }
+            return encoded
+          }).filter(w => w.s > 0)
+          if (wtsData.length > 0) {
+            params.set(param, JSON.stringify(wtsData))
+          }
+        }
+        return
+      }
+
       // Handle prior investors array encoding
       if (field === 'priorInvestors') {
         if (Array.isArray(value) && value.length > 0) {
@@ -165,7 +186,7 @@ export function encodeScenarioToURL(scenarioData) {
       
       // Only include non-zero values for optional fields
       if (['proRataPercent', 'currentEsopPercent', 'grantedEsopPercent', 'targetEsopPercent',
-           'preRoundWarrantsPercent',
+           'fdSharesOutstanding',
            'step2PostMoney', 'step2Amount', 'step2InvestorPortion', 'step2OtherPortion'].includes(field) && value === 0) {
         return
       }
@@ -221,8 +242,9 @@ export function decodeScenarioFromURL(urlParams) {
       grantedEsopPercent: 0,
       targetEsopPercent: 0,
       esopTiming: 'pre-close',
-      // Warrants default
-      preRoundWarrantsPercent: 0,
+      // Warrants defaults
+      fdSharesOutstanding: 0,
+      warrants: [],
       percentPrecision: 2,
       // 2-Step Round defaults
       twoStepEnabled: false,
@@ -263,6 +285,21 @@ export function decodeScenarioFromURL(urlParams) {
             }
           } catch (error) {
             console.warn('Failed to decode SAFEs array from URL:', error)
+            scenarioData[field] = []
+          }
+        } else if (field === 'warrants') {
+          try {
+            const wtsData = JSON.parse(value)
+            if (Array.isArray(wtsData)) {
+              scenarioData[field] = wtsData.map((w, index) => ({
+                id: Date.now() + index + 3000,
+                name: w.n || '',
+                shares: Number(w.s) || 0,
+                strike: Number(w.k) || 0
+              }))
+            }
+          } catch (error) {
+            console.warn('Failed to decode warrants array from URL:', error)
             scenarioData[field] = []
           }
         } else if (field === 'priorInvestors') {
@@ -320,7 +357,8 @@ export function decodeScenarioFromURL(urlParams) {
         (scenarioData.safes && scenarioData.safes.length > 0) || scenarioData.currentEsopPercent > 0 ||
         scenarioData.grantedEsopPercent > 0 ||
         scenarioData.targetEsopPercent > 0 ||
-        scenarioData.preRoundWarrantsPercent > 0 ||
+        scenarioData.fdSharesOutstanding > 0 ||
+        (scenarioData.warrants && scenarioData.warrants.length > 0) ||
         (scenarioData.priorInvestors && scenarioData.priorInvestors.length > 0) ||
         (scenarioData.founders && scenarioData.founders.length > 0))) {
       scenarioData.showAdvanced = true
