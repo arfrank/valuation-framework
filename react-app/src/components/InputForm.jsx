@@ -396,7 +396,7 @@ const InputForm = ({ company, onUpdate }) => {
             {/* 2-Step Round */}
             <div className="two-step-section">
               <div className="two-step-header">
-                <h5>2-Step Round</h5>
+                <h5 className="section-label">2-Step Round</h5>
                 <label className="two-step-checkbox">
                   <input
                     type="checkbox"
@@ -470,9 +470,11 @@ const InputForm = ({ company, onUpdate }) => {
             </div>
 
             <div className="esop-section">
-              <h5>Employee Stock Option Pool (ESOP)</h5>
-              <p className="esop-subtitle">
-                Total pool = Granted + Available. VCs typically negotiate the <em>available</em> slice post-close.
+              <div className="section-title-row">
+                <h5 className="section-label">Employee Stock Option Pool (ESOP)</h5>
+              </div>
+              <p className="section-subtitle">
+                Total pool = Granted + Available. VCs negotiate the available slice post-close.
               </p>
 
               <div className="input-grid esop-input-grid">
@@ -526,8 +528,8 @@ const InputForm = ({ company, onUpdate }) => {
               )}
 
               {values.targetEsopPercent > 0 && (
-                <div className="esop-timing-section">
-                  <label className="section-label">Top-up timing</label>
+                <div className="esop-timing-row">
+                  <span className="esop-timing-label">Top-up timing</span>
                   <div className="esop-timing-toggle" role="tablist">
                     <button
                       type="button"
@@ -548,11 +550,10 @@ const InputForm = ({ company, onUpdate }) => {
                       Post-Close
                     </button>
                   </div>
-
                   <p className="esop-timing-explanation">
                     {values.esopTiming === 'pre-close'
-                      ? 'Top-up happens before the round. Dilutes founders, prior investors, and granted ESOP — not new investors.'
-                      : 'Top-up happens after the round. Dilutes everyone proportionally, including new investors.'}
+                      ? 'Dilutes founders, priors, and granted ESOP — not new investors.'
+                      : 'Dilutes everyone proportionally, including new investors.'}
                   </p>
                 </div>
               )}
@@ -573,8 +574,8 @@ const InputForm = ({ company, onUpdate }) => {
                 </button>
               </div>
             </div>
-            <p className="warrants-subtitle">
-              Rough model — &quot;$X of warrants at $Y valuation&quot; (standard venture debt phrasing). Pre-round % = amount / valuation.
+            <p className="section-subtitle">
+              &quot;$X of warrants at $Y valuation&quot; — pre-round % = amount / valuation.
             </p>
 
             {(!values.warrants || values.warrants.length === 0) ? (
