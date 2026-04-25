@@ -207,7 +207,7 @@ export function createDefaultCompany(companyName = 'New Company') {
     // Exit Math module (local exploration tool; not permalinked)
     showExitMath: false,
     exitMath: {
-      exitValuation: 5000,
+      exitValuations: [100, 500, 1000, 2000, 5000],
       numRounds: 3,
       uniformDilution: 20,
       perRoundOverrides: []
@@ -348,15 +348,32 @@ export function migrateLegacyCompany(legacyCompany, fallbackName = 'New Company'
 
   // Ensure Exit Math fields exist
   migrated.showExitMath = Boolean(migrated.showExitMath)
-  migrated.exitMath = migrated.exitMath && typeof migrated.exitMath === 'object' && !Array.isArray(migrated.exitMath)
-    ? {
-        ...defaults.exitMath,
-        ...migrated.exitMath,
-        perRoundOverrides: Array.isArray(migrated.exitMath.perRoundOverrides)
-          ? migrated.exitMath.perRoundOverrides
-          : defaults.exitMath.perRoundOverrides
-      }
-    : defaults.exitMath
+  if (migrated.exitMath && typeof migrated.exitMath === 'object' && !Array.isArray(migrated.exitMath)) {
+    const existingValuations = Array.isArray(migrated.exitMath.exitValuations)
+      ? migrated.exitMath.exitValuations.map((v) => Number(v)).filter((v) => Number.isFinite(v) && v > 0)
+      : []
+    let exitValuations
+    if (existingValuations.length > 0) {
+      exitValuations = existingValuations
+    } else {
+      const legacy = Number(migrated.exitMath.exitValuation)
+      exitValuations = Number.isFinite(legacy) && legacy > 0
+        ? [legacy]
+        : defaults.exitMath.exitValuations
+    }
+    const merged = {
+      ...defaults.exitMath,
+      ...migrated.exitMath,
+      exitValuations,
+      perRoundOverrides: Array.isArray(migrated.exitMath.perRoundOverrides)
+        ? migrated.exitMath.perRoundOverrides
+        : defaults.exitMath.perRoundOverrides
+    }
+    delete merged.exitValuation
+    migrated.exitMath = merged
+  } else {
+    migrated.exitMath = defaults.exitMath
+  }
 
   return migrated
 }
