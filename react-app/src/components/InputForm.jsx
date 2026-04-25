@@ -53,9 +53,8 @@ const InputForm = ({ company, onUpdate }) => {
       }
       // Prevent negative values
       if (numValue < 0) numValue = 0
-      // Prevent unreasonably large values. Share counts can be much larger than $M values.
-      const maxValue = field === 'fdSharesOutstanding' ? 10_000_000_000 : 1_000_000
-      if (numValue > maxValue) numValue = maxValue
+      // Prevent unreasonably large values (> 1 trillion)
+      if (numValue > 1000000) numValue = 1000000
     }
     
     const newValues = { ...values, [field]: numValue }
@@ -235,8 +234,8 @@ const InputForm = ({ company, onUpdate }) => {
     const newWarrant = {
       id: Date.now(),
       name: '',
-      shares: 0,
-      strike: 0
+      amount: 0,
+      valuation: 0
     }
     const newValues = {
       ...values,
@@ -272,9 +271,7 @@ const InputForm = ({ company, onUpdate }) => {
       numValue = 0
     }
     if (numValue < 0) numValue = 0
-    // Shares can be very large; strike is $/share so a smaller cap is fine.
-    const maxValue = field === 'shares' ? 10_000_000_000 : 1_000_000
-    if (numValue > maxValue) numValue = maxValue
+    if (numValue > 1_000_000) numValue = 1_000_000
 
     const newValues = {
       ...values,
@@ -577,47 +574,26 @@ const InputForm = ({ company, onUpdate }) => {
               </div>
             </div>
             <p className="warrants-subtitle">
-              Rough model — assumes all warrants exercise on a fully-diluted basis. Strike payment is ignored for dilution math.
+              Rough model — &quot;$X of warrants at $Y valuation&quot; (standard venture debt phrasing). Pre-round % = amount / valuation.
             </p>
-
-            <div className="warrants-anchor-row">
-              <FormInput
-                label="FD Shares Outstanding"
-                type="number"
-                value={values.fdSharesOutstanding || ''}
-                onChange={(value) => handleChange('fdSharesOutstanding', value)}
-                step="1"
-                min="0"
-                placeholder="0"
-                clearable={true}
-                tooltip="Total fully-diluted shares outstanding pre-round (including warrants, ESOP, etc.). Used to convert warrant share counts to %."
-              />
-              {values.fdSharesOutstanding > 0 && (values.warrants || []).length > 0 && (
-                <div className="warrants-summary">
-                  Total warrants: {(values.warrants || []).reduce((s, w) => s + (Number(w.shares) || 0), 0).toLocaleString()} shares
-                  {' '}({(((values.warrants || []).reduce((s, w) => s + (Number(w.shares) || 0), 0) / values.fdSharesOutstanding) * 100).toFixed(2)}% of FD)
-                </div>
-              )}
-            </div>
 
             {(!values.warrants || values.warrants.length === 0) ? (
               <div className="no-safes-message">
-                No warrants added. Click "Add Warrant" to get started.
+                No warrants added. Click &quot;Add Warrant&quot; to get started.
               </div>
             ) : (
               <div className="repeater-table repeater-table--warrants">
                 <div className="repeater-header">
                   <span className="repeater-col repeater-col--name">Holder</span>
-                  <span className="repeater-col repeater-col--shares">Shares</span>
-                  <span className="repeater-col repeater-col--strike">Strike</span>
+                  <span className="repeater-col repeater-col--amount">Amount</span>
+                  <span className="repeater-col repeater-col--valuation">Valuation</span>
                   <span className="repeater-col repeater-col--alloc">% of FD</span>
                   <span className="repeater-col repeater-col--actions" aria-hidden="true" />
                 </div>
                 {values.warrants.map((warrant) => {
-                  const shares = Number(warrant.shares) || 0
-                  const fdPercent = values.fdSharesOutstanding > 0
-                    ? (shares / values.fdSharesOutstanding) * 100
-                    : 0
+                  const amount = Number(warrant.amount) || 0
+                  const valuation = Number(warrant.valuation) || 0
+                  const fdPercent = (amount > 0 && valuation > 0) ? (amount / valuation) * 100 : 0
                   return (
                     <div key={warrant.id} className="repeater-row repeater-row--warrant">
                       <div className="repeater-col repeater-col--name">
@@ -631,36 +607,39 @@ const InputForm = ({ company, onUpdate }) => {
                           compact
                         />
                       </div>
-                      <div className="repeater-col repeater-col--shares">
+                      <div className="repeater-col repeater-col--amount">
                         <FormInput
-                          label="Shares"
+                          label="Amount"
                           type="number"
-                          value={warrant.shares}
-                          onChange={(value) => updateWarrant(warrant.id, 'shares', value)}
-                          step="1"
+                          value={warrant.amount}
+                          onChange={(value) => updateWarrant(warrant.id, 'amount', value)}
+                          prefix="$"
+                          suffix="M"
+                          step="0.1"
                           min="0"
                           placeholder="0"
-                          id={`warrant-shares-${warrant.id}`}
+                          id={`warrant-amount-${warrant.id}`}
                           compact
                         />
                       </div>
-                      <div className="repeater-col repeater-col--strike">
+                      <div className="repeater-col repeater-col--valuation">
                         <FormInput
-                          label="Strike"
+                          label="Valuation"
                           type="number"
-                          value={warrant.strike}
-                          onChange={(value) => updateWarrant(warrant.id, 'strike', value)}
+                          value={warrant.valuation}
+                          onChange={(value) => updateWarrant(warrant.id, 'valuation', value)}
                           prefix="$"
-                          step="0.01"
+                          suffix="M"
+                          step="1"
                           min="0"
-                          placeholder="0.01"
-                          id={`warrant-strike-${warrant.id}`}
+                          placeholder="0"
+                          id={`warrant-valuation-${warrant.id}`}
                           compact
                         />
                       </div>
                       <div className="repeater-col repeater-col--alloc">
                         <span className="warrants-fd-percent">
-                          {values.fdSharesOutstanding > 0 ? `${fdPercent.toFixed(2)}%` : '—'}
+                          {fdPercent > 0 ? `${fdPercent.toFixed(2)}%` : '—'}
                         </span>
                       </div>
                       <div className="repeater-col repeater-col--actions">

@@ -2430,23 +2430,6 @@ input.investor-name-input:focus, input.founder-name-input:focus {
   border-top: 1px solid var(--color-border);
 }
 
-.warrants-anchor-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-4);
-  margin-bottom: var(--space-3);
-}
-
-.warrants-anchor-row > .form-input-wrapper {
-  flex: 0 1 18rem;
-}
-
-.warrants-summary {
-  font-size: 0.85rem;
-  color: var(--color-fg-subtle);
-}
-
 .warrants-fd-percent {
   display: block;
   text-align: right;
@@ -2711,8 +2694,8 @@ input.investor-name-input:focus, input.founder-name-input:focus {
 
 .repeater-table--warrants .repeater-header,
 .repeater-table--warrants .repeater-row {
-  /* Holder | Shares | Strike | % of FD | Actions */
-  grid-template-columns: minmax(140px, 1.4fr) minmax(120px, 1fr) 110px 90px 56px;
+  /* Holder | Amount | Valuation | % of FD | Actions */
+  grid-template-columns: minmax(110px, 1.4fr) 110px 110px 90px 56px;
 }
 
 .repeater-col {

@@ -24,7 +24,6 @@ const URL_PARAM_MAP = {
   targetEsopPercent: 'te',
   esopTiming: 'et',
   // Warrants
-  fdSharesOutstanding: 'fds',
   warrants: 'wts',
   percentPrecision: 'pp',
   // 2-Step Round
@@ -130,14 +129,14 @@ export function encodeScenarioToURL(scenarioData) {
         if (Array.isArray(value) && value.length > 0) {
           const wtsData = value.map(w => {
             const encoded = {
-              s: Number(w.shares) || 0,
-              k: Number(w.strike) || 0
+              a: Number(w.amount) || 0,
+              v: Number(w.valuation) || 0
             }
             if (w.name && String(w.name).trim()) {
               encoded.n = String(w.name).trim()
             }
             return encoded
-          }).filter(w => w.s > 0)
+          }).filter(w => w.a > 0 && w.v > 0)
           if (wtsData.length > 0) {
             params.set(param, JSON.stringify(wtsData))
           }
@@ -186,7 +185,6 @@ export function encodeScenarioToURL(scenarioData) {
       
       // Only include non-zero values for optional fields
       if (['proRataPercent', 'currentEsopPercent', 'grantedEsopPercent', 'targetEsopPercent',
-           'fdSharesOutstanding',
            'step2PostMoney', 'step2Amount', 'step2InvestorPortion', 'step2OtherPortion'].includes(field) && value === 0) {
         return
       }
@@ -243,7 +241,6 @@ export function decodeScenarioFromURL(urlParams) {
       targetEsopPercent: 0,
       esopTiming: 'pre-close',
       // Warrants defaults
-      fdSharesOutstanding: 0,
       warrants: [],
       percentPrecision: 2,
       // 2-Step Round defaults
@@ -294,8 +291,8 @@ export function decodeScenarioFromURL(urlParams) {
               scenarioData[field] = wtsData.map((w, index) => ({
                 id: Date.now() + index + 3000,
                 name: w.n || '',
-                shares: Number(w.s) || 0,
-                strike: Number(w.k) || 0
+                amount: Number(w.a) || 0,
+                valuation: Number(w.v) || 0
               }))
             }
           } catch (error) {
@@ -357,7 +354,6 @@ export function decodeScenarioFromURL(urlParams) {
         (scenarioData.safes && scenarioData.safes.length > 0) || scenarioData.currentEsopPercent > 0 ||
         scenarioData.grantedEsopPercent > 0 ||
         scenarioData.targetEsopPercent > 0 ||
-        scenarioData.fdSharesOutstanding > 0 ||
         (scenarioData.warrants && scenarioData.warrants.length > 0) ||
         (scenarioData.priorInvestors && scenarioData.priorInvestors.length > 0) ||
         (scenarioData.founders && scenarioData.founders.length > 0))) {

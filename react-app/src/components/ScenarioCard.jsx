@@ -57,7 +57,6 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
       grantedEsopPercent: useCompanyInputs ? (sourceCompany.grantedEsopPercent || 0) : (scenario.grantedEsopPercent || 0),
       targetEsopPercent: useCompanyInputs ? (sourceCompany.targetEsopPercent || 0) : (scenario.targetEsopPercent || 0),
       esopTiming: sourceCompany.esopTiming || scenario.esopTiming || 'pre-close',
-      fdSharesOutstanding: useCompanyInputs ? (sourceCompany.fdSharesOutstanding || 0) : (scenario.fdSharesOutstanding || 0),
       warrants: useCompanyInputs ? (sourceCompany.warrants || []) : (scenario.warrants || []),
       twoStepEnabled: useCompanyInputs ? Boolean(sourceCompany.twoStepEnabled) : isTwoStep,
       step2PostMoney: isTwoStep ? scenario.step2.postMoney : (sourceCompany.step2PostMoney || 0),
@@ -658,15 +657,15 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
             {Array.isArray(scenario.warrantDetails) && scenario.warrantDetails.length > 0 && (
               scenario.warrantDetails.map((w, idx) => {
                 const isLast = idx === scenario.warrantDetails.length - 1
-                if (!w.shares || w.postRoundPercent <= 0) return null
+                if (!w.amount || !w.valuation || w.postRoundPercent <= 0) return null
                 const label = w.name && w.name.trim()
                   ? w.name.trim()
-                  : `${(w.shares).toLocaleString()} @ $${(w.strike || 0).toFixed(2)}`
+                  : `$${w.amount.toFixed(2)}M @ $${w.valuation.toFixed(0)}M`
                 return (
                   <div key={w.id || idx} className="table-row sub-row">
                     <div className="label">{isLast ? '└─' : '├─'} {label}</div>
                     <div className="amount amount-neutral">
-                      {(w.shares).toLocaleString()} sh
+                      ${w.amount.toFixed(2)}M @ ${w.valuation.toFixed(0)}M
                     </div>
                     <div className="percent">{formatPercent(w.postRoundPercent)}</div>
                   </div>

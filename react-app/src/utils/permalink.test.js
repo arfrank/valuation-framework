@@ -836,7 +836,7 @@ describe('Permalink Utilities', () => {
   })
 
   describe('Warrants permalink support', () => {
-    it('roundtrips fdSharesOutstanding (fds) and warrants array (wts)', () => {
+    it('roundtrips warrants array (wts) with amount + valuation', () => {
       const data = {
         postMoneyVal: 13,
         roundSize: 3,
@@ -844,39 +844,34 @@ describe('Permalink Utilities', () => {
         otherPortion: 0.25,
         investorName: 'US',
         showAdvanced: true,
-        fdSharesOutstanding: 10_000_000,
         warrants: [
-          { id: 1, name: 'SVB', shares: 500_000, strike: 0.01 },
-          { id: 2, name: 'Advisor', shares: 100_000, strike: 1.5 }
+          { id: 1, name: 'SVB', amount: 0.5, valuation: 50 },
+          { id: 2, name: 'Advisor', amount: 0.2, valuation: 10 }
         ]
       }
       const encoded = encodeScenarioToURL(data)
-      expect(encoded).toContain('fds=10000000')
       expect(encoded).toContain('wts=')
       const decoded = decodeScenarioFromURL(encoded)
-      expect(decoded.fdSharesOutstanding).toBe(10_000_000)
       expect(decoded.warrants).toHaveLength(2)
       expect(decoded.warrants[0].name).toBe('SVB')
-      expect(decoded.warrants[0].shares).toBe(500_000)
-      expect(decoded.warrants[0].strike).toBe(0.01)
-      expect(decoded.warrants[1].name).toBe('Advisor')
+      expect(decoded.warrants[0].amount).toBe(0.5)
+      expect(decoded.warrants[0].valuation).toBe(50)
+      expect(decoded.warrants[1].amount).toBe(0.2)
     })
 
-    it('omits fds and wts when warrants are absent', () => {
+    it('omits wts when warrants are absent or incomplete', () => {
       const encoded = encodeScenarioToURL({
         postMoneyVal: 13,
         roundSize: 3,
         investorPortion: 2.75,
         otherPortion: 0.25,
         investorName: 'US',
-        fdSharesOutstanding: 0,
         warrants: []
       })
-      expect(encoded).not.toContain('fds=')
       expect(encoded).not.toContain('wts=')
     })
 
-    it('drops warrants with zero shares', () => {
+    it('drops warrants missing amount or valuation', () => {
       const encoded = encodeScenarioToURL({
         postMoneyVal: 13,
         roundSize: 3,
@@ -884,10 +879,10 @@ describe('Permalink Utilities', () => {
         otherPortion: 0.25,
         investorName: 'US',
         showAdvanced: true,
-        fdSharesOutstanding: 5_000_000,
         warrants: [
-          { id: 1, name: 'Real', shares: 100_000, strike: 0.01 },
-          { id: 2, name: 'Empty', shares: 0, strike: 0 }
+          { id: 1, name: 'Real', amount: 0.5, valuation: 50 },
+          { id: 2, name: 'NoVal', amount: 0.5, valuation: 0 },
+          { id: 3, name: 'NoAmt', amount: 0, valuation: 50 }
         ]
       })
       const decoded = decodeScenarioFromURL(encoded)
@@ -903,12 +898,11 @@ describe('Permalink Utilities', () => {
         otherPortion: 0.25,
         investorName: 'US',
         showAdvanced: false,
-        fdSharesOutstanding: 10_000_000,
-        warrants: [{ id: 1, name: 'X', shares: 500_000, strike: 0.01 }]
+        warrants: [{ id: 1, name: 'X', amount: 0.5, valuation: 50 }]
       })
       const decoded = decodeScenarioFromURL(encoded)
       expect(decoded.showAdvanced).toBe(true)
-      expect(decoded.fdSharesOutstanding).toBe(10_000_000)
+      expect(decoded.warrants).toHaveLength(1)
     })
   })
 })
