@@ -7,12 +7,14 @@ import ScenarioControls from './components/ScenarioControls'
 import Logo from './components/Logo'
 import NotificationContainer from './components/NotificationContainer'
 import ExitMathModule from './components/ExitMathModule'
+import Walkthrough from './components/Walkthrough'
 import { useLocalStorage } from './hooks/useLocalStorage'
 import { useNotifications } from './hooks/useNotifications'
 import { calculateEnhancedScenarios } from './utils/multiPartyCalculations'
 import { copyPermalinkToClipboard, loadScenarioFromURL } from './utils/permalink'
 import { updateSocialSharingMeta } from './utils/socialSharing'
 import { createDefaultCompany, nextUniqueName, normalizeStoredCompanies } from './utils/dataStructures'
+import { buildWalkthroughSteps, TOUR_SEEN_KEY } from './utils/walkthroughSteps'
 
 function getFirstCompanyId(companies) {
   return Object.keys(companies || {})[0] || 'company1'
@@ -38,6 +40,7 @@ function App() {
 
   const [scenarios, setScenarios] = useState([])
   const [baseScenariosById, setBaseScenariosById] = useState({})
+  const [tourActive, setTourActive] = useState(false)
   const { notifications, removeNotification, showSuccess, showInfo, showError } = useNotifications()
 
   const updateCompany = useCallback((companyId, data) => {
@@ -149,6 +152,32 @@ function App() {
     }
   }, [hasLoadedFromURL, activeCompany, showInfo, updateCompany])
 
+  // Auto-launch the tour on first visit
+  useEffect(() => {
+    try {
+      const seen = window.localStorage.getItem(TOUR_SEEN_KEY)
+      if (!seen) {
+        // Slight delay so initial layout settles before measuring targets
+        const id = setTimeout(() => setTourActive(true), 350)
+        return () => clearTimeout(id)
+      }
+    } catch {
+      /* localStorage unavailable; skip auto-launch */
+    }
+  }, [])
+
+  const closeTour = useCallback(() => {
+    setTourActive(false)
+    try { window.localStorage.setItem(TOUR_SEEN_KEY, '1') } catch { /* ignore */ }
+  }, [])
+
+  const startTour = useCallback(() => setTourActive(true), [])
+
+  const tourSteps = useMemo(() => buildWalkthroughSteps({
+    openAdvanced: (val) => updateCompany(activeCompany, { showAdvanced: val }),
+    openExitMath: (val) => updateCompany(activeCompany, { showExitMath: val })
+  }), [activeCompany, updateCompany])
+
 
   useEffect(() => {
     const currentCompany = companies[activeCompany]
@@ -210,10 +239,23 @@ function App() {
         onRemove={removeNotification}
       />
       <header className="app-header">
-        <Logo size={40} />
+        <button
+          type="button"
+          className="header-tour-btn"
+          onClick={startTour}
+          title="Replay the guided tour"
+        >
+          <span className="header-tour-icon" aria-hidden="true">?</span>
+          <span className="header-tour-label">Tour</span>
+        </button>
+        <div className="app-header-titles">
+          <Logo size={40} />
+          <p className="app-subtitle">Term-sheet, dilution &amp; exit modeling</p>
+        </div>
         <button
           type="button"
           className="exit-math-toggle header-exit-math-toggle"
+          data-tour="exit-math-toggle"
           onClick={() => updateCompany(activeCompany, { showExitMath: !(companies[activeCompany]?.showExitMath) })}
           aria-pressed={companies[activeCompany]?.showExitMath || false}
         >
@@ -304,6 +346,13 @@ function App() {
           </div>
         )}
       </main>
+
+      <Walkthrough
+        open={tourActive}
+        steps={tourSteps}
+        onClose={closeTour}
+        onComplete={closeTour}
+      />
     </div>
   )
 }

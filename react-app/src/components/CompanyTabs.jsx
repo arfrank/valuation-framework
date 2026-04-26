@@ -63,7 +63,7 @@ const CompanyTabs = ({
   }
 
   return (
-    <div className="company-tabs">
+    <div className="company-tabs" data-tour="company-tabs">
       <div className="tabs-container">
         <div className="tabs-scroll" ref={tabsScrollRef}>
           <div className="tabs-list">

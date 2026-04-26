@@ -308,16 +308,22 @@ const InputForm = ({ company, onUpdate }) => {
         <h3>Investment Parameters</h3>
         <div className="header-controls">
           <div className="investor-name-input">
-            <label htmlFor="investor-name">Your firm:</label>
+            <label htmlFor="investor-name" title="Your firm's name. Used as a label throughout the model.">Your firm:</label>
             <input
               id="investor-name"
               type="text"
               value={values.investorName || 'US'}
               onChange={(e) => handleChange('investorName', e.target.value)}
               placeholder="e.g. LSVP"
+              title="Your firm's name. Used as a label throughout the model."
             />
           </div>
-          <div className="calculated-money-toggle" onClick={handleToggleInputMode}>
+          <div
+            className="calculated-money-toggle"
+            data-tour="money-toggle"
+            onClick={handleToggleInputMode}
+            title="Click to switch between entering post-money or pre-money valuation. The other side is computed."
+          >
             {inputMode === 'post-money' ? (
               <>Pre-Money: <span className="value">${safePreMoneyVal.toFixed(1)}M</span></>
             ) : (
@@ -328,7 +334,7 @@ const InputForm = ({ company, onUpdate }) => {
         </div>
       </div>
 
-      <div className="input-grid">
+      <div className="input-grid" data-tour="core-inputs">
         <FormInput
           label={inputMode === 'post-money' ? 'Post-Money Valuation' : 'Pre-Money Valuation'}
           type="number"
@@ -365,6 +371,7 @@ const InputForm = ({ company, onUpdate }) => {
 
         <FormInput
           label="Other Portion"
+          tooltip="Everything in the round that isn't your firm's check — co-investors and pro-rata participants."
           type="number"
           value={values.otherPortion}
           onChange={(value) => handleChange('otherPortion', value)}
@@ -378,9 +385,10 @@ const InputForm = ({ company, onUpdate }) => {
 
       {/* Advanced Features Toggle */}
       <div className="advanced-toggle">
-        <button 
+        <button
           type="button"
           className="toggle-advanced-btn"
+          data-tour="advanced-toggle"
           onClick={() => handleChange('showAdvanced', !values.showAdvanced)}
         >
           {values.showAdvanced ? '▼' : '▶'} Advanced Features
@@ -580,7 +588,7 @@ const InputForm = ({ company, onUpdate }) => {
 
             {(!values.warrants || values.warrants.length === 0) ? (
               <div className="no-safes-message">
-                No warrants added. Click &quot;Add Warrant&quot; to get started.
+                No warrants. Add to model warrant coverage from venture debt or strategic agreements.
               </div>
             ) : (
               <div className="repeater-table repeater-table--warrants">
@@ -677,7 +685,7 @@ const InputForm = ({ company, onUpdate }) => {
 
             {(!values.safes || values.safes.length === 0) ? (
               <div className="no-safes-message">
-                No SAFE notes added. Click "Add SAFE" to get started.
+                No SAFE notes. Add convertibles to see how they convert into this round at their cap or discount.
               </div>
             ) : (
               <div className="repeater-table repeater-table--safes">

@@ -50,7 +50,7 @@ function FoundersSection({ founders = [], onUpdate }) {
 
       {founders.length === 0 ? (
         <div className="no-founders-message">
-          No founders added. Click "Add Founder" to add founding team members.
+          No founders yet. Add the founding team to track each person’s dilution through the round.
         </div>
       ) : (
         <div className="repeater-table repeater-table--founders">

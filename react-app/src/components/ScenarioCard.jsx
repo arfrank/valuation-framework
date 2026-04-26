@@ -212,7 +212,7 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
   const deltaClass = (d) => d === null ? '' : d > 0.05 ? 'delta-up' : d < -0.05 ? 'delta-down' : 'delta-flat'
 
   return (
-    <div className={getCardClass()}>
+    <div className={getCardClass()} data-tour={isBase ? 'base-card' : undefined}>
       <div className="scenario-header">
         {isBase ? (
           <h3 className="scenario-title">{baseTitle}</h3>
@@ -715,6 +715,7 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
           <div className="share-buttons">
             <button
               className="permalink-btn-inline"
+              data-tour="permalink-btn"
               onClick={handleCopyPermalink}
               title="Share permalink for this scenario"
               disabled={!!copyFeedback}
