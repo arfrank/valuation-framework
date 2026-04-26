@@ -668,7 +668,7 @@ const InputForm = ({ company, onUpdate }) => {
             )}
           </div>
 
-          <div className="safes-section">
+          <div className="safes-section" data-tour="safes-section">
             <div className="section-title-row">
               <h5 className="section-label">SAFE Notes</h5>
               <div className="section-header-actions">

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import './App.css'
 import CompanyTabs from './components/CompanyTabs'
 import InputForm from './components/InputForm'
@@ -14,6 +14,7 @@ import { calculateEnhancedScenarios } from './utils/multiPartyCalculations'
 import { copyPermalinkToClipboard, loadScenarioFromURL } from './utils/permalink'
 import { updateSocialSharingMeta } from './utils/socialSharing'
 import { createDefaultCompany, nextUniqueName, normalizeStoredCompanies } from './utils/dataStructures'
+import { createExampleScenario, createExampleCompareVariant, EXAMPLE_PRIMARY_NAME, EXAMPLE_VARIANT_NAME } from './utils/exampleScenario'
 import { buildWalkthroughSteps, TOUR_SEEN_KEY } from './utils/walkthroughSteps'
 
 function getFirstCompanyId(companies) {
@@ -30,7 +31,7 @@ function getNextCompanyNumber(companies) {
 
 function App() {
   const [storedCompanies, setStoredCompanies] = useLocalStorage('valuationFramework', {
-    company1: createDefaultCompany('Startup Alpha')
+    company1: createDefaultCompany('Scenario 1')
   })
   const companies = useMemo(() => normalizeStoredCompanies(storedCompanies), [storedCompanies])
   const [activeCompany, setActiveCompany] = useState(() => getFirstCompanyId(companies))
@@ -65,15 +66,54 @@ function App() {
 
   const addCompany = () => {
     const newCompanyId = `company${nextCompanyId}`
-    const companyName = nextCompanyId <= 26
-      ? `Startup ${String.fromCharCode(64 + nextCompanyId)}`
-      : `Startup ${nextCompanyId}`
+    const companyName = `Scenario ${nextCompanyId}`
     const newCompany = createDefaultCompany(companyName)
 
     setStoredCompanies(prev => ({ ...normalizeStoredCompanies(prev), [newCompanyId]: newCompany }))
     setActiveCompany(newCompanyId)
     setNextCompanyId(prev => prev + 1)
   }
+
+  const ensureExample = useCallback(() => {
+    const existing = Object.entries(companies).find(([, c]) => c?.name === EXAMPLE_PRIMARY_NAME)
+    if (existing) {
+      setActiveCompany(existing[0])
+      return existing[0]
+    }
+    const newCompanyId = `company${nextCompanyId}`
+    const exampleScenario = createExampleScenario(EXAMPLE_PRIMARY_NAME)
+    setStoredCompanies(prev => ({ ...normalizeStoredCompanies(prev), [newCompanyId]: exampleScenario }))
+    setActiveCompany(newCompanyId)
+    setNextCompanyId(prev => prev + 1)
+    return newCompanyId
+  }, [companies, nextCompanyId, setStoredCompanies])
+
+  const loadExample = useCallback(() => {
+    ensureExample()
+  }, [ensureExample])
+
+  const ensureCompareDemo = useCallback(() => {
+    let primaryId = Object.entries(companies).find(([, c]) => c?.name === EXAMPLE_PRIMARY_NAME)?.[0]
+    let variantId = Object.entries(companies).find(([, c]) => c?.name === EXAMPLE_VARIANT_NAME)?.[0]
+
+    let nextId = nextCompanyId
+    const updates = {}
+    if (!primaryId) {
+      primaryId = `company${nextId++}`
+      updates[primaryId] = createExampleScenario(EXAMPLE_PRIMARY_NAME)
+    }
+    if (!variantId) {
+      variantId = `company${nextId++}`
+      updates[variantId] = createExampleCompareVariant(EXAMPLE_VARIANT_NAME)
+    }
+
+    if (Object.keys(updates).length > 0) {
+      setStoredCompanies(prev => ({ ...normalizeStoredCompanies(prev), ...updates }))
+      setNextCompanyId(nextId)
+    }
+
+    setSelectedCompanyIds([primaryId, variantId])
+  }, [companies, nextCompanyId, setStoredCompanies, setSelectedCompanyIds])
 
   const duplicateCompany = (companyId) => {
     const source = companies[companyId]
@@ -124,7 +164,7 @@ function App() {
     const companyIds = Object.keys(companies || {})
 
     if (companyIds.length === 0) {
-      const fallback = { company1: createDefaultCompany('Startup Alpha') }
+      const fallback = { company1: createDefaultCompany('Scenario 1') }
       setStoredCompanies(fallback)
       setActiveCompany('company1')
       setNextCompanyId(2)
@@ -152,13 +192,20 @@ function App() {
     }
   }, [hasLoadedFromURL, activeCompany, showInfo, updateCompany])
 
+  // Stable refs so the auto-launch effect runs once without re-firing when companies change
+  const ensureExampleRef = useRef(ensureExample)
+  ensureExampleRef.current = ensureExample
+
   // Auto-launch the tour on first visit
   useEffect(() => {
     try {
       const seen = window.localStorage.getItem(TOUR_SEEN_KEY)
       if (!seen) {
         // Slight delay so initial layout settles before measuring targets
-        const id = setTimeout(() => setTourActive(true), 350)
+        const id = setTimeout(() => {
+          ensureExampleRef.current()
+          setTourActive(true)
+        }, 350)
         return () => clearTimeout(id)
       }
     } catch {
@@ -171,12 +218,16 @@ function App() {
     try { window.localStorage.setItem(TOUR_SEEN_KEY, '1') } catch { /* ignore */ }
   }, [])
 
-  const startTour = useCallback(() => setTourActive(true), [])
+  const startTour = useCallback(() => {
+    ensureExample()
+    setTourActive(true)
+  }, [ensureExample])
 
   const tourSteps = useMemo(() => buildWalkthroughSteps({
     openAdvanced: (val) => updateCompany(activeCompany, { showAdvanced: val }),
-    openExitMath: (val) => updateCompany(activeCompany, { showExitMath: val })
-  }), [activeCompany, updateCompany])
+    openExitMath: (val) => updateCompany(activeCompany, { showExitMath: val }),
+    enterCompare: () => ensureCompareDemo()
+  }), [activeCompany, updateCompany, ensureCompareDemo])
 
 
   useEffect(() => {
@@ -272,6 +323,7 @@ function App() {
           onRemoveCompany={removeCompany}
           onUpdateCompany={updateCompany}
           onDuplicateCompany={duplicateCompany}
+          onLoadExample={loadExample}
           selectedCompanyIds={selectedCompanyIds}
           onToggleCompareSelection={toggleCompareSelection}
         />
@@ -282,7 +334,10 @@ function App() {
             onUpdate={(data) => updateCompany(activeCompany, data)}
           />
 
-          <div className={`base-result${isCompareMode ? ' base-result-compare' : ''}`}>
+          <div
+            className={`base-result${isCompareMode ? ' base-result-compare' : ''}`}
+            data-tour={isCompareMode ? 'compare-view' : undefined}
+          >
             {cardIds.map((cid, idx) => {
               const base = baseScenariosById[cid]
               if (!base) return null

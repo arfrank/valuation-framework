@@ -82,7 +82,7 @@ function PriorInvestorsSection({
   const allRows = [...priorRows, ...safeRows, ...leadRows].sort((a, b) => b.fdoPct - a.fdoPct)
 
   return (
-    <div className="prior-investors-section">
+    <div className="prior-investors-section" data-tour="prior-investors">
       <div className="founders-investors-header">
         <div className="section-title-row">
           <h5 className="section-label" title="Fully-Diluted Ownership — % of company assuming all SAFEs, warrants, and granted options have converted/vested.">

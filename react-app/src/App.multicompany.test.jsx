@@ -101,7 +101,7 @@ describe('App multi-company state', () => {
     const stored = JSON.parse(window.localStorage.getItem('valuationFramework'))
     expect(Object.keys(stored).sort()).toEqual(['company2', 'company3'])
     expect(stored.company2.name).toBe('Persisted Beta')
-    expect(stored.company3.name).toBe('Startup C')
+    expect(stored.company3.name).toBe('Scenario 3')
   })
 
   it('hides non-base scenarios while compare mode is active', async () => {

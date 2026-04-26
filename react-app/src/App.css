@@ -352,6 +352,57 @@ body {
   align-self: stretch;
 }
 
+/* Container for Load Example + Add Scenario buttons on the right of the tabs row */
+.tabs-actions {
+  display: flex;
+  align-items: stretch;
+  flex: 0 0 auto;
+  align-self: stretch;
+}
+
+.tabs-actions > button {
+  border-radius: 0;
+  align-self: stretch;
+  margin-left: 0;
+}
+
+.tabs-actions > .add-company-btn {
+  border-left: 1px solid var(--color-border);
+}
+
+.load-example-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--color-bg);
+  color: var(--color-fg-muted);
+  border: none;
+  border-left: 1px solid var(--color-border);
+  padding: var(--space-2) var(--space-4);
+  font-family: inherit;
+  font-weight: 600;
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.load-example-btn:hover {
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+}
+
+.load-example-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  color: #f5b400;
+}
+
+.load-example-btn:hover .load-example-icon {
+  color: #d39400;
+}
+
 .add-company-btn:hover,
 .add-safe-btn:hover,
 .add-investor-btn:hover,
@@ -3043,6 +3094,17 @@ input.investor-name-input:focus, input.founder-name-input:focus {
   }
 
   .tabs-container > .add-company-btn {
+    width: 100%;
+    justify-content: center;
+    border-left: none;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .tabs-actions {
+    flex-direction: column;
+  }
+  .tabs-actions > .add-company-btn,
+  .tabs-actions > .load-example-btn {
     width: 100%;
     justify-content: center;
     border-left: none;

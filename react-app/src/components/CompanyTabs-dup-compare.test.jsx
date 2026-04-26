@@ -35,7 +35,7 @@ describe('CompanyTabs duplicate + compare', () => {
 
   it('renders duplicate button and calls onDuplicateCompany on click', () => {
     render(<CompanyTabs {...props} />)
-    const btns = screen.getAllByRole('button', { name: /duplicate company/i })
+    const btns = screen.getAllByRole('button', { name: /duplicate scenario/i })
     expect(btns).toHaveLength(2)
     fireEvent.click(btns[0])
     expect(props.onDuplicateCompany).toHaveBeenCalledWith('c1')
@@ -43,7 +43,7 @@ describe('CompanyTabs duplicate + compare', () => {
 
   it('duplicate click does not change active tab (stopPropagation)', () => {
     render(<CompanyTabs {...props} />)
-    const btns = screen.getAllByRole('button', { name: /duplicate company/i })
+    const btns = screen.getAllByRole('button', { name: /duplicate scenario/i })
     fireEvent.click(btns[1])
     expect(props.onCompanyChange).not.toHaveBeenCalled()
     expect(props.onDuplicateCompany).toHaveBeenCalledWith('c2')

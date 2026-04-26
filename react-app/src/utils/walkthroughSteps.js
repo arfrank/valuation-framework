@@ -5,24 +5,25 @@
 //   title        — short title shown in tooltip
 //   body         — one or two sentences of explanation
 //   placement    — 'auto' | 'top' | 'bottom' | 'left' | 'right' | 'center'
-//   onEnter      — optional fn(ctx) called when the step becomes active. Use to open
-//                  panels (Advanced, Exit Math) so the next step's target is rendered.
-//   waitForTarget— if true, the tour briefly retries finding the target after onEnter
-//                  (lets a panel open + render before measuring).
+//   onEnter      — optional fn called when the step becomes active. Use to open
+//                  panels (Advanced, Exit Math, compare mode) so the next step's
+//                  target is rendered.
+//   waitForTarget— if true, the tour briefly retries finding the target after
+//                  onEnter (lets a panel open + render before measuring).
 
-export const buildWalkthroughSteps = ({ openAdvanced, openExitMath } = {}) => [
+export const buildWalkthroughSteps = ({ openAdvanced, openExitMath, enterCompare } = {}) => [
   {
     id: 'welcome',
     target: null,
     title: 'Welcome',
-    body: 'This tool models cap tables, dilution, and exits when offering a term sheet. Quick 60-second tour.',
+    body: 'This tool models cap tables, dilution, and exits when offering a term sheet. We loaded a populated example so you can see every feature in action — your other scenarios are untouched.',
     placement: 'center'
   },
   {
     id: 'company-tabs',
     target: '[data-tour="company-tabs"]',
-    title: 'One tab per deal',
-    body: 'Each tab is a separate company. Tick the checkboxes to compare two or more side-by-side.',
+    title: 'One tab per scenario',
+    body: 'Each tab is a separate scenario — different company, different round structure, or just a what-if. Use the checkboxes to compare two or more side-by-side.',
     placement: 'bottom'
   },
   {
@@ -56,11 +57,41 @@ export const buildWalkthroughSteps = ({ openAdvanced, openExitMath } = {}) => [
     waitForTarget: true
   },
   {
+    id: 'prior-investors',
+    target: '[data-tour="prior-investors"]',
+    title: 'Prior investors with pro-rata',
+    body: 'Existing holders are sorted by Fully-Diluted Ownership (FDO). Tick pro-rata to let them buy in proportional to their stake, or override the allocation in $M directly.',
+    placement: 'right',
+    onEnter: () => openAdvanced && openAdvanced(true),
+    waitForTarget: true,
+    allowCenterFallback: true
+  },
+  {
+    id: 'safes',
+    target: '[data-tour="safes-section"]',
+    title: 'SAFEs convert at this round',
+    body: 'Add SAFE notes with cap and discount — they convert into the round at whichever is more favorable to the holder. Pro-rata works here too.',
+    placement: 'right',
+    onEnter: () => openAdvanced && openAdvanced(true),
+    waitForTarget: true,
+    allowCenterFallback: true
+  },
+  {
     id: 'scenario-controls',
     target: '[data-tour="scenario-controls"]',
     title: 'Sensitivity analysis',
     body: 'Add valuation offsets here — see how the cap table flexes at +20% or −10%. Color-coded by direction and magnitude.',
     placement: 'top',
+    allowCenterFallback: true
+  },
+  {
+    id: 'compare-mode',
+    target: '[data-tour="compare-view"]',
+    title: 'Compare scenarios side-by-side',
+    body: 'We just ticked two example scenarios so the cap tables render side-by-side. In your own data, tick any two tabs to compare them.',
+    placement: 'top',
+    onEnter: () => enterCompare && enterCompare(),
+    waitForTarget: true,
     allowCenterFallback: true
   },
   {

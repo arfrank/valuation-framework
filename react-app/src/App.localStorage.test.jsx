@@ -23,7 +23,7 @@ describe('App Component - Local Storage Integration', () => {
       render(<App />)
       
       // Verify default company exists by checking the tab name
-      expect(screen.getByText('Startup Alpha')).toBeInTheDocument()
+      expect(screen.getByText('Scenario 1')).toBeInTheDocument()
       
       // The app should be functional with default data
       expect(screen.getByText('Investment Parameters')).toBeInTheDocument()
@@ -65,7 +65,7 @@ describe('App Component - Local Storage Integration', () => {
       render(<App />)
       
       // Should render with default data despite corruption
-      expect(screen.getByText('Startup Alpha')).toBeInTheDocument()
+      expect(screen.getByText('Scenario 1')).toBeInTheDocument()
       expect(console.error).toHaveBeenCalled()
     })
 
@@ -98,7 +98,7 @@ describe('App Component - Local Storage Integration', () => {
       })
       
       // App should still render and be functional
-      expect(screen.getByText('Startup Alpha')).toBeInTheDocument()
+      expect(screen.getByText('Scenario 1')).toBeInTheDocument()
       expect(screen.getByText('Investment Parameters')).toBeInTheDocument()
       
       // Restore original method
