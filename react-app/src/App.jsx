@@ -340,7 +340,26 @@ function App() {
           >
             {cardIds.map((cid, idx) => {
               const base = baseScenariosById[cid]
-              if (!base) return null
+              const co = companies[cid]
+              if (!base) {
+                // Selected for compare but the scenario can't currently compute
+                // (e.g. pre-round ownership over 100%). Render a placeholder so
+                // the user can see the tab is checked and click to fix it.
+                return (
+                  <div
+                    key={cid}
+                    className={`scenario-card base-scenario compare-${cid === activeCompany ? 'active' : 'inactive'} compare-tint-${idx % 4} compare-pending`}
+                    onClick={() => setActiveCompany(cid)}
+                    title="Click to open this scenario and fix its inputs"
+                  >
+                    <h3 className="scenario-title">Base Case — {co?.name || cid}</h3>
+                    <div className="compare-pending-message">
+                      Can&rsquo;t compute this scenario.<br />
+                      Click the tab to open it and check inputs (most often this means pre-round ownership exceeds 100%).
+                    </div>
+                  </div>
+                )
+              }
               return (
                 <ScenarioCard
                   key={cid}

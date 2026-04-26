@@ -190,9 +190,12 @@ body {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  flex: 1 1 0;
-  min-width: clamp(170px, 12vw, 210px);
-  max-width: clamp(210px, 15vw, 240px);
+  /* Sized to content (with min/max clamp). Tabs collectively shrink past
+     their content size only when the row otherwise overflows, at which point
+     the tab-name's text-overflow: ellipsis takes over. */
+  flex: 0 1 auto;
+  min-width: 130px;
+  max-width: 360px;
   justify-content: flex-start;
 }
 
@@ -567,6 +570,25 @@ body {
 .base-scenario.compare-inactive.compare-tint-3 {
   background: hsl(280 25% 97%);
   border-left: 3px solid hsl(280 35% 70%);
+}
+
+/* Placeholder rendered in compare mode when a selected scenario can't compute
+   (e.g. pre-round ownership > 100%). Keeps the tab visible and clickable. */
+.scenario-card.compare-pending {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  border: 1px dashed #f59e9e;
+  background: #fff5f5;
+  cursor: pointer;
+}
+
+.compare-pending-message {
+  font-size: var(--text-xs);
+  color: var(--color-fg-muted);
+  line-height: 1.45;
+  margin-top: var(--space-2);
 }
 
 /* Scenarios Rows Layout */

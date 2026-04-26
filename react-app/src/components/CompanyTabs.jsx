@@ -100,7 +100,7 @@ const CompanyTabs = ({
                   />
                 ) : (
                   <>
-                    <span className="tab-name">{company.name}</span>
+                    <span className="tab-name" title={company.name}>{company.name}</span>
                     <div className="tab-actions">
                       <button
                         className="tab-edit-btn"
