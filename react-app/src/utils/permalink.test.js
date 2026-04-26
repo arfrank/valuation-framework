@@ -834,4 +834,75 @@ describe('Permalink Utilities', () => {
       })
     })
   })
+
+  describe('Warrants permalink support', () => {
+    it('roundtrips warrants array (wts) with amount + valuation', () => {
+      const data = {
+        postMoneyVal: 13,
+        roundSize: 3,
+        investorPortion: 2.75,
+        otherPortion: 0.25,
+        investorName: 'US',
+        showAdvanced: true,
+        warrants: [
+          { id: 1, name: 'SVB', amount: 0.5, valuation: 50 },
+          { id: 2, name: 'Advisor', amount: 0.2, valuation: 10 }
+        ]
+      }
+      const encoded = encodeScenarioToURL(data)
+      expect(encoded).toContain('wts=')
+      const decoded = decodeScenarioFromURL(encoded)
+      expect(decoded.warrants).toHaveLength(2)
+      expect(decoded.warrants[0].name).toBe('SVB')
+      expect(decoded.warrants[0].amount).toBe(0.5)
+      expect(decoded.warrants[0].valuation).toBe(50)
+      expect(decoded.warrants[1].amount).toBe(0.2)
+    })
+
+    it('omits wts when warrants are absent or incomplete', () => {
+      const encoded = encodeScenarioToURL({
+        postMoneyVal: 13,
+        roundSize: 3,
+        investorPortion: 2.75,
+        otherPortion: 0.25,
+        investorName: 'US',
+        warrants: []
+      })
+      expect(encoded).not.toContain('wts=')
+    })
+
+    it('drops warrants missing amount or valuation', () => {
+      const encoded = encodeScenarioToURL({
+        postMoneyVal: 13,
+        roundSize: 3,
+        investorPortion: 2.75,
+        otherPortion: 0.25,
+        investorName: 'US',
+        showAdvanced: true,
+        warrants: [
+          { id: 1, name: 'Real', amount: 0.5, valuation: 50 },
+          { id: 2, name: 'NoVal', amount: 0.5, valuation: 0 },
+          { id: 3, name: 'NoAmt', amount: 0, valuation: 50 }
+        ]
+      })
+      const decoded = decodeScenarioFromURL(encoded)
+      expect(decoded.warrants).toHaveLength(1)
+      expect(decoded.warrants[0].name).toBe('Real')
+    })
+
+    it('auto-enables showAdvanced when warrants are present', () => {
+      const encoded = encodeScenarioToURL({
+        postMoneyVal: 13,
+        roundSize: 3,
+        investorPortion: 2.75,
+        otherPortion: 0.25,
+        investorName: 'US',
+        showAdvanced: false,
+        warrants: [{ id: 1, name: 'X', amount: 0.5, valuation: 50 }]
+      })
+      const decoded = decodeScenarioFromURL(encoded)
+      expect(decoded.showAdvanced).toBe(true)
+      expect(decoded.warrants).toHaveLength(1)
+    })
+  })
 })

@@ -57,6 +57,7 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
       grantedEsopPercent: useCompanyInputs ? (sourceCompany.grantedEsopPercent || 0) : (scenario.grantedEsopPercent || 0),
       targetEsopPercent: useCompanyInputs ? (sourceCompany.targetEsopPercent || 0) : (scenario.targetEsopPercent || 0),
       esopTiming: sourceCompany.esopTiming || scenario.esopTiming || 'pre-close',
+      warrants: useCompanyInputs ? (sourceCompany.warrants || []) : (scenario.warrants || []),
       twoStepEnabled: useCompanyInputs ? Boolean(sourceCompany.twoStepEnabled) : isTwoStep,
       step2PostMoney: isTwoStep ? scenario.step2.postMoney : (sourceCompany.step2PostMoney || 0),
       step2Amount: useCompanyInputs ? (sourceCompany.step2Amount || 0) : (isTwoStep ? scenario.step2.amount : 0),
@@ -144,7 +145,7 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
   // Compute Prior Investors + Unknown as remainder so section totals sum to exactly 100%
   // (avoids double-counting pro-rata ownership in both New Round and Prior Investors)
   const adjustedPriorAndUnknownTotal = Math.max(0,
-    100 - scenario.roundPercent - (scenario.totalSafePercent || 0) - foundersTotal - (scenario.finalEsopPercent || 0)
+    100 - scenario.roundPercent - (scenario.totalSafePercent || 0) - foundersTotal - (scenario.finalEsopPercent || 0) - (scenario.finalWarrantsPercent || 0)
   )
 
   // Calculate unknown/other ownership lost using pre-round value from engine
@@ -634,7 +635,46 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
             )}
           </>
         )}
-        
+
+        {/* Warrants */}
+        {showAdvanced && scenario.finalWarrantsPercent > 0 && (
+          <>
+            <div className="table-row">
+              <div className="label">Warrants</div>
+              <div className="amount">
+                {(() => {
+                  const dilution = (scenario.preRoundWarrantsPercent || 0) - scenario.finalWarrantsPercent
+                  if (Math.abs(dilution) < 0.01) return <span className='amount-neutral'>—</span>
+                  return (
+                    <span className={dilution > 0 ? 'amount-negative' : 'amount-positive'}>
+                      {dilution > 0 ? `-${dilution.toFixed(1)}%` : `+${Math.abs(dilution).toFixed(1)}%`}
+                    </span>
+                  )
+                })()}
+              </div>
+              <div className="percent percent-bold">{formatPercent(scenario.finalWarrantsPercent)}</div>
+            </div>
+            {Array.isArray(scenario.warrantDetails) && scenario.warrantDetails.length > 0 && (
+              scenario.warrantDetails.map((w, idx) => {
+                const isLast = idx === scenario.warrantDetails.length - 1
+                if (!w.amount || !w.valuation || w.postRoundPercent <= 0) return null
+                const label = w.name && w.name.trim()
+                  ? w.name.trim()
+                  : `$${w.amount.toFixed(2)}M @ $${w.valuation.toFixed(0)}M`
+                return (
+                  <div key={w.id || idx} className="table-row sub-row">
+                    <div className="label">{isLast ? '└─' : '├─'} {label}</div>
+                    <div className="amount amount-neutral">
+                      ${w.amount.toFixed(2)}M @ ${w.valuation.toFixed(0)}M
+                    </div>
+                    <div className="percent">{formatPercent(w.postRoundPercent)}</div>
+                  </div>
+                )
+              })
+            )}
+          </>
+        )}
+
         {/* Total row */}
         <div className="table-row total-row">
           <div className="label">Total</div>

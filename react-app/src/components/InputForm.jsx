@@ -229,6 +229,60 @@ const InputForm = ({ company, onUpdate }) => {
     onUpdate(newValues)
   }
 
+  // Warrant management functions
+  const addWarrant = () => {
+    const newWarrant = {
+      id: Date.now(),
+      name: '',
+      amount: 0,
+      valuation: 0
+    }
+    const newValues = {
+      ...values,
+      warrants: [...(values.warrants || []), newWarrant]
+    }
+    setValues(newValues)
+    onUpdate(newValues)
+  }
+
+  const removeWarrant = (warrantId) => {
+    const newValues = {
+      ...values,
+      warrants: (values.warrants || []).filter(w => w.id !== warrantId)
+    }
+    setValues(newValues)
+    onUpdate(newValues)
+  }
+
+  const updateWarrant = (warrantId, field, value) => {
+    if (field === 'name') {
+      const newValues = {
+        ...values,
+        warrants: (values.warrants || []).map(w =>
+          w.id === warrantId ? { ...w, name: value } : w
+        )
+      }
+      setValues(newValues)
+      onUpdate(newValues)
+      return
+    }
+    let numValue = parseFloat(value)
+    if (isNaN(numValue) || value === '' || value === null || value === undefined) {
+      numValue = 0
+    }
+    if (numValue < 0) numValue = 0
+    if (numValue > 1_000_000) numValue = 1_000_000
+
+    const newValues = {
+      ...values,
+      warrants: (values.warrants || []).map(w =>
+        w.id === warrantId ? { ...w, [field]: numValue } : w
+      )
+    }
+    setValues(newValues)
+    onUpdate(newValues)
+  }
+
   // Multi-party handlers
   const handlePriorInvestorsUpdate = (updatedPriorInvestors) => {
     const newValues = {
@@ -342,7 +396,7 @@ const InputForm = ({ company, onUpdate }) => {
             {/* 2-Step Round */}
             <div className="two-step-section">
               <div className="two-step-header">
-                <h5>2-Step Round</h5>
+                <h5 className="section-label">2-Step Round</h5>
                 <label className="two-step-checkbox">
                   <input
                     type="checkbox"
@@ -416,9 +470,11 @@ const InputForm = ({ company, onUpdate }) => {
             </div>
 
             <div className="esop-section">
-              <h5>Employee Stock Option Pool (ESOP)</h5>
-              <p className="esop-subtitle">
-                Total pool = Granted + Available. VCs typically negotiate the <em>available</em> slice post-close.
+              <div className="section-title-row">
+                <h5 className="section-label">Employee Stock Option Pool (ESOP)</h5>
+              </div>
+              <p className="section-subtitle">
+                Total pool = Granted + Available. VCs negotiate the available slice post-close.
               </p>
 
               <div className="input-grid esop-input-grid">
@@ -472,8 +528,8 @@ const InputForm = ({ company, onUpdate }) => {
               )}
 
               {values.targetEsopPercent > 0 && (
-                <div className="esop-timing-section">
-                  <label className="section-label">Top-up timing</label>
+                <div className="esop-timing-row">
+                  <span className="esop-timing-label">Top-up timing</span>
                   <div className="esop-timing-toggle" role="tablist">
                     <button
                       type="button"
@@ -494,15 +550,114 @@ const InputForm = ({ company, onUpdate }) => {
                       Post-Close
                     </button>
                   </div>
-
                   <p className="esop-timing-explanation">
                     {values.esopTiming === 'pre-close'
-                      ? 'Top-up happens before the round. Dilutes founders, prior investors, and granted ESOP — not new investors.'
-                      : 'Top-up happens after the round. Dilutes everyone proportionally, including new investors.'}
+                      ? 'Dilutes founders, priors, and granted ESOP — not new investors.'
+                      : 'Dilutes everyone proportionally, including new investors.'}
                   </p>
                 </div>
               )}
             </div>
+          </div>
+
+          <div className="warrants-section">
+            <div className="section-title-row">
+              <h5 className="section-label">Outstanding Warrants</h5>
+              <div className="section-header-actions">
+                <button
+                  type="button"
+                  className="add-safe-btn"
+                  onClick={addWarrant}
+                  title="Add warrant"
+                >
+                  + Add Warrant
+                </button>
+              </div>
+            </div>
+            <p className="section-subtitle">
+              &quot;$X of warrants at $Y valuation&quot; — pre-round % = amount / valuation.
+            </p>
+
+            {(!values.warrants || values.warrants.length === 0) ? (
+              <div className="no-safes-message">
+                No warrants added. Click &quot;Add Warrant&quot; to get started.
+              </div>
+            ) : (
+              <div className="repeater-table repeater-table--warrants">
+                <div className="repeater-header">
+                  <span className="repeater-col repeater-col--name">Holder</span>
+                  <span className="repeater-col repeater-col--amount">Amount</span>
+                  <span className="repeater-col repeater-col--valuation">Valuation</span>
+                  <span className="repeater-col repeater-col--alloc">% of FD</span>
+                  <span className="repeater-col repeater-col--actions" aria-hidden="true" />
+                </div>
+                {values.warrants.map((warrant) => {
+                  const amount = Number(warrant.amount) || 0
+                  const valuation = Number(warrant.valuation) || 0
+                  const fdPercent = (amount > 0 && valuation > 0) ? (amount / valuation) * 100 : 0
+                  return (
+                    <div key={warrant.id} className="repeater-row repeater-row--warrant">
+                      <div className="repeater-col repeater-col--name">
+                        <FormInput
+                          label="Holder"
+                          type="text"
+                          value={warrant.name || ''}
+                          onChange={(value) => updateWarrant(warrant.id, 'name', value)}
+                          placeholder="Optional"
+                          id={`warrant-name-${warrant.id}`}
+                          compact
+                        />
+                      </div>
+                      <div className="repeater-col repeater-col--amount">
+                        <FormInput
+                          label="Amount"
+                          type="number"
+                          value={warrant.amount}
+                          onChange={(value) => updateWarrant(warrant.id, 'amount', value)}
+                          prefix="$"
+                          suffix="M"
+                          step="0.1"
+                          min="0"
+                          placeholder="0"
+                          id={`warrant-amount-${warrant.id}`}
+                          compact
+                        />
+                      </div>
+                      <div className="repeater-col repeater-col--valuation">
+                        <FormInput
+                          label="Valuation"
+                          type="number"
+                          value={warrant.valuation}
+                          onChange={(value) => updateWarrant(warrant.id, 'valuation', value)}
+                          prefix="$"
+                          suffix="M"
+                          step="1"
+                          min="0"
+                          placeholder="0"
+                          id={`warrant-valuation-${warrant.id}`}
+                          compact
+                        />
+                      </div>
+                      <div className="repeater-col repeater-col--alloc">
+                        <span className="warrants-fd-percent">
+                          {fdPercent > 0 ? `${fdPercent.toFixed(2)}%` : '—'}
+                        </span>
+                      </div>
+                      <div className="repeater-col repeater-col--actions">
+                        <button
+                          type="button"
+                          className="remove-safe-btn"
+                          onClick={() => removeWarrant(warrant.id)}
+                          title="Remove warrant"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
           </div>
 
           <div className="safes-section">

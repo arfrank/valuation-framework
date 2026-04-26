@@ -37,6 +37,24 @@ export function createFounder(name = '', ownershipPercent = 0) {
 }
 
 /**
+ * Creates a new warrant object. Warrants are expressed as a dollar amount
+ * struck at a reference valuation (the standard venture debt phrasing:
+ * "$500k of warrants at a $50M valuation"). Pre-round % = amount / valuation.
+ * @param {string} name - Warrant holder name
+ * @param {number} amount - Warrant coverage in $M
+ * @param {number} valuation - Reference valuation in $M (post-money at issuance, typically)
+ * @returns {Object} Warrant object
+ */
+export function createWarrant(name = '', amount = 0, valuation = 0) {
+  return {
+    id: Date.now() + Math.random(),
+    name: name.trim(),
+    amount: Math.max(0, Number(amount) || 0),
+    valuation: Math.max(0, Number(valuation) || 0)
+  }
+}
+
+/**
  * Validates prior investors array
  * @param {Array} priorInvestors - Array of prior investor objects
  * @returns {boolean} True if valid
@@ -135,6 +153,21 @@ function normalizeFounder(founder = {}) {
   }
 }
 
+function normalizeWarrant(warrant = {}) {
+  const base = createWarrant(
+    typeof warrant.name === 'string' ? warrant.name : '',
+    Math.max(0, getOptionalNumber(warrant.amount) ?? 0),
+    Math.max(0, getOptionalNumber(warrant.valuation) ?? 0)
+  )
+  return {
+    ...base,
+    ...warrant,
+    name: typeof warrant.name === 'string' ? warrant.name.trim() : '',
+    amount: Math.max(0, getOptionalNumber(warrant.amount) ?? 0),
+    valuation: Math.max(0, getOptionalNumber(warrant.valuation) ?? 0)
+  }
+}
+
 function normalizeSafe(safe = {}) {
   const {
     proRataAmount: _legacyProRataAmount,
@@ -177,7 +210,8 @@ function looksLikeSingleStoredCompany(value) {
     'targetEsopPercent',
     'twoStepEnabled',
     'showExitMath',
-    'exitMath'
+    'exitMath',
+    'warrants'
   ].some((key) => Object.prototype.hasOwnProperty.call(value, key))
 }
 
@@ -227,6 +261,11 @@ export function createDefaultCompany(companyName = 'New Company') {
     grantedEsopPercent: 0,
     targetEsopPercent: 0,
     esopTiming: 'pre-close',
+
+    // Warrants: rough model. Each warrant is "$X of warrants at $Y valuation"
+    // (standard venture debt phrasing). Pre-round % = sum(amount / valuation).
+    // Dilutes like other pre-round equity when the round closes.
+    warrants: [],
 
     // Sensitivity scenarios: valuation % offsets to render as alternative cards
     scenarioOffsets: buildScenarioOffsets(30),
@@ -341,6 +380,11 @@ export function migrateLegacyCompany(legacyCompany, fallbackName = 'New Company'
   migrated.currentEsopPercent = Math.max(0, getOptionalNumber(migrated.currentEsopPercent) ?? defaults.currentEsopPercent)
   migrated.grantedEsopPercent = Math.max(0, getOptionalNumber(migrated.grantedEsopPercent) ?? defaults.grantedEsopPercent)
   migrated.targetEsopPercent = Math.max(0, getOptionalNumber(migrated.targetEsopPercent) ?? defaults.targetEsopPercent)
+  migrated.warrants = Array.isArray(migrated.warrants)
+    ? migrated.warrants.map((w) => normalizeWarrant(w))
+    : []
+  delete migrated.preRoundWarrantsPercent
+  delete migrated.fdSharesOutstanding
   migrated.percentPrecision = clamp(getOptionalNumber(migrated.percentPrecision) ?? defaults.percentPrecision, 0, 6)
 
   // Ensure scenarioOffsets exist
