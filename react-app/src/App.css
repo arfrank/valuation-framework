@@ -190,9 +190,12 @@ body {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  flex: 1 1 0;
-  min-width: clamp(170px, 12vw, 210px);
-  max-width: clamp(210px, 15vw, 240px);
+  /* Sized to content (with min/max clamp). Tabs collectively shrink past
+     their content size only when the row otherwise overflows, at which point
+     the tab-name's text-overflow: ellipsis takes over. */
+  flex: 0 1 auto;
+  min-width: 130px;
+  max-width: 360px;
   justify-content: flex-start;
 }
 
@@ -350,6 +353,75 @@ body {
   border-left: 1px solid var(--color-border);
   border-radius: 0;
   align-self: stretch;
+}
+
+/* Container for Load Example + Add Scenario buttons on the right of the tabs row */
+.tabs-actions {
+  display: flex;
+  align-items: stretch;
+  flex: 0 0 auto;
+  align-self: stretch;
+}
+
+.tabs-actions > button {
+  border-radius: 0;
+  align-self: stretch;
+  margin-left: 0;
+}
+
+.tabs-actions > .add-company-btn {
+  border-left: 1px solid var(--color-border);
+}
+
+.load-example-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  background: var(--color-bg);
+  color: var(--color-fg-muted);
+  border: none;
+  border-left: 1px solid var(--color-border);
+  padding: var(--space-2) var(--space-3);
+  font-family: inherit;
+  font-weight: 600;
+  font-size: var(--text-sm);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--transition-fast), color var(--transition-fast), gap 0.2s ease, padding 0.2s ease;
+}
+
+.load-example-btn:hover {
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+  gap: 6px;
+  padding-right: var(--space-4);
+}
+
+.load-example-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  color: #f5b400;
+}
+
+.load-example-btn:hover .load-example-icon {
+  color: #d39400;
+}
+
+/* Collapsed by default — only the star icon shows. Hover reveals the label. */
+.load-example-text {
+  display: inline-block;
+  max-width: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-width 0.25s ease, opacity 0.2s ease;
+}
+
+.load-example-btn:hover .load-example-text,
+.load-example-btn:focus-visible .load-example-text {
+  max-width: 160px;
+  opacity: 1;
 }
 
 .add-company-btn:hover,
@@ -516,6 +588,25 @@ body {
 .base-scenario.compare-inactive.compare-tint-3 {
   background: hsl(280 25% 97%);
   border-left: 3px solid hsl(280 35% 70%);
+}
+
+/* Placeholder rendered in compare mode when a selected scenario can't compute
+   (e.g. pre-round ownership > 100%). Keeps the tab visible and clickable. */
+.scenario-card.compare-pending {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  border: 1px dashed #f59e9e;
+  background: #fff5f5;
+  cursor: pointer;
+}
+
+.compare-pending-message {
+  font-size: var(--text-xs);
+  color: var(--color-fg-muted);
+  line-height: 1.45;
+  margin-top: var(--space-2);
 }
 
 /* Scenarios Rows Layout */
@@ -3049,6 +3140,17 @@ input.investor-name-input:focus, input.founder-name-input:focus {
     border-top: 1px solid var(--color-border);
   }
 
+  .tabs-actions {
+    flex-direction: column;
+  }
+  .tabs-actions > .add-company-btn,
+  .tabs-actions > .load-example-btn {
+    width: 100%;
+    justify-content: center;
+    border-left: none;
+    border-top: 1px solid var(--color-border);
+  }
+
   .top-row,
   .top-row.with-exit-math {
     grid-template-columns: 1fr;
@@ -3642,4 +3744,259 @@ input.investor-name-input:focus, input.founder-name-input:focus {
   color: #635bff;
   border-color: #c7c3ff;
   background: #f5f4ff;
+}
+
+/* App subtitle (under logo) */
+.app-header-titles {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.app-subtitle {
+  font-size: var(--text-xs);
+  color: var(--color-fg-faint);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+/* Tour button (left side of header, mirrors exit-math toggle on right) */
+.header-tour-btn {
+  position: absolute;
+  top: 50%;
+  left: var(--space-6);
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: 1px solid var(--color-border);
+  color: var(--color-fg-subtle);
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.4rem 0.85rem;
+  border-radius: 4px;
+  cursor: pointer;
+  letter-spacing: 0.3px;
+  font-family: inherit;
+  transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+
+.header-tour-btn:hover {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+}
+
+.header-tour-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1px solid currentColor;
+  font-size: 0.7rem;
+  line-height: 1;
+  font-weight: 700;
+}
+
+/* ======================================================================
+   Walkthrough overlay
+   ====================================================================== */
+
+.walkthrough {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  pointer-events: none;
+}
+
+.walkthrough-mask {
+  position: fixed;
+  background: rgba(15, 23, 42, 0.55);
+  pointer-events: auto;
+  transition: top 0.18s ease, left 0.18s ease, width 0.18s ease, height 0.18s ease;
+}
+
+.walkthrough-mask-full {
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+}
+
+.walkthrough-spotlight-ring {
+  position: fixed;
+  border-radius: 10px;
+  box-shadow: 0 0 0 2px rgba(99, 91, 255, 0.85), 0 8px 32px rgba(99, 91, 255, 0.25);
+  pointer-events: none;
+  transition: top 0.18s ease, left 0.18s ease, width 0.18s ease, height 0.18s ease;
+  animation: walkthrough-pulse 2s ease-in-out infinite;
+}
+
+@keyframes walkthrough-pulse {
+  0%, 100% { box-shadow: 0 0 0 2px rgba(99, 91, 255, 0.85), 0 8px 32px rgba(99, 91, 255, 0.25); }
+  50%      { box-shadow: 0 0 0 2px rgba(99, 91, 255, 0.85), 0 12px 36px rgba(99, 91, 255, 0.45); }
+}
+
+.walkthrough-tooltip {
+  position: fixed;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.35), 0 4px 12px rgba(15, 23, 42, 0.15);
+  padding: 18px 20px 16px;
+  pointer-events: auto;
+  font-family: inherit;
+  color: var(--color-fg);
+  border: 1px solid rgba(99, 91, 255, 0.2);
+  animation: walkthrough-tooltip-in 0.2s ease-out;
+}
+
+@keyframes walkthrough-tooltip-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.walkthrough-tooltip::before {
+  content: '';
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: #ffffff;
+  border: 1px solid rgba(99, 91, 255, 0.2);
+  transform: rotate(45deg);
+}
+
+.walkthrough-tooltip--top::before {
+  top: -7px;
+  left: 50%;
+  margin-left: -6px;
+  border-right: none;
+  border-bottom: none;
+}
+
+.walkthrough-tooltip--bottom::before {
+  bottom: -7px;
+  left: 50%;
+  margin-left: -6px;
+  border-left: none;
+  border-top: none;
+}
+
+.walkthrough-tooltip--left::before {
+  left: -7px;
+  top: 50%;
+  margin-top: -6px;
+  border-top: none;
+  border-right: none;
+}
+
+.walkthrough-tooltip--right::before {
+  right: -7px;
+  top: 50%;
+  margin-top: -6px;
+  border-bottom: none;
+  border-left: none;
+}
+
+.walkthrough-tooltip--center::before {
+  display: none;
+}
+
+.walkthrough-step-counter {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-fg-faint);
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.walkthrough-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--color-fg);
+  margin: 0 0 6px 0;
+  line-height: 1.3;
+}
+
+.walkthrough-body {
+  font-size: 0.875rem;
+  color: var(--color-fg-muted);
+  line-height: 1.5;
+  margin: 0 0 14px 0;
+}
+
+.walkthrough-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.walkthrough-nav {
+  display: flex;
+  gap: 8px;
+}
+
+.walkthrough-btn {
+  font-family: inherit;
+  font-size: 0.825rem;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.walkthrough-btn-skip {
+  background: none;
+  color: var(--color-fg-faint);
+  border-color: transparent;
+}
+
+.walkthrough-btn-skip:hover {
+  color: var(--color-fg-muted);
+}
+
+.walkthrough-btn-secondary {
+  background: var(--color-bg);
+  color: var(--color-fg-muted);
+  border-color: var(--color-border);
+}
+
+.walkthrough-btn-secondary:hover {
+  background: var(--color-bg-muted);
+  color: var(--color-fg);
+}
+
+.walkthrough-btn-primary {
+  background: #635bff;
+  color: #ffffff;
+  border-color: #635bff;
+}
+
+.walkthrough-btn-primary:hover {
+  background: #4f46e5;
+  border-color: #4f46e5;
+}
+
+@media (max-width: 480px) {
+  .header-tour-btn {
+    left: var(--space-3);
+    padding: 0.3rem 0.6rem;
+  }
+  .header-tour-label {
+    display: none;
+  }
+  .header-exit-math-toggle {
+    right: var(--space-3);
+  }
+  .walkthrough-tooltip {
+    width: calc(100vw - 32px) !important;
+    left: 16px !important;
+  }
 }

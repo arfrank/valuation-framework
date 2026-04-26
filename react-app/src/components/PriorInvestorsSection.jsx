@@ -82,10 +82,12 @@ function PriorInvestorsSection({
   const allRows = [...priorRows, ...safeRows, ...leadRows].sort((a, b) => b.fdoPct - a.fdoPct)
 
   return (
-    <div className="prior-investors-section">
+    <div className="prior-investors-section" data-tour="prior-investors">
       <div className="founders-investors-header">
         <div className="section-title-row">
-          <h5 className="section-label">Investors — sorted by FDO</h5>
+          <h5 className="section-label" title="Fully-Diluted Ownership — % of company assuming all SAFEs, warrants, and granted options have converted/vested.">
+            Investors — sorted by Fully-Diluted Ownership (FDO)
+          </h5>
           <div className="section-header-actions">
             {totalOwnership > 0 && (
               <span className="section-total-pill">
@@ -105,14 +107,20 @@ function PriorInvestorsSection({
 
       {allRows.length === 0 ? (
         <div className="no-investors-message">
-          No investors yet. Click "Add Investor" to include prior round participants.
+          No prior investors yet. Add existing cap-table holders to model their dilution and pro-rata participation in this round.
         </div>
       ) : (
         <div className="repeater-table repeater-table--investors">
           <div className="repeater-header">
             <span className="repeater-col repeater-col--name">Name</span>
-            <span className="repeater-col repeater-col--pct">FDO</span>
-            <span className="repeater-col repeater-col--prorata">Pro-rata</span>
+            <span
+              className="repeater-col repeater-col--pct"
+              title="Fully-Diluted Ownership — % of company assuming all SAFEs, warrants, and granted options have converted/vested."
+            >FDO</span>
+            <span
+              className="repeater-col repeater-col--prorata"
+              title="Pro-rata: right to invest in this round in proportion to existing ownership, preserving stake."
+            >Pro-rata</span>
             <span className="repeater-col repeater-col--alloc">Allocation</span>
             <span className="repeater-col repeater-col--actions" aria-hidden="true" />
           </div>

@@ -43,8 +43,8 @@ const ScenarioControls = ({ offsets = [], onChange }) => {
   }
 
   return (
-    <div className="scenario-controls" role="group" aria-label="Sensitivity scenarios">
-      <span className="scenario-controls-label">Sensitivity</span>
+    <div className="scenario-controls" data-tour="scenario-controls" role="group" aria-label="Sensitivity scenarios">
+      <span className="scenario-controls-label" title="Adds offset scenario cards (e.g. ±10%, ±20%) so partners can see how the cap table flexes at different valuations">Sensitivity</span>
       <div className="scenario-pills">
         {currentBand.map(n => {
           const direction = n < 0 ? 'down' : 'up'

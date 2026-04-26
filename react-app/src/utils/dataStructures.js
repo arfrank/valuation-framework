@@ -422,7 +422,7 @@ export function migrateLegacyCompany(legacyCompany, fallbackName = 'New Company'
   return migrated
 }
 
-export function normalizeStoredCompanies(storedCompanies, fallbackName = 'Startup Alpha') {
+export function normalizeStoredCompanies(storedCompanies, fallbackName = 'Scenario 1') {
   const fallback = { company1: createDefaultCompany(fallbackName) }
 
   if (looksLikeSingleStoredCompany(storedCompanies)) {
@@ -446,7 +446,7 @@ export function normalizeStoredCompanies(storedCompanies, fallbackName = 'Startu
   }
 
   return entries.reduce((acc, [companyId, company], index) => {
-    const defaultName = index === 0 ? fallbackName : `Startup ${index + 1}`
+    const defaultName = index === 0 ? fallbackName : `Scenario ${index + 1}`
     acc[companyId] = migrateLegacyCompany(company, company?.name || defaultName)
     return acc
   }, {})

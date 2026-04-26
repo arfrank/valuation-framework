@@ -8,6 +8,7 @@ const CompanyTabs = ({
   onRemoveCompany,
   onUpdateCompany,
   onDuplicateCompany,
+  onLoadExample,
   selectedCompanyIds = [],
   onToggleCompareSelection,
 }) => {
@@ -63,7 +64,7 @@ const CompanyTabs = ({
   }
 
   return (
-    <div className="company-tabs">
+    <div className="company-tabs" data-tour="company-tabs">
       <div className="tabs-container">
         <div className="tabs-scroll" ref={tabsScrollRef}>
           <div className="tabs-list">
@@ -99,7 +100,7 @@ const CompanyTabs = ({
                   />
                 ) : (
                   <>
-                    <span className="tab-name">{company.name}</span>
+                    <span className="tab-name" title={company.name}>{company.name}</span>
                     <div className="tab-actions">
                       <button
                         className="tab-edit-btn"
@@ -118,8 +119,8 @@ const CompanyTabs = ({
                             e.stopPropagation()
                             onDuplicateCompany(companyId)
                           }}
-                          title="Duplicate company"
-                          aria-label="Duplicate company"
+                          title="Duplicate scenario"
+                          aria-label="Duplicate scenario"
                         >
                           ⧉
                         </button>
@@ -134,7 +135,7 @@ const CompanyTabs = ({
                               onRemoveCompany(companyId)
                             }
                           }}
-                          title="Remove company"
+                          title="Delete scenario"
                         >
                           ×
                         </button>
@@ -149,11 +150,24 @@ const CompanyTabs = ({
           </div>
         </div>
 
-        <button className="add-company-btn" onClick={onAddCompany} title="Add new company">
-          <span className="add-icon">+</span>
-          <span className="add-text">Add Company</span>
-          <div className="btn-glow" />
-        </button>
+        <div className="tabs-actions">
+          {onLoadExample && (
+            <button
+              type="button"
+              className="load-example-btn"
+              onClick={onLoadExample}
+              title="Load a populated example scenario that exercises every feature"
+            >
+              <span className="load-example-icon" aria-hidden="true">★</span>
+              <span className="load-example-text">Load Example</span>
+            </button>
+          )}
+          <button className="add-company-btn" onClick={onAddCompany} title="Add new scenario">
+            <span className="add-icon">+</span>
+            <span className="add-text">Add Scenario</span>
+            <div className="btn-glow" />
+          </button>
+        </div>
       </div>
     </div>
   )
