@@ -310,7 +310,7 @@ function App() {
           onClick={() => updateCompany(activeCompany, { showExitMath: !(companies[activeCompany]?.showExitMath) })}
           aria-pressed={companies[activeCompany]?.showExitMath || false}
         >
-          {companies[activeCompany]?.showExitMath ? '▼' : '▶'} Exit Math
+          <span className={`chevron-icon${companies[activeCompany]?.showExitMath ? '' : ' is-collapsed'}`}>▼</span> Exit Math
         </button>
       </header>
 

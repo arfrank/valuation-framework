@@ -473,6 +473,9 @@ body {
   max-width: 1200px;
   margin-left: auto;
   margin-right: auto;
+  transition:
+    grid-template-columns 0.4s var(--ease-out-quart),
+    max-width 0.4s var(--ease-out-quart);
 }
 
 .top-row.with-exit-math {
@@ -3615,6 +3618,8 @@ input.investor-name-input:focus, input.founder-name-input:focus {
   flex-direction: column;
   gap: var(--space-4);
   box-shadow: var(--shadow-sm);
+  animation: section-grow-in 0.4s var(--ease-out-quart);
+  transform-origin: top right;
 }
 
 .exit-math-header h3 {
