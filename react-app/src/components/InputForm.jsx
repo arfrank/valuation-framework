@@ -422,8 +422,12 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed }) 
       </div>
 
       {/* Advanced Features Section */}
-      {values.showAdvanced && (
-        <div className="advanced-section">
+      <div
+        className={`advanced-section${values.showAdvanced ? '' : ' is-collapsed'}`}
+        aria-hidden={!values.showAdvanced}
+        {...(!values.showAdvanced ? { inert: true } : {})}
+      >
+        <div className="advanced-section-inner">
           <h4>Cap Table Modeling</h4>
 
           <div className="advanced-split">
@@ -905,7 +909,7 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed }) 
           />
 
         </div>
-      )}
+      </div>
 
       <div className="validation-info">
         {!isNaN(values.investorPortion) && !isNaN(values.otherPortion) && !isNaN(values.roundSize) && 

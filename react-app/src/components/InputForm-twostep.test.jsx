@@ -32,9 +32,11 @@ describe('InputForm - Two-Step Round', () => {
     expect(screen.getByRole('checkbox', { name: /enable/i })).toBeInTheDocument()
   })
 
-  it('should not render 2-Step Round section when advanced is hidden', () => {
-    render(<InputForm company={{ ...defaultCompany, showAdvanced: false }} onUpdate={mockOnUpdate} />)
-    expect(screen.queryByText('2-Step Round')).not.toBeInTheDocument()
+  it('should hide 2-Step Round section when advanced is hidden', () => {
+    const { container } = render(<InputForm company={{ ...defaultCompany, showAdvanced: false }} onUpdate={mockOnUpdate} />)
+    const advancedSection = container.querySelector('.advanced-section')
+    expect(advancedSection).toHaveClass('is-collapsed')
+    expect(advancedSection.getAttribute('aria-hidden')).toBe('true')
   })
 
   it('should not show step 2 inputs when disabled', () => {

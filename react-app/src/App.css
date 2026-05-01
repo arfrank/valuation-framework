@@ -57,7 +57,7 @@
 
 /* Reusable show/hide keyframes */
 @keyframes fade-slide-in {
-  from { opacity: 0; transform: translateY(-4px); }
+  from { opacity: 0; transform: translateY(-14px); }
   to   { opacity: 1; transform: none; }
 }
 
@@ -67,8 +67,15 @@
 }
 
 @keyframes section-grow-in {
-  from { opacity: 0; transform: translateY(-2px) scale(0.995); }
-  to   { opacity: 1; transform: none; }
+  0%   { opacity: 0; transform: translateY(-12px) scale(0.94); }
+  60%  { opacity: 1; }
+  100% { opacity: 1; transform: none; }
+}
+
+@keyframes pop-in {
+  0%   { opacity: 0; transform: scale(0.85); }
+  60%  { opacity: 1; transform: scale(1.04); }
+  100% { opacity: 1; transform: scale(1); }
 }
 
 /* Reset and base styles */
@@ -546,7 +553,7 @@ body {
   transition: box-shadow var(--transition-base), border-color var(--transition-base), background var(--transition-base);
   font: inherit;
   color: var(--color-fg-muted);
-  animation: fade-slide-in 0.22s var(--ease-out-quart);
+  animation: fade-slide-in 0.32s var(--ease-out-quart);
 }
 
 .input-form.collapsed-rail:hover,
@@ -853,7 +860,7 @@ body {
 }
 
 .input-form:not(.collapsed-rail) {
-  animation: section-grow-in 0.28s var(--ease-out-quart);
+  animation: section-grow-in 0.4s var(--ease-out-quart);
   transform-origin: top left;
 }
 
@@ -998,7 +1005,7 @@ body {
   border-radius: var(--radius-md);
   padding: var(--space-4);
   transition: box-shadow var(--transition-base), border-color var(--transition-base);
-  animation: section-grow-in 0.26s var(--ease-out-quart);
+  animation: section-grow-in 0.36s var(--ease-out-quart);
   transform-origin: top center;
 }
 
@@ -1061,8 +1068,31 @@ body {
   border-radius: var(--radius-md);
   padding: var(--space-3) var(--space-4);
   margin-top: var(--space-2);
-  animation: section-grow-in 0.28s var(--ease-out-quart);
+  display: grid;
+  grid-template-rows: 1fr;
+  transition:
+    grid-template-rows 0.36s var(--ease-out-quart),
+    opacity 0.28s ease,
+    margin-top 0.32s var(--ease-out-quart),
+    padding 0.32s var(--ease-out-quart),
+    border-width 0.2s ease;
+  overflow: hidden;
   transform-origin: top center;
+}
+
+.advanced-section > .advanced-section-inner {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.advanced-section.is-collapsed {
+  grid-template-rows: 0fr;
+  opacity: 0;
+  margin-top: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  border-top-width: 0;
+  border-bottom-width: 0;
 }
 
 .advanced-section h4 {
@@ -1947,11 +1977,11 @@ body {
   justify-content: center;
   width: 1rem;
   height: 1rem;
-  font-size: 0.65rem;
+  font-size: 0.7rem;
   color: var(--color-fg-subtle);
   margin-right: var(--space-2);
   transform-origin: center;
-  transition: color var(--transition-base), transform 0.22s var(--ease-out-quart);
+  transition: color var(--transition-base), transform 0.32s var(--ease-out-quart);
 }
 
 .collapse-indicator.is-collapsed {
@@ -1961,7 +1991,7 @@ body {
 .chevron-icon {
   display: inline-block;
   transform-origin: center;
-  transition: transform 0.22s var(--ease-out-quart);
+  transition: transform 0.32s var(--ease-out-quart);
 }
 
 .chevron-icon.is-collapsed {
@@ -2003,7 +2033,7 @@ body {
 .scenario-table > .table-row.sub-sub-row,
 .scenario-table > .table-row.step-sub-header,
 .scenario-table > .table-row.combined-total-row {
-  animation: fade-slide-in 0.26s var(--ease-out-soft) both;
+  animation: fade-slide-in 0.36s var(--ease-out-soft) both;
 }
 
 .investor-row {
@@ -3629,13 +3659,31 @@ input.investor-name-input:focus, input.founder-name-input:focus {
   padding-top: 0.6rem;
 }
 
+.exit-math-overrides-wrapper {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition:
+    grid-template-rows 0.34s var(--ease-out-quart),
+    opacity 0.26s ease,
+    margin-top 0.3s var(--ease-out-quart);
+}
+
+.exit-math-overrides-wrapper > .exit-math-overrides-grid {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.exit-math-overrides-wrapper.is-collapsed {
+  grid-template-rows: 0fr;
+  opacity: 0;
+  margin-top: 0;
+}
+
 .exit-math-overrides-grid {
   margin-top: 0.5rem;
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  animation: section-grow-in 0.26s var(--ease-out-quart);
-  transform-origin: top center;
 }
 
 .exit-math-reset-btn {

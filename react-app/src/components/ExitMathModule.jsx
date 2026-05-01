@@ -203,7 +203,11 @@ const ExitMathModule = ({ baseScenario, investorName = 'US', exitMath, onUpdate,
             >
               <span className={`chevron-icon${showOverrides ? '' : ' is-collapsed'}`}>▼</span> Per-round overrides
             </button>
-            {showOverrides && (
+            <div
+              className={`exit-math-overrides-wrapper${showOverrides ? '' : ' is-collapsed'}`}
+              aria-hidden={!showOverrides}
+              {...(!showOverrides ? { inert: true } : {})}
+            >
               <div className="exit-math-overrides-grid">
                 {Array.from({ length: numRounds }).map((_, i) => (
                   <FormInput
@@ -223,7 +227,7 @@ const ExitMathModule = ({ baseScenario, investorName = 'US', exitMath, onUpdate,
                   Reset to uniform
                 </button>
               </div>
-            )}
+            </div>
           </div>
         )}
       </div>
