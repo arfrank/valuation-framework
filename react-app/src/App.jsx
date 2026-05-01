@@ -198,6 +198,11 @@ function App() {
 
   // Auto-launch the tour on first visit
   useEffect(() => {
+    // Skip onboarding when arriving via a permalink — the URL scenario
+    // is what the user came to see.
+    if (typeof window !== 'undefined' && window.location.search) {
+      return
+    }
     try {
       const seen = window.localStorage.getItem(TOUR_SEEN_KEY)
       if (!seen) {
