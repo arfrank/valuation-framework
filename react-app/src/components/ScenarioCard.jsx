@@ -330,7 +330,7 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
           onClick={() => toggleCollapse('newRound')}
         >
           <div className="label">
-            <span className="collapse-indicator">{collapsed.newRound ? '▶' : '▼'}</span>
+            <span className={`collapse-indicator${collapsed.newRound ? ' is-collapsed' : ''}`}>▼</span>
             <strong>New Round Total</strong>
           </div>
           <div className="amount amount-positive">+{formatDollar(scenario.roundSize)}</div>
@@ -460,7 +460,7 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
               onClick={() => toggleCollapse('founders')}
             >
               <div className="label">
-                <span className="collapse-indicator">{collapsed.founders ? '▶' : '▼'}</span>
+                <span className={`collapse-indicator${collapsed.founders ? ' is-collapsed' : ''}`}>▼</span>
                 <strong>Founders Total</strong>
               </div>
               <div className="amount amount-negative">
@@ -470,7 +470,11 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
             </div>
             {/* Individual founders */}
             {!collapsed.founders && scenario.founders && scenario.founders.map((founder, idx) => (
-              <div key={founder.id || idx} className="table-row sub-row">
+              <div
+                key={founder.id || idx}
+                className="table-row sub-row"
+                style={{ animationDelay: `${Math.min(idx, 6) * 0.035}s` }}
+              >
                 <div className="label">{idx === scenario.founders.length - 1 ? '└─' : '├─'} {founder.name || `Founder ${idx + 1}`}</div>
                 <div className="amount amount-negative">-{founder.dilution.toFixed(1)}%</div>
                 <div className="percent">{formatPercent(founder.postRoundPercent)}</div>
@@ -496,7 +500,7 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
               onClick={() => toggleCollapse('priorInvestors')}
             >
               <div className="label">
-                <span className="collapse-indicator">{collapsed.priorInvestors ? '▶' : '▼'}</span>
+                <span className={`collapse-indicator${collapsed.priorInvestors ? ' is-collapsed' : ''}`}>▼</span>
                 <strong>Prior Investors Total</strong>
               </div>
               <div className="amount amount-negative">
@@ -512,7 +516,11 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
                   const hasCombinedPrior = combinedInvestor && combinedInvestor.priorDilutedPercent > 0.01
                   const isLast = idx === displayPriorInvestors.length - 1 && scenario.unknownOwnership <= 0.01 && !hasCombinedPrior
                   return (
-                    <div key={investor.id || idx} className="table-row sub-row">
+                    <div
+                      key={investor.id || idx}
+                      className="table-row sub-row"
+                      style={{ animationDelay: `${Math.min(idx, 6) * 0.035}s` }}
+                    >
                       <div className="label">{isLast ? '└─' : '├─'} {investor.name}</div>
                       <div className="amount">
                         {investor.proRataAmount > 0 ? (
@@ -559,7 +567,7 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
               onClick={() => toggleCollapse('safes')}
             >
               <div className="label">
-                <span className="collapse-indicator">{collapsed.safes ? '▶' : '▼'}</span>
+                <span className={`collapse-indicator${collapsed.safes ? ' is-collapsed' : ''}`}>▼</span>
                 <strong>SAFEs Total</strong>
               </div>
               <div className="amount amount-neutral">converts</div>
@@ -569,9 +577,10 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
             {!collapsed.safes && scenario.safeDetails.map((safe, safeIndex) => {
               const isLast = safeIndex === scenario.safeDetails.length - 1
               const showProRata = (safe.proRataAmount || 0) > 0
+              const safeDelay = `${Math.min(safeIndex, 6) * 0.035}s`
               return (
                 <div key={safe.id || safeIndex} style={{ display: 'contents' }}>
-                  <div className="table-row sub-row">
+                  <div className="table-row sub-row" style={{ animationDelay: safeDelay }}>
                     <div className="label">{isLast && !showProRata ? '└─' : '├─'} SAFE #{safe.index}{safe.investorName && <span className="safe-attribution"> ({safe.investorName})</span>}</div>
                     <div className="amount amount-neutral">
                       <span style={{ fontSize: '0.85rem' }}>${safe.amount}M @ ${safe.conversionPrice}M</span>

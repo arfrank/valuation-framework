@@ -417,7 +417,7 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed }) 
           data-tour="advanced-toggle"
           onClick={() => handleChange('showAdvanced', !values.showAdvanced)}
         >
-          {values.showAdvanced ? '▼' : '▶'} Advanced Features
+          <span className={`chevron-icon${values.showAdvanced ? '' : ' is-collapsed'}`}>▼</span> Advanced Features
         </button>
       </div>
 

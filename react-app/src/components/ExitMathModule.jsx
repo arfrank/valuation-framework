@@ -201,7 +201,7 @@ const ExitMathModule = ({ baseScenario, investorName = 'US', exitMath, onUpdate,
               className="toggle-advanced-btn"
               onClick={() => setShowOverrides((v) => !v)}
             >
-              {showOverrides ? '▼' : '▶'} Per-round overrides
+              <span className={`chevron-icon${showOverrides ? '' : ' is-collapsed'}`}>▼</span> Per-round overrides
             </button>
             {showOverrides && (
               <div className="exit-math-overrides-grid">

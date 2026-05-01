@@ -50,6 +50,25 @@
   /* Transitions */
   --transition-fast: 0.15s ease;
   --transition-base: 0.2s ease;
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-out-soft: cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-collapse: 0.28s var(--ease-out-quart);
+}
+
+/* Reusable show/hide keyframes */
+@keyframes fade-slide-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes section-grow-in {
+  from { opacity: 0; transform: translateY(-2px) scale(0.995); }
+  to   { opacity: 1; transform: none; }
 }
 
 /* Reset and base styles */
@@ -527,6 +546,7 @@ body {
   transition: box-shadow var(--transition-base), border-color var(--transition-base), background var(--transition-base);
   font: inherit;
   color: var(--color-fg-muted);
+  animation: fade-slide-in 0.22s var(--ease-out-quart);
 }
 
 .input-form.collapsed-rail:hover,
@@ -832,6 +852,11 @@ body {
   transition: box-shadow var(--transition-base);
 }
 
+.input-form:not(.collapsed-rail) {
+  animation: section-grow-in 0.28s var(--ease-out-quart);
+  transform-origin: top left;
+}
+
 .input-form:hover {
   box-shadow: var(--shadow-md);
 }
@@ -973,6 +998,8 @@ body {
   border-radius: var(--radius-md);
   padding: var(--space-4);
   transition: box-shadow var(--transition-base), border-color var(--transition-base);
+  animation: section-grow-in 0.26s var(--ease-out-quart);
+  transform-origin: top center;
 }
 
 .step2-card:hover {
@@ -1034,6 +1061,8 @@ body {
   border-radius: var(--radius-md);
   padding: var(--space-3) var(--space-4);
   margin-top: var(--space-2);
+  animation: section-grow-in 0.28s var(--ease-out-quart);
+  transform-origin: top center;
 }
 
 .advanced-section h4 {
@@ -1921,7 +1950,22 @@ body {
   font-size: 0.65rem;
   color: var(--color-fg-subtle);
   margin-right: var(--space-2);
-  transition: color var(--transition-base);
+  transform-origin: center;
+  transition: color var(--transition-base), transform 0.22s var(--ease-out-quart);
+}
+
+.collapse-indicator.is-collapsed {
+  transform: rotate(-90deg);
+}
+
+.chevron-icon {
+  display: inline-block;
+  transform-origin: center;
+  transition: transform 0.22s var(--ease-out-quart);
+}
+
+.chevron-icon.is-collapsed {
+  transform: rotate(-90deg);
 }
 
 .table-row.header-row.clickable:hover .collapse-indicator {
@@ -1952,6 +1996,14 @@ body {
   padding-left: 1.5rem;
   font-size: 0.85rem;
   color: #64748b;
+}
+
+/* Entrance animation for revealed rows when a scenario section expands */
+.scenario-table > .table-row.sub-row,
+.scenario-table > .table-row.sub-sub-row,
+.scenario-table > .table-row.step-sub-header,
+.scenario-table > .table-row.combined-total-row {
+  animation: fade-slide-in 0.26s var(--ease-out-soft) both;
 }
 
 .investor-row {
@@ -3582,6 +3634,8 @@ input.investor-name-input:focus, input.founder-name-input:focus {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
+  animation: section-grow-in 0.26s var(--ease-out-quart);
+  transform-origin: top center;
 }
 
 .exit-math-reset-btn {
@@ -4105,5 +4159,14 @@ input.investor-name-input:focus, input.founder-name-input:focus {
   .walkthrough-tooltip {
     width: calc(100vw - 32px) !important;
     left: 16px !important;
+  }
+}
+
+/* Honor users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
   }
 }
