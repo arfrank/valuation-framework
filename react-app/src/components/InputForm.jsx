@@ -4,7 +4,7 @@ import FoundersSection from './FoundersSection'
 import FormInput from './FormInput'
 import { migrateLegacyCompany } from '../utils/dataStructures'
 
-const InputForm = ({ company, onUpdate }) => {
+const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed }) => {
   const roundToCents = (value) => Math.round(Math.max(0, value) * 100) / 100
   const [values, setValues] = useState({
     postMoneyVal: 13,
@@ -302,10 +302,36 @@ const InputForm = ({ company, onUpdate }) => {
     onUpdate(newValues)
   }
 
+  if (collapsed) {
+    return (
+      <button
+        type="button"
+        className="input-form collapsed-rail"
+        onClick={onToggleCollapsed}
+        title="Show Investment Parameters"
+        aria-label="Show Investment Parameters"
+      >
+        <span className="collapsed-rail-icon" aria-hidden="true">▶</span>
+        <span className="collapsed-rail-label">Investment Parameters</span>
+      </button>
+    )
+  }
+
   return (
     <div className="input-form">
       <div className="form-header">
-        <h3>Investment Parameters</h3>
+        <div className="form-header-title">
+          <button
+            type="button"
+            className="input-form-collapse-btn"
+            onClick={onToggleCollapsed}
+            title="Hide Investment Parameters"
+            aria-label="Hide Investment Parameters"
+          >
+            ◀
+          </button>
+          <h3>Investment Parameters</h3>
+        </div>
         <div className="header-controls">
           <div className="investor-name-input">
             <label htmlFor="investor-name" title="Your firm's name. Used as a label throughout the model.">Your firm:</label>

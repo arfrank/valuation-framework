@@ -492,6 +492,97 @@ body {
   flex: 0 0 clamp(280px, 22vw, 380px);
 }
 
+/* Collapsed Inputs — narrows the input column to a thin rail and
+   reclaims the freed grid track for scenarios / Exit Math. */
+.top-row.inputs-collapsed {
+  grid-template-columns: 40px 1fr;
+}
+
+.top-row.inputs-collapsed.with-exit-math {
+  grid-template-columns: 40px 1fr 0.9fr;
+}
+
+.top-row.advanced-open.inputs-collapsed {
+  grid-template-columns: 40px 1fr;
+}
+
+.top-row.compare-mode.inputs-collapsed > .input-form {
+  flex: 0 0 40px;
+}
+
+.input-form.collapsed-rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--space-3);
+  width: 40px;
+  min-height: 220px;
+  padding: var(--space-3) 0;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: box-shadow var(--transition-base), border-color var(--transition-base), background var(--transition-base);
+  font: inherit;
+  color: var(--color-fg-muted);
+}
+
+.input-form.collapsed-rail:hover,
+.input-form.collapsed-rail:focus-visible {
+  box-shadow: var(--shadow-md);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  outline: none;
+}
+
+.collapsed-rail-icon {
+  font-size: var(--text-sm);
+  line-height: 1;
+}
+
+.collapsed-rail-label {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.form-header-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.input-form-collapse-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-fg-subtle);
+  font-size: var(--text-xs);
+  line-height: 1;
+  cursor: pointer;
+  transition: color var(--transition-base), border-color var(--transition-base), background var(--transition-base);
+}
+
+.input-form-collapse-btn:hover,
+.input-form-collapse-btn:focus-visible {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+  outline: none;
+}
+
 .base-result-compare {
   display: flex;
   flex-direction: row;
@@ -3152,10 +3243,26 @@ input.investor-name-input:focus, input.founder-name-input:focus {
   }
 
   .top-row,
-  .top-row.with-exit-math {
+  .top-row.with-exit-math,
+  .top-row.inputs-collapsed,
+  .top-row.inputs-collapsed.with-exit-math,
+  .top-row.advanced-open.inputs-collapsed {
     grid-template-columns: 1fr;
     gap: 1.5rem;
     margin-bottom: 1.5rem;
+  }
+
+  .input-form.collapsed-rail {
+    flex-direction: row;
+    width: 100%;
+    min-height: 0;
+    padding: var(--space-3);
+    justify-content: center;
+  }
+
+  .input-form.collapsed-rail .collapsed-rail-label {
+    writing-mode: horizontal-tb;
+    transform: none;
   }
 
   .top-row.compare-mode {
