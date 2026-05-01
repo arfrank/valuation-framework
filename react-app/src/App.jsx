@@ -328,10 +328,12 @@ function App() {
           onToggleCompareSelection={toggleCompareSelection}
         />
 
-        <div className={`top-row${showExitMath ? ' with-exit-math' : ''}${isCompareMode ? ' compare-mode' : ''}${advancedOpen ? ' advanced-open' : ''}`}>
+        <div className={`top-row${showExitMath ? ' with-exit-math' : ''}${isCompareMode ? ' compare-mode' : ''}${advancedOpen ? ' advanced-open' : ''}${companies[activeCompany]?.inputsCollapsed ? ' inputs-collapsed' : ''}`}>
           <InputForm
             company={companies[activeCompany]}
             onUpdate={(data) => updateCompany(activeCompany, data)}
+            collapsed={Boolean(companies[activeCompany]?.inputsCollapsed)}
+            onToggleCollapsed={() => updateCompany(activeCompany, { inputsCollapsed: !companies[activeCompany]?.inputsCollapsed })}
           />
 
           <div
