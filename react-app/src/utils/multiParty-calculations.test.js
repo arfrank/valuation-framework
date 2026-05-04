@@ -1499,4 +1499,103 @@ describe('Hand-computed scenario verification', () => {
       expect(withTopUp.finalWarrantsPercent).toBeLessThan(withoutTopUp.finalWarrantsPercent)
     })
   })
+
+describe('Rolled-up investor positions', () => {
+  const baseInputs = {
+    postMoneyVal: 20,
+    roundSize: 5,
+    investorPortion: 4,
+    otherPortion: 1,
+    investorName: 'LeadCo',
+    showAdvanced: true,
+    priorInvestors: [],
+    founders: [{ id: 1, name: 'CEO', ownershipPercent: 80 }],
+    safes: [],
+    warrants: [],
+    currentEsopPercent: 0,
+    targetEsopPercent: 0
+  }
+
+  it('rolls up a name appearing in priors and SAFEs', () => {
+    const r = calculateEnhancedScenario({
+      ...baseInputs,
+      priorInvestors: [{ id: 'p1', name: 'Sequoia', ownershipPercent: 10, hasProRataRights: false }],
+      safes: [{ id: 's1', amount: 1, cap: 8, discount: 0, investorName: 'Sequoia' }]
+    })
+    expect(r.rolledUpInvestors).toHaveLength(1)
+    const sequoia = r.rolledUpInvestors[0]
+    expect(sequoia.name).toBe('Sequoia')
+    expect(sequoia.sources.sort()).toEqual(['prior', 'safe'])
+    expect(sequoia.totalPercent).toBeCloseTo(sequoia.priorPercent + sequoia.safePercent, 6)
+    expect(sequoia.priorPercent).toBeGreaterThan(0)
+    expect(sequoia.safePercent).toBeGreaterThan(0)
+  })
+
+  it('rolls up a name appearing in priors, SAFEs, and warrants', () => {
+    const r = calculateEnhancedScenario({
+      ...baseInputs,
+      priorInvestors: [{ id: 'p1', name: 'Acme', ownershipPercent: 5, hasProRataRights: false }],
+      safes: [{ id: 's1', amount: 1, cap: 8, discount: 0, investorName: 'Acme' }],
+      warrants: [{ id: 'w1', name: 'Acme', amount: 0.5, valuation: 10 }]
+    })
+    expect(r.rolledUpInvestors).toHaveLength(1)
+    expect(r.rolledUpInvestors[0].sources.sort()).toEqual(['prior', 'safe', 'warrant'])
+    expect(r.rolledUpInvestors[0].warrantPercent).toBeGreaterThan(0)
+  })
+
+  it('excludes names that appear in only one source', () => {
+    const r = calculateEnhancedScenario({
+      ...baseInputs,
+      priorInvestors: [
+        { id: 'p1', name: 'OnlyPrior', ownershipPercent: 5, hasProRataRights: false },
+        { id: 'p2', name: 'Both', ownershipPercent: 5, hasProRataRights: false }
+      ],
+      safes: [{ id: 's1', amount: 1, cap: 8, discount: 0, investorName: 'Both' }],
+      warrants: [{ id: 'w1', name: 'OnlyWarrant', amount: 0.5, valuation: 10 }]
+    })
+    expect(r.rolledUpInvestors.map(x => x.name)).toEqual(['Both'])
+  })
+
+  it('matches names case-insensitively and preserves first-seen casing', () => {
+    const r = calculateEnhancedScenario({
+      ...baseInputs,
+      priorInvestors: [{ id: 'p1', name: 'Sequoia', ownershipPercent: 10, hasProRataRights: false }],
+      safes: [{ id: 's1', amount: 1, cap: 8, discount: 0, investorName: 'sequoia' }]
+    })
+    expect(r.rolledUpInvestors).toHaveLength(1)
+    expect(r.rolledUpInvestors[0].name).toBe('Sequoia')
+    expect(r.rolledUpInvestors[0].sources.sort()).toEqual(['prior', 'safe'])
+  })
+
+  it('treats whitespace as significant — " Sequoia " ≠ "Sequoia"', () => {
+    const r = calculateEnhancedScenario({
+      ...baseInputs,
+      priorInvestors: [{ id: 'p1', name: 'Sequoia', ownershipPercent: 5, hasProRataRights: false }],
+      safes: [{ id: 's1', amount: 1, cap: 8, discount: 0, investorName: ' Sequoia ' }]
+    })
+    expect(r.rolledUpInvestors).toEqual([])
+  })
+
+  it('excludes the lead investor (combinedInvestor handles that case)', () => {
+    const r = calculateEnhancedScenario({
+      ...baseInputs,
+      investorName: 'LeadCo',
+      priorInvestors: [{ id: 'p1', name: 'LeadCo', ownershipPercent: 10, hasProRataRights: false }],
+      safes: [{ id: 's1', amount: 1, cap: 8, discount: 0, investorName: 'LeadCo' }]
+    })
+    expect(r.rolledUpInvestors).toEqual([])
+    expect(r.combinedInvestor).toBeTruthy()
+    expect(r.combinedInvestor.name).toBe('LeadCo')
+  })
+
+  it('ignores SAFEs and warrants with blank names', () => {
+    const r = calculateEnhancedScenario({
+      ...baseInputs,
+      priorInvestors: [{ id: 'p1', name: 'NamedCo', ownershipPercent: 5, hasProRataRights: false }],
+      safes: [{ id: 's1', amount: 1, cap: 8, discount: 0 /* no investorName */ }],
+      warrants: [{ id: 'w1', name: '', amount: 0.5, valuation: 10 }]
+    })
+    expect(r.rolledUpInvestors).toEqual([])
+  })
+})
 })

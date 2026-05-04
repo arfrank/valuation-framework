@@ -6,7 +6,8 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
     newRound: !isBase,
     founders: !isBase,
     priorInvestors: !isBase,
-    safes: !isBase
+    safes: !isBase,
+    rolledUpInvestors: !isBase
   })
 
   const toggleCollapse = (section) => {
@@ -682,6 +683,38 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
                 )
               })
             )}
+          </>
+        )}
+
+        {/* Combined Positions: names appearing in 2+ of priors/SAFEs/warrants */}
+        {showAdvanced && Array.isArray(scenario.rolledUpInvestors) && scenario.rolledUpInvestors.length > 0 && (
+          <>
+            <div
+              className="table-row header-row clickable"
+              onClick={() => toggleCollapse('rolledUpInvestors')}
+            >
+              <div className="label">
+                <span className={`collapse-indicator${collapsed.rolledUpInvestors ? ' is-collapsed' : ''}`}>▼</span>
+                <strong>Combined Positions</strong>
+              </div>
+              <div className="amount amount-neutral">summary</div>
+              <div className="percent percent-bold">
+                {formatPercent(scenario.rolledUpInvestors.reduce((s, r) => s + r.totalPercent, 0))}
+              </div>
+            </div>
+            {!collapsed.rolledUpInvestors && scenario.rolledUpInvestors.map((r, idx) => {
+              const isLast = idx === scenario.rolledUpInvestors.length - 1
+              const sourcesLabel = r.sources
+                .map(s => s === 'prior' ? 'Prior' : s === 'safe' ? 'SAFE' : 'Warrant')
+                .join(' + ')
+              return (
+                <div key={r.name + idx} className="table-row sub-row">
+                  <div className="label">{isLast ? '└─' : '├─'} {r.name} <span className="safe-attribution">({sourcesLabel})</span></div>
+                  <div className="amount amount-neutral">{sourcesLabel}</div>
+                  <div className="percent">{formatPercent(r.totalPercent)}</div>
+                </div>
+              )
+            })}
           </>
         )}
 
