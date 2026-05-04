@@ -121,7 +121,6 @@ function PriorInvestorsSection({
               className="repeater-col repeater-col--prorata"
               title="Pro-rata: right to invest in this round in proportion to existing ownership, preserving stake."
             >Pro-rata</span>
-            <span className="repeater-col repeater-col--alloc">Allocation</span>
             <span className="repeater-col repeater-col--actions" aria-hidden="true" />
           </div>
 
@@ -167,45 +166,7 @@ function PriorInvestorsSection({
                       />
                     </label>
                   </div>
-                  <div className="repeater-col repeater-col--alloc">
-                    {matchesLead ? (
-                      <span className="repeater-alloc-placeholder" title={`Handled via ${investorName} round portion`}>
-                        via lead
-                      </span>
-                    ) : allocActive ? (
-                      <FormInput
-                        label="Allocation"
-                        type="number"
-                        value={displayAmount}
-                        onChange={(value) => updateInvestor(investor.id, 'proRataOverride', value)}
-                        prefix="$"
-                        suffix="M"
-                        step="0.01"
-                        min="0"
-                        compact
-                      />
-                    ) : calculatedProRata > 0 ? (
-                      <span
-                        className="repeater-prorata-readonly"
-                        title="Calculated pro-rata (not enabled). Toggle the checkbox to commit."
-                      >
-                        ${calculatedProRata.toFixed(2)}M
-                      </span>
-                    ) : (
-                      <span className="repeater-alloc-placeholder">—</span>
-                    )}
-                  </div>
                   <div className="repeater-col repeater-col--actions">
-                    {hasOverride && allocActive && !matchesLead && (
-                      <button
-                        type="button"
-                        className="reset-pro-rata-btn"
-                        onClick={() => updateInvestor(investor.id, 'proRataOverride', null)}
-                        title={`Reset to calculated ($${parseFloat(calculatedProRata.toPrecision(10))}M)`}
-                      >
-                        ↺
-                      </button>
-                    )}
                     <button
                       className="remove-investor-btn"
                       onClick={() => removeInvestor(investor.id)}
@@ -215,6 +176,46 @@ function PriorInvestorsSection({
                       ×
                     </button>
                   </div>
+                  {matchesLead ? (
+                    <div className="repeater-row-caption">
+                      <span className="repeater-row-caption-text" title={`Handled via ${investorName} round portion`}>
+                        Pro-rata handled via {investorName} round portion
+                      </span>
+                    </div>
+                  ) : allocActive ? (
+                    <div className="repeater-row-caption">
+                      <span className="repeater-row-caption-text">Pro-rata allocation</span>
+                      <span className="repeater-row-caption-action">
+                        <FormInput
+                          label="Allocation"
+                          type="number"
+                          value={displayAmount}
+                          onChange={(value) => updateInvestor(investor.id, 'proRataOverride', value)}
+                          prefix="$"
+                          suffix="M"
+                          step="0.01"
+                          min="0"
+                          compact
+                        />
+                        {hasOverride && (
+                          <button
+                            type="button"
+                            className="reset-pro-rata-btn"
+                            onClick={() => updateInvestor(investor.id, 'proRataOverride', null)}
+                            title={`Reset to calculated ($${parseFloat(calculatedProRata.toPrecision(10))}M)`}
+                          >
+                            ↺
+                          </button>
+                        )}
+                      </span>
+                    </div>
+                  ) : calculatedProRata > 0 ? (
+                    <div className="repeater-row-caption">
+                      <span className="repeater-row-caption-text" title="Calculated pro-rata (not enabled). Toggle the checkbox to commit.">
+                        Calculated pro-rata: ${calculatedProRata.toFixed(2)}M (not enabled)
+                      </span>
+                    </div>
+                  ) : null}
                 </div>
               )
             }
@@ -239,22 +240,26 @@ function PriorInvestorsSection({
                       <input type="checkbox" checked={Boolean(safe.proRata)} readOnly disabled />
                     </label>
                   </div>
-                  <div className="repeater-col repeater-col--alloc">
-                    {matchesLead ? (
-                      <span className="repeater-alloc-placeholder" title={`Handled via ${investorName} round portion`}>via lead</span>
-                    ) : safe.proRata && safeProRata$ > 0 ? (
-                      <span className="repeater-prorata-active" title="SAFE pro-rata (edit in SAFE section)">
-                        ${safeProRata$.toFixed(2)}M
-                      </span>
-                    ) : safeProRata$ > 0 ? (
-                      <span className="repeater-prorata-readonly" title="Calculated pro-rata (SAFE pro-rata disabled)">
-                        ${safeProRata$.toFixed(2)}M
-                      </span>
-                    ) : (
-                      <span className="repeater-alloc-placeholder">—</span>
-                    )}
-                  </div>
                   <div className="repeater-col repeater-col--actions" aria-hidden="true" />
+                  {matchesLead ? (
+                    <div className="repeater-row-caption">
+                      <span className="repeater-row-caption-text" title={`Handled via ${investorName} round portion`}>
+                        Pro-rata handled via {investorName} round portion
+                      </span>
+                    </div>
+                  ) : safe.proRata && safeProRata$ > 0 ? (
+                    <div className="repeater-row-caption">
+                      <span className="repeater-row-caption-text" title="SAFE pro-rata (edit in SAFE section)">
+                        SAFE pro-rata: ${safeProRata$.toFixed(2)}M
+                      </span>
+                    </div>
+                  ) : safeProRata$ > 0 ? (
+                    <div className="repeater-row-caption">
+                      <span className="repeater-row-caption-text" title="Calculated pro-rata (SAFE pro-rata disabled)">
+                        Calculated pro-rata: ${safeProRata$.toFixed(2)}M (disabled)
+                      </span>
+                    </div>
+                  ) : null}
                 </div>
               )
             }
@@ -273,10 +278,10 @@ function PriorInvestorsSection({
                 <div className="repeater-col repeater-col--prorata">
                   <span className="repeater-alloc-placeholder" title="Lead is taking the round">—</span>
                 </div>
-                <div className="repeater-col repeater-col--alloc">
-                  <span className="repeater-alloc-placeholder" title="Lead is taking the round">taking round</span>
-                </div>
                 <div className="repeater-col repeater-col--actions" aria-hidden="true" />
+                <div className="repeater-row-caption">
+                  <span className="repeater-row-caption-text">Taking the round</span>
+                </div>
               </div>
             )
           })}
