@@ -640,6 +640,12 @@ function calculateTwoStepScenario(inputs) {
     priorInvestors: postRoundPriorInvestors,
     founders: postRoundFounders,
     combinedInvestor,
+    rolledUpInvestors: buildRolledUpInvestors({
+      priorInvestors: postRoundPriorInvestors,
+      safeDetails: dilutedSafeDetails,
+      warrantDetails,
+      leadInvestorName: investorName,
+    }),
 
     // Legacy compatibility
     postRoundFounderPercent: rp(postRoundFounders.reduce((sum, f) => sum + (f.postRoundPercent || 0), 0)),
@@ -692,6 +698,68 @@ function calculateTwoStepScenario(inputs) {
       headlineValuation: V2,
     }
   }
+}
+
+/**
+ * Group prior investors, SAFEs, and warrants by case-insensitive name and return only
+ * names that appear in 2+ sources. The lead investor is excluded — `combinedInvestor`
+ * already rolls them up in the "New Round Total" section.
+ */
+function buildRolledUpInvestors({ priorInvestors, safeDetails, warrantDetails, leadInvestorName }) {
+  const leadKey = (leadInvestorName || '').toLowerCase()
+  const groups = new Map()
+
+  const ensure = (rawName) => {
+    if (!rawName) return null
+    const key = rawName.toLowerCase()
+    if (key === leadKey) return null
+    if (!groups.has(key)) {
+      groups.set(key, {
+        name: rawName,
+        sources: new Set(),
+        priorPercent: 0,
+        safePercent: 0,
+        safeAmount: 0,
+        warrantPercent: 0,
+        warrantAmount: 0,
+        proRataAmount: 0,
+      })
+    }
+    return groups.get(key)
+  }
+
+  priorInvestors.forEach(p => {
+    const g = ensure(p.name)
+    if (!g) return
+    g.sources.add('prior')
+    g.priorPercent = rp(g.priorPercent + (p.postRoundPercent || 0))
+    g.proRataAmount = r$(g.proRataAmount + (p.proRataAmount || 0))
+  })
+
+  safeDetails.forEach(s => {
+    const g = ensure(s.investorName)
+    if (!g) return
+    g.sources.add('safe')
+    g.safePercent = rp(g.safePercent + (s.totalPercent || s.percent || 0))
+    g.safeAmount = r$(g.safeAmount + (s.amount || 0))
+    g.proRataAmount = r$(g.proRataAmount + (s.proRataAmount || 0))
+  })
+
+  warrantDetails.forEach(w => {
+    const g = ensure(w.name)
+    if (!g) return
+    g.sources.add('warrant')
+    g.warrantPercent = rp(g.warrantPercent + (w.postRoundPercent || 0))
+    g.warrantAmount = r$(g.warrantAmount + (w.amount || 0))
+  })
+
+  return Array.from(groups.values())
+    .filter(g => g.sources.size >= 2)
+    .map(g => ({
+      ...g,
+      sources: Array.from(g.sources),
+      totalPercent: rp(g.priorPercent + g.safePercent + g.warrantPercent),
+    }))
 }
 
 /**
@@ -1077,6 +1145,12 @@ export function calculateEnhancedScenario(inputs) {
     priorInvestors: postRoundPriorInvestors || [],
     founders: postRoundFounders || [],
     combinedInvestor: combinedInvestor,
+    rolledUpInvestors: buildRolledUpInvestors({
+      priorInvestors: postRoundPriorInvestors || [],
+      safeDetails: enrichedSafeDetails,
+      warrantDetails: warrantDetails || [],
+      leadInvestorName: investorName,
+    }),
     
     // Legacy compatibility (aggregate founder data) - ensure no undefined
     postRoundFounderPercent: rp(postRoundFounders.reduce((sum, f) => sum + (f.postRoundPercent || 0), 0)),
