@@ -626,7 +626,6 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed }) 
                   <span className="repeater-col repeater-col--name">Holder</span>
                   <span className="repeater-col repeater-col--amount">Amount</span>
                   <span className="repeater-col repeater-col--valuation">Valuation</span>
-                  <span className="repeater-col repeater-col--alloc">% of FD</span>
                   <span className="repeater-col repeater-col--actions" aria-hidden="true" />
                 </div>
                 {values.warrants.map((warrant) => {
@@ -676,11 +675,6 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed }) 
                           compact
                         />
                       </div>
-                      <div className="repeater-col repeater-col--alloc">
-                        <span className="warrants-fd-percent">
-                          {fdPercent > 0 ? `${fdPercent.toFixed(2)}%` : '—'}
-                        </span>
-                      </div>
                       <div className="repeater-col repeater-col--actions">
                         <button
                           type="button"
@@ -691,6 +685,13 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed }) 
                           ×
                         </button>
                       </div>
+                      {fdPercent > 0 && (
+                        <div className="repeater-row-caption">
+                          <span className="repeater-row-caption-text">
+                            {fdPercent.toFixed(2)}% of fully-diluted ownership
+                          </span>
+                        </div>
+                      )}
                     </div>
                   )
                 })}
@@ -725,7 +726,6 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed }) 
                   <span className="repeater-col repeater-col--cap">Cap</span>
                   <span className="repeater-col repeater-col--discount">Discount</span>
                   <span className="repeater-col repeater-col--prorata">Pro-rata</span>
-                  <span className="repeater-col repeater-col--alloc">Allocation</span>
                   <span className="repeater-col repeater-col--actions" aria-hidden="true" />
                 </div>
                 {values.safes.map((safe) => {
@@ -841,39 +841,7 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed }) 
                           />
                         </label>
                       </div>
-                      <div className="repeater-col repeater-col--alloc">
-                        {proRataBlock && !proRataBlock.matchesLead ? (
-                          <FormInput
-                            label="Allocation"
-                            type="number"
-                            value={proRataBlock.displayAmount}
-                            onChange={(value) => updateSafe(safe.id, 'proRataOverride', value)}
-                            prefix="$"
-                            suffix="M"
-                            step="0.01"
-                            min="0"
-                            compact
-                          />
-                        ) : (
-                          <span
-                            className="repeater-alloc-placeholder"
-                            title={proRataBlock?.matchesLead ? `Handled via ${values.investorName || 'US'} round portion` : 'Enable pro-rata to set allocation'}
-                          >
-                            {proRataBlock?.matchesLead ? 'via lead' : '—'}
-                          </span>
-                        )}
-                      </div>
                       <div className="repeater-col repeater-col--actions">
-                        {proRataBlock?.hasOverride && !proRataBlock.matchesLead && (
-                          <button
-                            type="button"
-                            className="reset-pro-rata-btn"
-                            onClick={() => updateSafe(safe.id, 'proRataOverride', null)}
-                            title={`Reset to calculated ($${parseFloat(proRataBlock.calculatedProRata.toPrecision(10))}M)`}
-                          >
-                            ↺
-                          </button>
-                        )}
                         <button
                           type="button"
                           className="remove-safe-btn"
@@ -883,8 +851,39 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed }) 
                           ×
                         </button>
                       </div>
-                      {conversionInfo && (
-                        <div className="repeater-row-caption">{conversionInfo}</div>
+                      {(conversionInfo || proRataBlock) && (
+                        <div className="repeater-row-caption">
+                          <span className="repeater-row-caption-text">
+                            {conversionInfo}
+                            {!conversionInfo && proRataBlock?.matchesLead && `Pro-rata handled via ${values.investorName || 'US'} round portion`}
+                          </span>
+                          {proRataBlock && !proRataBlock.matchesLead && (
+                            <span className="repeater-row-caption-action">
+                              <span className="repeater-row-caption-label">Allocation</span>
+                              <FormInput
+                                label="Allocation"
+                                type="number"
+                                value={proRataBlock.displayAmount}
+                                onChange={(value) => updateSafe(safe.id, 'proRataOverride', value)}
+                                prefix="$"
+                                suffix="M"
+                                step="0.01"
+                                min="0"
+                                compact
+                              />
+                              {proRataBlock.hasOverride && (
+                                <button
+                                  type="button"
+                                  className="reset-pro-rata-btn"
+                                  onClick={() => updateSafe(safe.id, 'proRataOverride', null)}
+                                  title={`Reset to calculated ($${parseFloat(proRataBlock.calculatedProRata.toPrecision(10))}M)`}
+                                >
+                                  ↺
+                                </button>
+                              )}
+                            </span>
+                          )}
+                        </div>
                       )}
                     </div>
                   )
