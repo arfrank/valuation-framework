@@ -42,7 +42,7 @@ function App() {
   const [scenarios, setScenarios] = useState([])
   const [baseScenariosById, setBaseScenariosById] = useState({})
   const [tourActive, setTourActive] = useState(false)
-  const { notifications, removeNotification, showSuccess, showInfo, showError } = useNotifications()
+  const { notifications, removeNotification, showSuccess, showError } = useNotifications()
 
   const updateCompany = useCallback((companyId, data) => {
     setStoredCompanies((prev) => {
@@ -185,12 +185,26 @@ function App() {
     if (!hasLoadedFromURL) {
       const urlScenario = loadScenarioFromURL()
       if (urlScenario) {
-        updateCompany(activeCompany, urlScenario)
-        showInfo('Scenario loaded from shared link')
+        const decodedName = (urlScenario.name || '').trim()
+        const tabName = decodedName || `Loaded Scenario ${new Date().toLocaleDateString()}`
+        // Strip the synthetic name field; the company already carries it as `name`.
+        // eslint-disable-next-line no-unused-vars
+        const { name: _ignored, ...scenarioFields } = urlScenario
+        const newCompanyId = `company${nextCompanyId}`
+        const baseCompany = createDefaultCompany(tabName)
+        setStoredCompanies(prev => ({
+          ...normalizeStoredCompanies(prev),
+          [newCompanyId]: { ...baseCompany, ...scenarioFields, name: tabName }
+        }))
+        setNextCompanyId(prev => prev + 1)
+        setActiveCompany(newCompanyId)
+        showSuccess(decodedName
+          ? `Loaded "${decodedName}" from shared link`
+          : 'Loaded scenario from shared link')
       }
       setHasLoadedFromURL(true)
     }
-  }, [hasLoadedFromURL, activeCompany, showInfo, updateCompany])
+  }, [hasLoadedFromURL, nextCompanyId, setStoredCompanies, showSuccess])
 
   // Stable refs so the auto-launch effect runs once without re-firing when companies change
   const ensureExampleRef = useRef(ensureExample)

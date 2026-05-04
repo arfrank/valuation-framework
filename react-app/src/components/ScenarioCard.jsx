@@ -42,6 +42,7 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
     const useCompanyInputs = Boolean(company)
 
     const data = {
+      name: companyName || sourceCompany.name || '',
       postMoneyVal: isTwoStep ? scenario.step1.postMoney : scenario.postMoneyVal,
       roundSize: useCompanyInputs ? (sourceCompany.roundSize || 0) : (isTwoStep ? scenario.step1.amount : scenario.roundSize),
       investorPortion: useCompanyInputs ? (sourceCompany.investorPortion || 0) : (isTwoStep ? scenario.step1.investorAmount : scenario.investorAmount),
