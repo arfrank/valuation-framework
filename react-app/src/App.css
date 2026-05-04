@@ -254,8 +254,7 @@ body {
   transition: padding-right 0.2s ease;
 }
 
-.tab:hover .tab-name,
-.tab.active .tab-name {
+.tab:hover .tab-name {
   padding-right: 64px;
 }
 
@@ -272,8 +271,7 @@ body {
   flex-shrink: 0;
 }
 
-.tab:hover .tab-actions,
-.tab.active .tab-actions {
+.tab:hover .tab-actions {
   opacity: 1;
   pointer-events: auto;
 }
@@ -2896,7 +2894,7 @@ input.investor-name-input:focus, input.founder-name-input:focus {
   background: var(--color-bg);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  overflow: hidden;
+  overflow-x: auto;
 }
 
 .repeater-header,

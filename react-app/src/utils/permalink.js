@@ -31,7 +31,9 @@ const URL_PARAM_MAP = {
   step2PostMoney: 's2pm',
   step2Amount: 's2a',
   step2InvestorPortion: 's2ip',
-  step2OtherPortion: 's2op'
+  step2OtherPortion: 's2op',
+  // Optional source company name (used to title the new tab on load)
+  name: 'nm'
 }
 
 const REVERSE_PARAM_MAP = Object.fromEntries(
@@ -203,7 +205,15 @@ export function encodeScenarioToURL(scenarioData) {
       if (field === 'percentPrecision' && value === 2) {
         return // Don't include default value
       }
-      
+
+      // Skip auto-generated default names like "Scenario 1"
+      if (field === 'name') {
+        const trimmed = String(value).trim()
+        if (!trimmed || /^Scenario \d+$/.test(trimmed)) return
+        params.set(param, trimmed)
+        return
+      }
+
       params.set(param, value.toString())
     }
   })
@@ -256,7 +266,7 @@ export function decodeScenarioFromURL(urlParams) {
       const value = params.get(param)
       
       if (value !== null) {
-        if (field === 'investorName') {
+        if (field === 'investorName' || field === 'name') {
           scenarioData[field] = value
         } else if (field === 'showAdvanced' || field === 'twoStepEnabled') {
           scenarioData[field] = value === '1'
