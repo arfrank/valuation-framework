@@ -72,8 +72,7 @@ describe('InputForm with Pre-Money Toggle', () => {
     
     // Change pre-money input to 12
     const preMoneyInput = screen.getByLabelText('Pre-Money Valuation')
-    await user.clear(preMoneyInput)
-    await user.type(preMoneyInput, '12')
+    fireEvent.change(preMoneyInput, { target: { value: '12' } })
 
     // Should update to post-money = pre-money + round size = 12 + 3 = 15
     expect(mockOnUpdate).toHaveBeenCalledWith(

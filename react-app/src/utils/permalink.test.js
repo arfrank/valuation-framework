@@ -8,6 +8,22 @@ import {
 } from './permalink'
 
 describe('Permalink Utilities', () => {
+  const setClipboard = (clipboard) => {
+    Object.defineProperty(navigator, 'clipboard', {
+      value: clipboard,
+      configurable: true,
+      writable: true,
+    })
+  }
+
+  const setExecCommand = (execCommand) => {
+    Object.defineProperty(document, 'execCommand', {
+      value: execCommand,
+      configurable: true,
+      writable: true,
+    })
+  }
+
   const mockScenario = {
     postMoneyVal: 13,
     roundSize: 3,
@@ -37,6 +53,8 @@ describe('Permalink Utilities', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    setClipboard({ writeText: vi.fn(() => Promise.resolve()) })
+    setExecCommand(undefined)
   })
 
   describe('encodeScenarioToURL', () => {
@@ -254,9 +272,7 @@ describe('Permalink Utilities', () => {
   describe('copyPermalinkToClipboard', () => {
     it('should copy permalink to clipboard successfully', async () => {
       const mockWriteText = vi.fn(() => Promise.resolve())
-      Object.assign(navigator, {
-        clipboard: { writeText: mockWriteText }
-      })
+      setClipboard({ writeText: mockWriteText })
 
       const result = await copyPermalinkToClipboard(mockScenario)
       
@@ -266,10 +282,8 @@ describe('Permalink Utilities', () => {
     })
 
     it('should handle clipboard API errors gracefully', async () => {
-      Object.assign(navigator, {
-        clipboard: { 
-          writeText: vi.fn(() => Promise.reject(new Error('Clipboard access denied')))
-        }
+      setClipboard({
+        writeText: vi.fn(() => Promise.reject(new Error('Clipboard access denied')))
       })
 
       const result = await copyPermalinkToClipboard(mockScenario)
@@ -279,16 +293,38 @@ describe('Permalink Utilities', () => {
     })
 
     it('should handle missing clipboard API', async () => {
-      const originalClipboard = navigator.clipboard
-      delete navigator.clipboard
+      setClipboard(undefined)
 
       const result = await copyPermalinkToClipboard(mockScenario)
       
       expect(result.success).toBe(false)
       expect(result.error).toBe('Clipboard API not available')
+    })
 
-      // Restore clipboard
-      navigator.clipboard = originalClipboard
+    it('should fall back to document copy when clipboard API is unavailable', async () => {
+      const mockExecCommand = vi.fn(() => true)
+      setClipboard(undefined)
+      setExecCommand(mockExecCommand)
+
+      const result = await copyPermalinkToClipboard(mockScenario)
+
+      expect(result.success).toBe(true)
+      expect(result.fallback).toBe(true)
+      expect(mockExecCommand).toHaveBeenCalledWith('copy')
+    })
+
+    it('should fall back to document copy when clipboard API rejects', async () => {
+      const mockExecCommand = vi.fn(() => true)
+      const mockWriteText = vi.fn(() => Promise.reject(new Error('Clipboard access denied')))
+      setClipboard({ writeText: mockWriteText })
+      setExecCommand(mockExecCommand)
+
+      const result = await copyPermalinkToClipboard(mockScenario)
+
+      expect(result.success).toBe(true)
+      expect(result.fallback).toBe(true)
+      expect(mockWriteText).toHaveBeenCalledOnce()
+      expect(mockExecCommand).toHaveBeenCalledWith('copy')
     })
   })
 
