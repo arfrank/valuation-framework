@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 
-const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalink, investorName = 'US', showAdvanced = false, percentPrecision = 2, onPercentPrecisionChange, company, onUpdateBase, companyName, compareActive, compareIndex, baseScenario }) => {
+const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalink, onSharePermalink, investorName = 'US', showAdvanced = false, percentPrecision = 2, onPercentPrecisionChange, company, onUpdateBase, companyName, compareActive, compareIndex, baseScenario }) => {
   const [copyFeedback, setCopyFeedback] = useState('')
+  const [shareFeedback, setShareFeedback] = useState('')
   const [applyFeedback, setApplyFeedback] = useState(false)
   const [precisionHint, setPrecisionHint] = useState(false)
   const [pressedSection, setPressedSection] = useState(null)
@@ -103,6 +104,25 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
     } catch {
       setCopyFeedback('Failed to copy')
       setTimeout(() => setCopyFeedback(''), 3000)
+    }
+  }
+
+  const handleSharePermalink = async () => {
+    if (!onSharePermalink) return
+
+    try {
+      const result = await onSharePermalink(buildScenarioData())
+
+      if (result.success) {
+        setShareFeedback(result.fallback ? 'Copied!' : 'Shared!')
+      } else {
+        setShareFeedback('Failed to share')
+      }
+
+      setTimeout(() => setShareFeedback(''), 3000)
+    } catch {
+      setShareFeedback('Failed to share')
+      setTimeout(() => setShareFeedback(''), 3000)
     }
   }
 
@@ -799,17 +819,39 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
           )}
         </div>
 
-        {isBase && onCopyPermalink && (
+        {isBase && (onCopyPermalink || onSharePermalink) && (
           <div className="share-buttons">
-            <button
-              className={`permalink-btn-inline${copyFeedback ? ' is-copied' : ''}`}
-              data-tour="permalink-btn"
-              onClick={handleCopyPermalink}
-              title="Share permalink for this scenario"
-              disabled={!!copyFeedback}
-            >
-              {copyFeedback || '🔗'}
-            </button>
+            {onCopyPermalink && (
+              <button
+                className={`permalink-btn-inline${copyFeedback ? ' is-copied' : ''}`}
+                data-tour="permalink-btn"
+                onClick={handleCopyPermalink}
+                title="Copy permalink for this scenario"
+                disabled={!!copyFeedback}
+              >
+                {copyFeedback || '🔗'}
+              </button>
+            )}
+            {onSharePermalink && (
+              <button
+                type="button"
+                className={`mobile-share-btn mobile-share-btn-primary${shareFeedback ? ' is-copied' : ''}`}
+                onClick={handleSharePermalink}
+                disabled={!!shareFeedback}
+              >
+                {shareFeedback || 'Share'}
+              </button>
+            )}
+            {onCopyPermalink && (
+              <button
+                type="button"
+                className={`mobile-share-btn mobile-share-btn-secondary${copyFeedback ? ' is-copied' : ''}`}
+                onClick={handleCopyPermalink}
+                disabled={!!copyFeedback}
+              >
+                {copyFeedback || 'Copy'}
+              </button>
+            )}
           </div>
         )}
       </div>

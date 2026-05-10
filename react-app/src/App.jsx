@@ -11,7 +11,7 @@ import Walkthrough from './components/Walkthrough'
 import { useLocalStorage } from './hooks/useLocalStorage'
 import { useNotifications } from './hooks/useNotifications'
 import { calculateEnhancedScenarios } from './utils/multiPartyCalculations'
-import { copyPermalinkToClipboard, loadScenarioFromURL } from './utils/permalink'
+import { copyPermalinkToClipboard, loadScenarioFromURL, sharePermalink } from './utils/permalink'
 import { updateSocialSharingMeta } from './utils/socialSharing'
 import { createDefaultCompany, nextUniqueName, normalizeStoredCompanies } from './utils/dataStructures'
 import { createExampleScenario, createExampleCompareVariant, EXAMPLE_PRIMARY_NAME, EXAMPLE_VARIANT_NAME } from './utils/exampleScenario'
@@ -42,6 +42,8 @@ function App() {
   const [scenarios, setScenarios] = useState([])
   const [baseScenariosById, setBaseScenariosById] = useState({})
   const [tourActive, setTourActive] = useState(false)
+  const [mobileView, setMobileView] = useState('results')
+  const [isPhoneLayout, setIsPhoneLayout] = useState(false)
   const [tabActivity, setTabActivity] = useState(null)
   const [inputHighlightToken, setInputHighlightToken] = useState(0)
   const { notifications, removeNotification, showSuccess, showError } = useNotifications()
@@ -71,6 +73,39 @@ function App() {
       showError('Failed to copy permalink', 2200)
     }
     return result
+  }
+
+  const handleSharePermalink = async (scenarioData) => {
+    const result = await sharePermalink(scenarioData)
+    if (result.success) {
+      const label = scenarioData?.name ? ` for ${scenarioData.name}` : ''
+      showSuccess(`${result.fallback ? 'Permalink copied' : 'Scenario shared'}${label}`, 1800)
+    } else {
+      showError('Failed to share scenario', 2200)
+    }
+    return result
+  }
+
+  const handleMobileViewChange = (view) => {
+    if (view === 'exit') {
+      if (!companies[activeCompany]?.showExitMath) {
+        updateCompany(activeCompany, { showExitMath: true })
+      }
+      setMobileView('exit')
+      return
+    }
+
+    setMobileView(view)
+  }
+
+  const toggleExitMath = () => {
+    const next = !companies[activeCompany]?.showExitMath
+    updateCompany(activeCompany, { showExitMath: next })
+    if (next) {
+      setMobileView('exit')
+    } else if (mobileView === 'exit') {
+      setMobileView('results')
+    }
   }
 
 
@@ -163,6 +198,22 @@ function App() {
   }
 
   useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined
+
+    const media = window.matchMedia('(max-width: 768px)')
+    const update = () => setIsPhoneLayout(media.matches)
+    update()
+
+    if (typeof media.addEventListener === 'function') {
+      media.addEventListener('change', update)
+      return () => media.removeEventListener('change', update)
+    }
+
+    media.addListener(update)
+    return () => media.removeListener(update)
+  }, [])
+
+  useEffect(() => {
     const raw = JSON.stringify(storedCompanies)
     const normalized = JSON.stringify(companies)
 
@@ -209,6 +260,7 @@ function App() {
         }))
         setNextCompanyId(prev => prev + 1)
         setActiveCompany(newCompanyId)
+        setMobileView('results')
         showSuccess(decodedName
           ? `Loaded "${decodedName}" from shared link`
           : 'Loaded scenario from shared link')
@@ -312,9 +364,12 @@ function App() {
   const cardIds = isCompareMode ? compareIds : [activeCompany]
   const showExitMath = Boolean(companies[activeCompany]?.showExitMath)
   const advancedOpen = !isCompareMode && !showExitMath && Boolean(companies[activeCompany]?.showAdvanced)
+  const inputFormCollapsed = isPhoneLayout && mobileView === 'inputs'
+    ? false
+    : Boolean(companies[activeCompany]?.inputsCollapsed)
 
   return (
-    <div className="app">
+    <div className={`app mobile-view-${mobileView}`}>
       <NotificationContainer
         notifications={notifications}
         onRemove={removeNotification}
@@ -337,7 +392,7 @@ function App() {
           type="button"
           className="exit-math-toggle header-exit-math-toggle"
           data-tour="exit-math-toggle"
-          onClick={() => updateCompany(activeCompany, { showExitMath: !(companies[activeCompany]?.showExitMath) })}
+          onClick={toggleExitMath}
           aria-pressed={companies[activeCompany]?.showExitMath || false}
         >
           <span className={`chevron-icon${companies[activeCompany]?.showExitMath ? '' : ' is-collapsed'}`}>▼</span> Exit Math
@@ -363,7 +418,7 @@ function App() {
           <InputForm
             company={companies[activeCompany]}
             onUpdate={(data) => updateCompany(activeCompany, data)}
-            collapsed={Boolean(companies[activeCompany]?.inputsCollapsed)}
+            collapsed={inputFormCollapsed}
             onToggleCollapsed={() => updateCompany(activeCompany, { inputsCollapsed: !companies[activeCompany]?.inputsCollapsed })}
             highlightToken={inputHighlightToken}
           />
@@ -402,6 +457,7 @@ function App() {
                   isBase={true}
                   onApplyScenario={(data) => updateCompany(cid, data)}
                   onCopyPermalink={handleCopyPermalink}
+                  onSharePermalink={handleSharePermalink}
                   investorName={companies[cid]?.investorName || 'US'}
                   showAdvanced={companies[cid]?.showAdvanced || false}
                   percentPrecision={companies[cid]?.percentPrecision || 2}
@@ -428,14 +484,16 @@ function App() {
         </div>
 
         {!isCompareMode && scenarios.length > 1 && (
-          <ScenarioControls
-            offsets={companies[activeCompany]?.scenarioOffsets || []}
-            onChange={(next) => updateCompany(activeCompany, { scenarioOffsets: next })}
-          />
+          <div className="mobile-scenarios-panel">
+            <ScenarioControls
+              offsets={companies[activeCompany]?.scenarioOffsets || []}
+              onChange={(next) => updateCompany(activeCompany, { scenarioOffsets: next })}
+            />
+          </div>
         )}
 
         {!isCompareMode && (
-          <div className="scenarios-rows">
+          <div className="scenarios-rows mobile-scenarios-panel">
             {scenarios.slice(1).map((scenario, index) => (
               <ScenarioCard
                 key={scenario.offsetPercent ?? index + 1}
@@ -454,6 +512,45 @@ function App() {
           </div>
         )}
       </main>
+
+      <nav className="mobile-bottom-nav" aria-label="Mobile sections">
+        <button
+          type="button"
+          className={mobileView === 'results' ? 'active' : ''}
+          onClick={() => handleMobileViewChange('results')}
+          aria-pressed={mobileView === 'results'}
+        >
+          <span className="mobile-nav-icon" aria-hidden="true">%</span>
+          <span>Results</span>
+        </button>
+        <button
+          type="button"
+          className={mobileView === 'inputs' ? 'active' : ''}
+          onClick={() => handleMobileViewChange('inputs')}
+          aria-pressed={mobileView === 'inputs'}
+        >
+          <span className="mobile-nav-icon" aria-hidden="true">$</span>
+          <span>Inputs</span>
+        </button>
+        <button
+          type="button"
+          className={mobileView === 'scenarios' ? 'active' : ''}
+          onClick={() => handleMobileViewChange('scenarios')}
+          aria-pressed={mobileView === 'scenarios'}
+        >
+          <span className="mobile-nav-icon" aria-hidden="true">±</span>
+          <span>Scenarios</span>
+        </button>
+        <button
+          type="button"
+          className={mobileView === 'exit' ? 'active' : ''}
+          onClick={() => handleMobileViewChange('exit')}
+          aria-pressed={mobileView === 'exit'}
+        >
+          <span className="mobile-nav-icon" aria-hidden="true">×</span>
+          <span>Exit</span>
+        </button>
+      </nav>
 
       <Walkthrough
         open={tourActive}

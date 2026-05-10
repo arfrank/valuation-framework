@@ -4,6 +4,7 @@ import {
   decodeScenarioFromURL, 
   generatePermalink, 
   copyPermalinkToClipboard,
+  sharePermalink,
   isValidScenarioData 
 } from './permalink'
 
@@ -19,6 +20,14 @@ describe('Permalink Utilities', () => {
   const setExecCommand = (execCommand) => {
     Object.defineProperty(document, 'execCommand', {
       value: execCommand,
+      configurable: true,
+      writable: true,
+    })
+  }
+
+  const setNativeShare = (share) => {
+    Object.defineProperty(navigator, 'share', {
+      value: share,
       configurable: true,
       writable: true,
     })
@@ -55,6 +64,7 @@ describe('Permalink Utilities', () => {
     vi.clearAllMocks()
     setClipboard({ writeText: vi.fn(() => Promise.resolve()) })
     setExecCommand(undefined)
+    setNativeShare(undefined)
   })
 
   describe('encodeScenarioToURL', () => {
@@ -325,6 +335,61 @@ describe('Permalink Utilities', () => {
       expect(result.fallback).toBe(true)
       expect(mockWriteText).toHaveBeenCalledOnce()
       expect(mockExecCommand).toHaveBeenCalledWith('copy')
+    })
+  })
+
+  describe('sharePermalink', () => {
+    it('should use native share when available', async () => {
+      const mockShare = vi.fn(() => Promise.resolve())
+      setNativeShare(mockShare)
+
+      const result = await sharePermalink(mockScenario)
+
+      expect(result.success).toBe(true)
+      expect(mockShare).toHaveBeenCalledWith(expect.objectContaining({
+        title: 'ValuFrame scenario',
+        text: expect.any(String),
+        url: expect.stringMatching(/^http:\/\/localhost:3000\/\?/)
+      }))
+    })
+
+    it('should fall back to clipboard copy when native share is unavailable', async () => {
+      const mockWriteText = vi.fn(() => Promise.resolve())
+      setNativeShare(undefined)
+      setClipboard({ writeText: mockWriteText })
+
+      const result = await sharePermalink(mockScenario)
+
+      expect(result.success).toBe(true)
+      expect(result.fallback).toBe(true)
+      expect(mockWriteText).toHaveBeenCalledOnce()
+    })
+
+    it('should fall back to clipboard copy when native share rejects', async () => {
+      const mockShare = vi.fn(() => Promise.reject(new Error('Share cancelled')))
+      const mockWriteText = vi.fn(() => Promise.resolve())
+      setNativeShare(mockShare)
+      setClipboard({ writeText: mockWriteText })
+
+      const result = await sharePermalink(mockScenario)
+
+      expect(result.success).toBe(true)
+      expect(result.fallback).toBe(true)
+      expect(mockShare).toHaveBeenCalledOnce()
+      expect(mockWriteText).toHaveBeenCalledOnce()
+    })
+
+    it('should return failure when native share and copy fallback fail', async () => {
+      setNativeShare(vi.fn(() => Promise.reject(new Error('Share cancelled'))))
+      setClipboard({
+        writeText: vi.fn(() => Promise.reject(new Error('Clipboard denied')))
+      })
+      setExecCommand(vi.fn(() => false))
+
+      const result = await sharePermalink(mockScenario)
+
+      expect(result.success).toBe(false)
+      expect(result.error).toBe('Clipboard denied')
     })
   })
 
