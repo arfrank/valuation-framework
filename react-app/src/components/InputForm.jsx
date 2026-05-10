@@ -1,11 +1,12 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import PriorInvestorsSection from './PriorInvestorsSection'
 import FoundersSection from './FoundersSection'
 import FormInput from './FormInput'
 import { migrateLegacyCompany } from '../utils/dataStructures'
 
-const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed }) => {
+const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed, highlightToken = 0 }) => {
   const roundToCents = (value) => Math.round(Math.max(0, value) * 100) / 100
+  const focusTimerRef = useRef(null)
   const [values, setValues] = useState({
     postMoneyVal: 13,
     roundSize: 3,
@@ -26,6 +27,13 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed }) 
   
   // New state for tracking input mode
   const [inputMode, setInputMode] = useState('post-money') // 'post-money' or 'pre-money'
+  const [pulseField, setPulseField] = useState(null)
+  const [formHighlight, setFormHighlight] = useState(false)
+  const [moneyToggleSwapping, setMoneyToggleSwapping] = useState(false)
+  const [pendingFocusId, setPendingFocusId] = useState(null)
+  const [recentRowKey, setRecentRowKey] = useState(null)
+  const [removingRows, setRemovingRows] = useState({})
+  const [undoNotice, setUndoNotice] = useState(null)
 
   useEffect(() => {
     if (company) {
@@ -41,6 +49,59 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed }) 
       })
     }
   }, [company])
+
+  useEffect(() => {
+    if (!highlightToken) return undefined
+    setFormHighlight(true)
+    const id = setTimeout(() => setFormHighlight(false), 850)
+    return () => clearTimeout(id)
+  }, [highlightToken])
+
+  useEffect(() => {
+    if (!pendingFocusId) return undefined
+    focusTimerRef.current = setTimeout(() => {
+      const el = document.getElementById(pendingFocusId)
+      if (el && typeof el.focus === 'function') {
+        el.focus()
+        if (typeof el.select === 'function') el.select()
+      }
+      setPendingFocusId(null)
+    }, 60)
+    return () => clearTimeout(focusTimerRef.current)
+  }, [pendingFocusId, values.safes, values.warrants, inputMode])
+
+  const pulseComputedField = (field) => {
+    setPulseField(field)
+    setTimeout(() => {
+      setPulseField((current) => (current === field ? null : current))
+    }, 650)
+  }
+
+  const markRecentRow = (key) => {
+    setRecentRowKey(key)
+    setTimeout(() => {
+      setRecentRowKey((current) => (current === key ? null : current))
+    }, 850)
+  }
+
+  const markRemovingRow = (key) => {
+    setRemovingRows(prev => ({ ...prev, [key]: true }))
+    setTimeout(() => {
+      setRemovingRows(prev => {
+        const next = { ...prev }
+        delete next[key]
+        return next
+      })
+    }, 260)
+  }
+
+  const showRowUndo = (label, onUndo) => {
+    const notice = { id: Date.now(), label, onUndo }
+    setUndoNotice(notice)
+    setTimeout(() => {
+      setUndoNotice((current) => (current?.id === notice.id ? null : current))
+    }, 4200)
+  }
 
   const handleChange = (field, value) => {
     let numValue = field === 'investorName' || field === 'showAdvanced' || field === 'twoStepEnabled' || field === 'esopTiming' ? value : parseFloat(value)
@@ -63,6 +124,7 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed }) 
     if (field === 'preMoneyVal' && inputMode === 'pre-money') {
       // Calculate post-money when pre-money changes
       newValues.postMoneyVal = Math.round((numValue + values.roundSize) * 100) / 100
+      pulseComputedField('postMoneyVal')
     }
     
     // Handle post-money changes that affect pre-money calculations
@@ -76,16 +138,19 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed }) 
         const clampedInvestor = Math.min(values.step2InvestorPortion || 0, numValue)
         newValues.step2InvestorPortion = roundToCents(clampedInvestor)
         newValues.step2OtherPortion = roundToCents(numValue - clampedInvestor)
+        pulseComputedField('step2OtherPortion')
       } else if (field === 'step2InvestorPortion') {
         const clampedInvestor = Math.min(numValue, values.step2Amount || 0)
         newValues.step2InvestorPortion = roundToCents(clampedInvestor)
         newValues.step2OtherPortion = roundToCents((values.step2Amount || 0) - clampedInvestor)
+        pulseComputedField('step2OtherPortion')
       }
     }
     if (field === 'step2OtherPortion') {
       const clampedOther = Math.min(numValue, values.step2Amount || 0)
       newValues.step2OtherPortion = roundToCents(clampedOther)
       newValues.step2InvestorPortion = roundToCents((values.step2Amount || 0) - newValues.step2OtherPortion)
+      pulseComputedField('step2InvestorPortion')
     }
 
     // Auto-calculate other portion when round size or investor portion changes
@@ -94,15 +159,19 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed }) 
         const clampedInvestor = Math.min(values.investorPortion || 0, numValue)
         newValues.investorPortion = roundToCents(clampedInvestor)
         newValues.otherPortion = roundToCents(numValue - clampedInvestor)
+        pulseComputedField('otherPortion')
+        if (clampedInvestor !== (values.investorPortion || 0)) pulseComputedField('investorPortion')
         // Update post-money if in pre-money mode
         if (inputMode === 'pre-money') {
           const currentPreMoney = values.postMoneyVal - values.roundSize
           newValues.postMoneyVal = roundToCents(currentPreMoney + numValue)
+          pulseComputedField('postMoneyVal')
         }
       } else if (field === 'investorPortion') {
         const clampedInvestor = Math.min(numValue, values.roundSize || 0)
         newValues.investorPortion = roundToCents(clampedInvestor)
         newValues.otherPortion = roundToCents((values.roundSize || 0) - clampedInvestor)
+        pulseComputedField('otherPortion')
       }
     }
 
@@ -112,6 +181,7 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed }) 
       const clampedOther = Math.min(numValue, values.roundSize)
       newValues.otherPortion = roundToCents(clampedOther)
       newValues.investorPortion = roundToCents((values.roundSize || 0) - newValues.otherPortion)
+      pulseComputedField('investorPortion')
     }
     
     
@@ -123,13 +193,17 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed }) 
   const safePreMoneyVal = isNaN(preMoneyVal) ? 0 : preMoneyVal
   
   const handleToggleInputMode = () => {
+    setMoneyToggleSwapping(true)
     setInputMode(inputMode === 'post-money' ? 'pre-money' : 'post-money')
+    setPendingFocusId('core-valuation-input')
+    setTimeout(() => setMoneyToggleSwapping(false), 380)
   }
 
   // SAFE management functions
   const addSafe = () => {
+    const id = Date.now()
     const newSafe = {
-      id: Date.now(), // Simple ID generation
+      id, // Simple ID generation
       amount: 0,
       cap: 0,
       discount: 0,
@@ -143,15 +217,34 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed }) 
     }
     setValues(newValues)
     onUpdate(newValues)
+    markRecentRow(`safe-${id}`)
+    setPendingFocusId(`safe-investor-${id}`)
   }
 
   const removeSafe = (safeId) => {
-    const newValues = {
-      ...values,
-      safes: (values.safes || []).filter(safe => safe.id !== safeId)
-    }
-    setValues(newValues)
-    onUpdate(newValues)
+    const removed = (values.safes || []).find(safe => safe.id === safeId)
+    if (!removed) return
+    const originalIndex = (values.safes || []).findIndex(safe => safe.id === safeId)
+    markRemovingRow(`safe-${safeId}`)
+    setTimeout(() => {
+      setValues(prev => {
+        const nextSafes = (prev.safes || []).filter(safe => safe.id !== safeId)
+        const nextValues = { ...prev, safes: nextSafes }
+        onUpdate(nextValues)
+        return nextValues
+      })
+      showRowUndo('SAFE removed', () => {
+        setValues(prev => {
+          if ((prev.safes || []).some(safe => safe.id === safeId)) return prev
+          const nextSafes = [...(prev.safes || [])]
+          nextSafes.splice(Math.max(0, originalIndex), 0, removed)
+          const nextValues = { ...prev, safes: nextSafes }
+          onUpdate(nextValues)
+          markRecentRow(`safe-${safeId}`)
+          return nextValues
+        })
+      })
+    }, 180)
   }
 
   const updateSafe = (safeId, field, value) => {
@@ -231,8 +324,9 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed }) 
 
   // Warrant management functions
   const addWarrant = () => {
+    const id = Date.now()
     const newWarrant = {
-      id: Date.now(),
+      id,
       name: '',
       amount: 0,
       valuation: 0
@@ -243,15 +337,34 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed }) 
     }
     setValues(newValues)
     onUpdate(newValues)
+    markRecentRow(`warrant-${id}`)
+    setPendingFocusId(`warrant-name-${id}`)
   }
 
   const removeWarrant = (warrantId) => {
-    const newValues = {
-      ...values,
-      warrants: (values.warrants || []).filter(w => w.id !== warrantId)
-    }
-    setValues(newValues)
-    onUpdate(newValues)
+    const removed = (values.warrants || []).find(w => w.id === warrantId)
+    if (!removed) return
+    const originalIndex = (values.warrants || []).findIndex(w => w.id === warrantId)
+    markRemovingRow(`warrant-${warrantId}`)
+    setTimeout(() => {
+      setValues(prev => {
+        const nextWarrants = (prev.warrants || []).filter(w => w.id !== warrantId)
+        const nextValues = { ...prev, warrants: nextWarrants }
+        onUpdate(nextValues)
+        return nextValues
+      })
+      showRowUndo('Warrant removed', () => {
+        setValues(prev => {
+          if ((prev.warrants || []).some(w => w.id === warrantId)) return prev
+          const nextWarrants = [...(prev.warrants || [])]
+          nextWarrants.splice(Math.max(0, originalIndex), 0, removed)
+          const nextValues = { ...prev, warrants: nextWarrants }
+          onUpdate(nextValues)
+          markRecentRow(`warrant-${warrantId}`)
+          return nextValues
+        })
+      })
+    }, 180)
   }
 
   const updateWarrant = (warrantId, field, value) => {
@@ -318,7 +431,7 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed }) 
   }
 
   return (
-    <div className="input-form">
+    <div className={`input-form${formHighlight ? ' input-form-highlight' : ''}`}>
       <div className="form-header">
         <div className="form-header-title">
           <button
@@ -345,15 +458,15 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed }) 
             />
           </div>
           <div
-            className="calculated-money-toggle"
+            className={`calculated-money-toggle${moneyToggleSwapping ? ' is-swapping' : ''}`}
             data-tour="money-toggle"
             onClick={handleToggleInputMode}
             title="Click to switch between entering post-money or pre-money valuation. The other side is computed."
           >
             {inputMode === 'post-money' ? (
-              <>Pre-Money: <span className="value">${safePreMoneyVal.toFixed(1)}M</span></>
+              <>Pre-Money: <span key={`pre-${safePreMoneyVal}`} className="value money-roll">${safePreMoneyVal.toFixed(1)}M</span></>
             ) : (
-              <>Post-Money: <span className="value">${(isNaN(values.postMoneyVal) ? 0 : values.postMoneyVal).toFixed(1)}M</span></>
+              <>Post-Money: <span key={`post-${values.postMoneyVal}`} className="value money-roll">${(isNaN(values.postMoneyVal) ? 0 : values.postMoneyVal).toFixed(1)}M</span></>
             )}
             <span className="toggle-hint">⇄</span>
           </div>
@@ -370,6 +483,8 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed }) 
           suffix="M"
           step="0.1"
           min="0"
+          id="core-valuation-input"
+          className={pulseField === 'postMoneyVal' ? 'is-auto-balanced' : ''}
         />
 
         <FormInput
@@ -393,6 +508,7 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed }) 
           step="0.01"
           min="0"
           max={values.roundSize}
+          className={pulseField === 'investorPortion' ? 'is-auto-balanced' : ''}
         />
 
         <FormInput
@@ -406,6 +522,7 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed }) 
           step="0.01"
           min="0"
           max={values.roundSize}
+          className={pulseField === 'otherPortion' ? 'is-auto-balanced' : ''}
         />
       </div>
 
@@ -452,7 +569,7 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed }) 
                     <span className="step-note">Step 1 uses main inputs above</span>
                   </div>
                   {values.step2PostMoney > 0 && values.step2PostMoney <= values.postMoneyVal && (
-                    <div className="warning">
+                    <div className="warning warning-attention">
                       V2 (${values.step2PostMoney}M) should be greater than V1 (${values.postMoneyVal}M)
                     </div>
                   )}
@@ -489,6 +606,7 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed }) 
                       step="0.01"
                       min="0"
                       max={values.step2Amount || 0}
+                      className={pulseField === 'step2InvestorPortion' ? 'is-auto-balanced' : ''}
                     />
 
                     <FormInput
@@ -501,6 +619,7 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed }) 
                       step="0.01"
                       min="0"
                       max={values.step2Amount || 0}
+                      className={pulseField === 'step2OtherPortion' ? 'is-auto-balanced' : ''}
                     />
                   </div>
                 </div>
@@ -568,7 +687,7 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed }) 
               {values.targetEsopPercent > 0 && (
                 <div className="esop-timing-row">
                   <span className="esop-timing-label">Top-up timing</span>
-                  <div className="esop-timing-toggle" role="tablist">
+                  <div className={`esop-timing-toggle ${values.esopTiming === 'post-close' ? 'is-post' : 'is-pre'}`} role="tablist">
                     <button
                       type="button"
                       role="tab"
@@ -633,7 +752,15 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed }) 
                   const valuation = Number(warrant.valuation) || 0
                   const fdPercent = (amount > 0 && valuation > 0) ? (amount / valuation) * 100 : 0
                   return (
-                    <div key={warrant.id} className="repeater-row repeater-row--warrant">
+                    <div
+                      key={warrant.id}
+                      className={[
+                        'repeater-row',
+                        'repeater-row--warrant',
+                        recentRowKey === `warrant-${warrant.id}` ? 'repeater-row--new' : '',
+                        removingRows[`warrant-${warrant.id}`] ? 'repeater-row--removing' : '',
+                      ].filter(Boolean).join(' ')}
+                    >
                       <div className="repeater-col repeater-col--name">
                         <FormInput
                           label="Holder"
@@ -777,7 +904,15 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed }) 
                   }
 
                   return (
-                    <div key={safe.id} className="repeater-row repeater-row--safe">
+                    <div
+                      key={safe.id}
+                      className={[
+                        'repeater-row',
+                        'repeater-row--safe',
+                        recentRowKey === `safe-${safe.id}` ? 'repeater-row--new' : '',
+                        removingRows[`safe-${safe.id}`] ? 'repeater-row--removing' : '',
+                      ].filter(Boolean).join(' ')}
+                    >
                       <div className="repeater-col repeater-col--name">
                         <FormInput
                           label="Investor"
@@ -910,20 +1045,35 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed }) 
         </div>
       </div>
 
+      {undoNotice && (
+        <div className="repeater-undo-toast" role="status">
+          <span>{undoNotice.label}</span>
+          <button
+            type="button"
+            onClick={() => {
+              undoNotice.onUndo()
+              setUndoNotice(null)
+            }}
+          >
+            Undo
+          </button>
+        </div>
+      )}
+
       <div className="validation-info">
         {!isNaN(values.investorPortion) && !isNaN(values.otherPortion) && !isNaN(values.roundSize) && 
          (values.investorPortion + values.otherPortion).toFixed(2) !== values.roundSize.toFixed(2) && (
-          <div className="warning">
+          <div className="warning warning-attention">
             ⚠️ {values.investorName || 'Investor'} + Other ({(values.investorPortion + values.otherPortion).toFixed(2)}M) doesn't equal Round Size ({values.roundSize.toFixed(2)}M)
           </div>
         )}
         {!isNaN(values.postMoneyVal) && !isNaN(values.roundSize) && values.postMoneyVal <= values.roundSize && values.postMoneyVal > 0 && (
-          <div className="warning">
+          <div className="warning warning-attention">
             ⚠️ Post-Money Valuation must be greater than Round Size for valid pre-money calculation
           </div>
         )}
         {!isNaN(values.postMoneyVal) && values.postMoneyVal <= 0 && (
-          <div className="warning">
+          <div className="warning warning-attention">
             ⚠️ Post-Money Valuation must be greater than 0
           </div>
         )}

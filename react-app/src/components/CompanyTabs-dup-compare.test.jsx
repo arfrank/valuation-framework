@@ -78,6 +78,36 @@ describe('CompanyTabs duplicate + compare', () => {
     expect(screen.getByText('Startup Beta').closest('.tab')).not.toHaveAttribute('aria-current')
   })
 
+  it('shows a compare count chip when scenarios are selected', () => {
+    render(<CompanyTabs {...props} selectedCompanyIds={['c1', 'c2']} />)
+
+    expect(screen.getByText('Compare 2')).toBeInTheDocument()
+  })
+
+  it('shows a temporary copy badge for duplicated tabs', () => {
+    render(
+      <CompanyTabs
+        {...props}
+        activeCompany="c2"
+        tabActivity={{ companyId: 'c2', type: 'duplicate', nonce: 1 }}
+      />
+    )
+
+    expect(screen.getByText('Copy')).toBeInTheDocument()
+  })
+
+  it('rejects an empty rename without calling onUpdateCompany', () => {
+    render(<CompanyTabs {...props} />)
+
+    fireEvent.click(screen.getAllByTitle('Edit name')[0])
+    const input = screen.getByDisplayValue('Startup Alpha')
+    fireEvent.change(input, { target: { value: '   ' } })
+    fireEvent.blur(input)
+
+    expect(props.onUpdateCompany).not.toHaveBeenCalled()
+    expect(screen.getByText('Startup Alpha').closest('.tab')).toHaveClass('tab-edit-rejected')
+  })
+
   it('scrolls the active tab into view when selection changes', () => {
     const { rerender } = render(<CompanyTabs {...props} />)
     expect(HTMLElement.prototype.scrollIntoView).toHaveBeenCalledTimes(1)

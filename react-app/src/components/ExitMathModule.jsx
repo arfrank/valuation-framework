@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { calculateExitReturnsForValues, resolveDilutions } from '../utils/exitMath'
 import FormInput from './FormInput'
 
@@ -32,14 +32,23 @@ function sanitizeValuations(list) {
 
 const ExitMathModule = ({ baseScenario, investorName = 'US', exitMath, onUpdate, companyName }) => {
   const [showOverrides, setShowOverrides] = useState(false)
+  const [duplicatePreset, setDuplicatePreset] = useState(null)
+  const [addedValuation, setAddedValuation] = useState(null)
+  const [outcomesPulse, setOutcomesPulse] = useState(false)
 
   const state = {
     ...DEFAULT_EXIT,
     ...(exitMath || {}),
   }
   const { numRounds, uniformDilution } = state
-  const exitValuations = Array.isArray(state.exitValuations) ? state.exitValuations : []
-  const perRoundOverrides = Array.isArray(state.perRoundOverrides) ? state.perRoundOverrides : []
+  const exitValuations = useMemo(
+    () => Array.isArray(state.exitValuations) ? state.exitValuations : [],
+    [state.exitValuations]
+  )
+  const perRoundOverrides = useMemo(
+    () => Array.isArray(state.perRoundOverrides) ? state.perRoundOverrides : [],
+    [state.perRoundOverrides]
+  )
 
   const initialCheck = baseScenario?.combinedInvestor?.totalNewInvestment ?? baseScenario?.investorAmount ?? 0
   const currentOwnership = baseScenario?.combinedInvestor?.totalOwnership ?? baseScenario?.investorPercent ?? 0
@@ -53,6 +62,14 @@ const ExitMathModule = ({ baseScenario, investorName = 'US', exitMath, onUpdate,
     () => calculateExitReturnsForValues({ initialCheck, currentOwnership, dilutions, exitValuations }),
     [initialCheck, currentOwnership, dilutions, exitValuations]
   )
+  const outcomesSignature = outcomes.map(o => `${o.exitValuation}:${o.exitProceeds}:${o.moic}`).join('|')
+
+  useEffect(() => {
+    if (!outcomesSignature) return undefined
+    setOutcomesPulse(true)
+    const id = setTimeout(() => setOutcomesPulse(false), 650)
+    return () => clearTimeout(id)
+  }, [outcomesSignature])
 
   const update = (patch) => {
     if (onUpdate) onUpdate({ ...state, ...patch })
@@ -96,11 +113,19 @@ const ExitMathModule = ({ baseScenario, investorName = 'US', exitMath, onUpdate,
   const handleAddValuation = () => {
     const last = exitValuations[exitValuations.length - 1]
     const seed = Number.isFinite(last) && last > 0 ? last * 2 : 1000
+    setAddedValuation(seed)
+    setTimeout(() => setAddedValuation(null), 850)
     update({ exitValuations: [...exitValuations, seed] })
   }
 
   const handlePresetClick = (value) => {
-    if (exitValuations.some((v) => Number(v) === value)) return
+    if (exitValuations.some((v) => Number(v) === value)) {
+      setDuplicatePreset(value)
+      setTimeout(() => setDuplicatePreset((current) => (current === value ? null : current)), 650)
+      return
+    }
+    setAddedValuation(value)
+    setTimeout(() => setAddedValuation((current) => (current === value ? null : current)), 850)
     const next = [...exitValuations, value].sort((a, b) => Number(a) - Number(b))
     update({ exitValuations: next })
   }
@@ -120,7 +145,10 @@ const ExitMathModule = ({ baseScenario, investorName = 'US', exitMath, onUpdate,
           <div className="exit-math-scenarios-label">Exit Scenarios</div>
           <div className="exit-math-scenarios-list">
             {exitValuations.map((value, i) => (
-              <div className="exit-math-scenario-row" key={i}>
+              <div
+                className={`exit-math-scenario-row${Number(value) === addedValuation ? ' is-new' : ''}`}
+                key={i}
+              >
                 <span className="exit-math-scenario-prefix">$</span>
                 <input
                   type="number"
@@ -158,13 +186,13 @@ const ExitMathModule = ({ baseScenario, investorName = 'US', exitMath, onUpdate,
                 const present = exitValuations.some((x) => Number(x) === v)
                 return (
                   <button
-                    key={v}
-                    type="button"
-                    className={`exit-math-preset-chip${present ? ' is-present' : ''}`}
-                    disabled={present}
-                    onClick={() => handlePresetClick(v)}
-                    title={present ? 'Already added' : `Add ${formatPreset(v)}`}
-                  >
+                  key={v}
+                  type="button"
+                  className={`exit-math-preset-chip${present ? ' is-present' : ''}${duplicatePreset === v ? ' duplicate-pulse' : ''}`}
+                  onClick={() => handlePresetClick(v)}
+                  aria-pressed={present}
+                  title={present ? 'Already added' : `Add ${formatPreset(v)}`}
+                >
                     {formatPreset(v)}
                   </button>
                 )
@@ -251,7 +279,7 @@ const ExitMathModule = ({ baseScenario, investorName = 'US', exitMath, onUpdate,
           </div>
 
           {sanitizedCount > 0 ? (
-            <div className="exit-math-outcomes">
+            <div className={`exit-math-outcomes${outcomesPulse ? ' outcomes-pulse' : ''}`}>
               <div className="exit-math-outcomes-header">Outcomes by exit value</div>
               <table>
                 <thead>
@@ -265,8 +293,8 @@ const ExitMathModule = ({ baseScenario, investorName = 'US', exitMath, onUpdate,
                   {outcomes.map((o, i) => (
                     <tr key={i}>
                       <td>{formatMoney(o.exitValuation)}</td>
-                      <td>{formatMoney(o.exitProceeds)}</td>
-                      <td>{o.moic.toFixed(2)}x</td>
+                      <td><span key={o.exitProceeds} className="metric-roll">{formatMoney(o.exitProceeds)}</span></td>
+                      <td><span key={o.moic} className="metric-roll">{o.moic.toFixed(2)}x</span></td>
                     </tr>
                   ))}
                 </tbody>

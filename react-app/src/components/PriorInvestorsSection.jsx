@@ -1,6 +1,7 @@
 import { createPriorInvestor, calculateTotalOwnership } from '../utils/dataStructures'
 import { calculateSafeConversions } from '../utils/multiPartyCalculations'
 import FormInput from './FormInput'
+import { useEffect, useRef, useState } from 'react'
 
 function PriorInvestorsSection({
   priorInvestors = [],
@@ -11,9 +12,55 @@ function PriorInvestorsSection({
   postMoneyVal = 0,
   investorPortion = 0
 }) {
+  const [recentRowKey, setRecentRowKey] = useState(null)
+  const [removingRows, setRemovingRows] = useState({})
+  const [undoNotice, setUndoNotice] = useState(null)
+  const [reorderTick, setReorderTick] = useState(0)
+  const orderSignatureRef = useRef('')
+
+  const markRecentRow = (key) => {
+    setRecentRowKey(key)
+    setTimeout(() => {
+      setRecentRowKey((current) => (current === key ? null : current))
+    }, 850)
+  }
+
+  const markRemovingRow = (key) => {
+    setRemovingRows(prev => ({ ...prev, [key]: true }))
+    setTimeout(() => {
+      setRemovingRows(prev => {
+        const next = { ...prev }
+        delete next[key]
+        return next
+      })
+    }, 260)
+  }
+
+  const showRowUndo = (label, onUndo) => {
+    const notice = { id: Date.now(), label, onUndo }
+    setUndoNotice(notice)
+    setTimeout(() => {
+      setUndoNotice((current) => (current?.id === notice.id ? null : current))
+    }, 4200)
+  }
+
+  useEffect(() => {
+    if (!recentRowKey) return
+    const rowId = recentRowKey.replace('prior-', 'prior-name-')
+    const id = setTimeout(() => {
+      const el = document.getElementById(rowId)
+      if (el && typeof el.focus === 'function') {
+        el.focus()
+        if (typeof el.select === 'function') el.select()
+      }
+    }, 60)
+    return () => clearTimeout(id)
+  }, [recentRowKey, priorInvestors])
+
   const addPriorInvestor = () => {
     const newInvestor = createPriorInvestor('New Investor', 0, false)
     onUpdate([...priorInvestors, newInvestor])
+    markRecentRow(`prior-${newInvestor.id}`)
   }
 
   const updateInvestor = (investorId, field, value) => {
@@ -44,7 +91,19 @@ function PriorInvestorsSection({
   }
 
   const removeInvestor = (investorId) => {
-    onUpdate(priorInvestors.filter(investor => investor.id !== investorId))
+    const removed = priorInvestors.find(investor => investor.id === investorId)
+    if (!removed) return
+    const originalIndex = priorInvestors.findIndex(investor => investor.id === investorId)
+    markRemovingRow(`prior-${investorId}`)
+    setTimeout(() => {
+      onUpdate(priorInvestors.filter(investor => investor.id !== investorId))
+      showRowUndo('Investor removed', () => {
+        const restored = priorInvestors.filter(investor => investor.id !== investorId)
+        restored.splice(Math.max(0, originalIndex), 0, removed)
+        onUpdate(restored)
+        markRecentRow(`prior-${investorId}`)
+      })
+    }, 180)
   }
 
   const getCalculatedProRata = (ownershipPercent) => {
@@ -80,6 +139,14 @@ function PriorInvestorsSection({
     : []
 
   const allRows = [...priorRows, ...safeRows, ...leadRows].sort((a, b) => b.fdoPct - a.fdoPct)
+  const orderSignature = allRows.map(row => row.key).join('|')
+
+  useEffect(() => {
+    if (orderSignatureRef.current && orderSignatureRef.current !== orderSignature) {
+      setReorderTick(v => v + 1)
+    }
+    orderSignatureRef.current = orderSignature
+  }, [orderSignature])
 
   return (
     <div className="prior-investors-section" data-tour="prior-investors">
@@ -124,7 +191,7 @@ function PriorInvestorsSection({
             <span className="repeater-col repeater-col--actions" aria-hidden="true" />
           </div>
 
-          {allRows.map(row => {
+          {allRows.map((row, rowIndex) => {
             if (row.kind === 'prior') {
               const investor = row.investor
               const calculatedProRata = getCalculatedProRata(investor.ownershipPercent)
@@ -133,7 +200,16 @@ function PriorInvestorsSection({
               const matchesLead = investor.name === investorName && investor.name
               const allocActive = investor.hasProRataRights && investor.ownershipPercent > 0 && roundSize > 0
               return (
-                <div key={row.key} className="repeater-row">
+                <div
+                  key={row.key}
+                  className={[
+                    'repeater-row',
+                    reorderTick > 0 ? `repeater-row--settle repeater-row--settle-${reorderTick % 2}` : '',
+                    recentRowKey === row.key ? 'repeater-row--new' : '',
+                    removingRows[row.key] ? 'repeater-row--removing' : '',
+                  ].filter(Boolean).join(' ')}
+                  style={{ '--row-index': rowIndex }}
+                >
                   <div className="repeater-col repeater-col--name">
                     <FormInput
                       label="Name"
@@ -141,6 +217,7 @@ function PriorInvestorsSection({
                       value={investor.name}
                       onChange={(value) => updateInvestor(investor.id, 'name', value)}
                       placeholder="Investor name"
+                      id={`prior-name-${investor.id}`}
                       compact
                     />
                   </div>
@@ -183,7 +260,7 @@ function PriorInvestorsSection({
                       </span>
                     </div>
                   ) : allocActive ? (
-                    <div className="repeater-row-caption">
+                    <div className="repeater-row-caption is-allocation-active">
                       <span className="repeater-row-caption-text">Pro-rata allocation</span>
                       <span className="repeater-row-caption-action">
                         <FormInput
@@ -212,7 +289,7 @@ function PriorInvestorsSection({
                   ) : calculatedProRata > 0 ? (
                     <div className="repeater-row-caption">
                       <span className="repeater-row-caption-text" title="Calculated pro-rata (not enabled). Toggle the checkbox to commit.">
-                        Calculated pro-rata: ${calculatedProRata.toFixed(2)}M (not enabled)
+                        Calculated pro-rata: <span key={calculatedProRata} className="calculated-allocation money-roll">${calculatedProRata.toFixed(2)}M</span> (not enabled)
                       </span>
                     </div>
                   ) : null}
@@ -226,7 +303,11 @@ function PriorInvestorsSection({
               const safeProRata$ = safe.proRata ? getCalculatedProRata(safe.percent) : 0
               const matchesLead = safe.investorName && investorName && safe.investorName.trim() === investorName.trim()
               return (
-                <div key={row.key} className="repeater-row repeater-row--safe">
+                <div
+                  key={row.key}
+                  className={`repeater-row repeater-row--safe ${reorderTick > 0 ? `repeater-row--settle repeater-row--settle-${reorderTick % 2}` : ''}`}
+                  style={{ '--row-index': rowIndex }}
+                >
                   <div className="repeater-col repeater-col--name">
                     <span className="repeater-readonly-name">
                       <span className="repeater-kind-tag">SAFE</span> {safeLabel}
@@ -250,13 +331,13 @@ function PriorInvestorsSection({
                   ) : safe.proRata && safeProRata$ > 0 ? (
                     <div className="repeater-row-caption">
                       <span className="repeater-row-caption-text" title="SAFE pro-rata (edit in SAFE section)">
-                        SAFE pro-rata: ${safeProRata$.toFixed(2)}M
+                        SAFE pro-rata: <span key={safeProRata$} className="calculated-allocation money-roll">${safeProRata$.toFixed(2)}M</span>
                       </span>
                     </div>
                   ) : safeProRata$ > 0 ? (
                     <div className="repeater-row-caption">
                       <span className="repeater-row-caption-text" title="Calculated pro-rata (SAFE pro-rata disabled)">
-                        Calculated pro-rata: ${safeProRata$.toFixed(2)}M (disabled)
+                        Calculated pro-rata: <span key={safeProRata$} className="calculated-allocation money-roll">${safeProRata$.toFixed(2)}M</span> (disabled)
                       </span>
                     </div>
                   ) : null}
@@ -266,7 +347,11 @@ function PriorInvestorsSection({
 
             // lead row
             return (
-              <div key={row.key} className="repeater-row repeater-row--lead">
+              <div
+                key={row.key}
+                className={`repeater-row repeater-row--lead ${reorderTick > 0 ? `repeater-row--settle repeater-row--settle-${reorderTick % 2}` : ''}`}
+                style={{ '--row-index': rowIndex }}
+              >
                 <div className="repeater-col repeater-col--name">
                   <span className="repeater-readonly-name">
                     <span className="repeater-kind-tag repeater-kind-tag--lead">LEAD</span> {row.name}
@@ -285,6 +370,21 @@ function PriorInvestorsSection({
               </div>
             )
           })}
+        </div>
+      )}
+
+      {undoNotice && (
+        <div className="repeater-undo-toast" role="status">
+          <span>{undoNotice.label}</span>
+          <button
+            type="button"
+            onClick={() => {
+              undoNotice.onUndo()
+              setUndoNotice(null)
+            }}
+          >
+            Undo
+          </button>
         </div>
       )}
 

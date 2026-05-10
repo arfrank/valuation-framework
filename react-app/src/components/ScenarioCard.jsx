@@ -1,7 +1,12 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalink, investorName = 'US', showAdvanced = false, percentPrecision = 2, onPercentPrecisionChange, company, onUpdateBase, companyName, compareActive, compareIndex, baseScenario }) => {
   const [copyFeedback, setCopyFeedback] = useState('')
+  const [applyFeedback, setApplyFeedback] = useState(false)
+  const [precisionHint, setPrecisionHint] = useState(false)
+  const [pressedSection, setPressedSection] = useState(null)
+  const [recalculated, setRecalculated] = useState(false)
+  const firstScenarioRender = useRef(true)
   const [collapsed, setCollapsed] = useState({
     newRound: !isBase,
     founders: !isBase,
@@ -11,6 +16,10 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
   })
 
   const toggleCollapse = (section) => {
+    setPressedSection(section)
+    setTimeout(() => {
+      setPressedSection((current) => (current === section ? null : current))
+    }, 280)
     setCollapsed(prev => ({
       ...prev,
       [section]: !prev[section]
@@ -71,6 +80,8 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
 
   const handleApplyScenario = () => {
     if (onApplyScenario) {
+      setApplyFeedback(true)
+      setTimeout(() => setApplyFeedback(false), 900)
       onApplyScenario(buildScenarioData())
     }
   }
@@ -212,9 +223,38 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
     return `${sign}$${abs}M`
   }
   const deltaClass = (d) => d === null ? '' : d > 0.05 ? 'delta-up' : d < -0.05 ? 'delta-down' : 'delta-flat'
+  const scenarioSignature = [
+    scenario.postMoneyVal,
+    scenario.roundSize,
+    scenario.roundPercent,
+    headlineLsvpPercent,
+    headlineFoundersPercent,
+    headlinePreMoney,
+    adjustedPriorAndUnknownTotal,
+    scenario.totalSafePercent,
+    scenario.finalEsopPercent,
+    scenario.finalWarrantsPercent,
+  ].join('|')
+
+  useEffect(() => {
+    if (firstScenarioRender.current) {
+      firstScenarioRender.current = false
+      return undefined
+    }
+    setRecalculated(true)
+    const id = setTimeout(() => setRecalculated(false), 650)
+    return () => clearTimeout(id)
+  }, [scenarioSignature])
+
+  const handlePrecisionHeaderClick = () => {
+    if (!onPercentPrecisionChange) return
+    onPercentPrecisionChange(percentPrecision >= 4 ? 2 : percentPrecision + 1)
+    setPrecisionHint(true)
+    setTimeout(() => setPrecisionHint(false), 900)
+  }
 
   return (
-    <div className={getCardClass()} data-tour={isBase ? 'base-card' : undefined}>
+    <div className={`${getCardClass()}${recalculated ? ' scenario-recalculated' : ''}`} data-tour={isBase ? 'base-card' : undefined}>
       <div className="scenario-header">
         {isBase ? (
           <h3 className="scenario-title">{baseTitle}</h3>
@@ -228,12 +268,12 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
         )}
         {!isBase && (
           <button
-            className="apply-scenario-btn apply-scenario-icon"
+            className={`apply-scenario-btn apply-scenario-icon${applyFeedback ? ' is-applied' : ''}`}
             onClick={handleApplyScenario}
             title="Apply this scenario to inputs"
             aria-label="Apply this scenario"
           >
-            →
+            {applyFeedback ? '✓' : '→'}
           </button>
         )}
       </div>
@@ -242,21 +282,21 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
         <div className="scenario-headline">
           <div className="headline-metric">
             <span className="headline-label">{investorName}</span>
-            <span className="headline-value">{formatPercent(headlineLsvpPercent)}</span>
+            <span key={headlineLsvpPercent} className="headline-value metric-roll">{formatPercent(headlineLsvpPercent)}</span>
             {deltaLsvp !== null && (
               <span className={`headline-delta ${deltaClass(deltaLsvp)}`}>{formatDelta(deltaLsvp)}</span>
             )}
           </div>
           <div className="headline-metric">
             <span className="headline-label">Founders</span>
-            <span className="headline-value">{formatPercent(headlineFoundersPercent)}</span>
+            <span key={headlineFoundersPercent} className="headline-value metric-roll">{formatPercent(headlineFoundersPercent)}</span>
             {deltaFounders !== null && (
               <span className={`headline-delta ${deltaClass(deltaFounders)}`}>{formatDelta(deltaFounders)}</span>
             )}
           </div>
           <div className="headline-metric">
             <span className="headline-label">Pre-Money</span>
-            <span className="headline-value">{formatDollar(headlinePreMoney)}</span>
+            <span key={headlinePreMoney} className="headline-value metric-roll">{formatDollar(headlinePreMoney)}</span>
             {deltaPreMoney !== null && (
               <span className={`headline-delta ${deltaClass(deltaPreMoney)}`}>{formatDollarDelta(deltaPreMoney)}</span>
             )}
@@ -320,15 +360,20 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
           <div className="label">Party</div>
           <div className="amount">Change</div>
           <div
-            className="percent clickable-header"
+            className={`percent clickable-header${precisionHint ? ' precision-hint-active' : ''}`}
             title={`Showing ${percentPrecision} decimals — click to change`}
-            onClick={() => onPercentPrecisionChange && onPercentPrecisionChange(percentPrecision >= 4 ? 2 : percentPrecision + 1)}
-          >Ownership</div>
+            onClick={handlePrecisionHeaderClick}
+          >
+            Ownership
+            {precisionHint && (
+              <span className="precision-popover">{percentPrecision >= 4 ? 2 : percentPrecision + 1} decimals</span>
+            )}
+          </div>
         </div>
         
         {/* Total New Round Header */}
         <div 
-          className="table-row header-row clickable"
+          className={`table-row header-row clickable${pressedSection === 'newRound' ? ' is-pressed' : ''}`}
           onClick={() => toggleCollapse('newRound')}
         >
           <div className="label">
@@ -458,7 +503,7 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
           <>
             {/* Founders header row */}
             <div 
-              className="table-row header-row clickable"
+              className={`table-row header-row clickable${pressedSection === 'founders' ? ' is-pressed' : ''}`}
               onClick={() => toggleCollapse('founders')}
             >
               <div className="label">
@@ -498,7 +543,7 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
           <>
             {/* Prior Investors header row */}
             <div
-              className="table-row header-row clickable"
+              className={`table-row header-row clickable${pressedSection === 'priorInvestors' ? ' is-pressed' : ''}`}
               onClick={() => toggleCollapse('priorInvestors')}
             >
               <div className="label">
@@ -565,7 +610,7 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
           <>
             {/* SAFEs header row */}
             <div 
-              className="table-row header-row clickable"
+              className={`table-row header-row clickable${pressedSection === 'safes' ? ' is-pressed' : ''}`}
               onClick={() => toggleCollapse('safes')}
             >
               <div className="label">
@@ -690,7 +735,7 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
         {showAdvanced && Array.isArray(scenario.rolledUpInvestors) && scenario.rolledUpInvestors.length > 0 && (
           <>
             <div
-              className="table-row header-row clickable"
+              className={`table-row header-row clickable${pressedSection === 'rolledUpInvestors' ? ' is-pressed' : ''}`}
               onClick={() => toggleCollapse('rolledUpInvestors')}
             >
               <div className="label">
@@ -757,7 +802,7 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
         {isBase && onCopyPermalink && (
           <div className="share-buttons">
             <button
-              className="permalink-btn-inline"
+              className={`permalink-btn-inline${copyFeedback ? ' is-copied' : ''}`}
               data-tour="permalink-btn"
               onClick={handleCopyPermalink}
               title="Share permalink for this scenario"
