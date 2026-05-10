@@ -28,6 +28,7 @@ describe('ScenarioCard with Permalink', () => {
 
   const mockOnApplyScenario = vi.fn()
   const mockOnCopyPermalink = vi.fn()
+  const mockOnSharePermalink = vi.fn()
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -48,10 +49,13 @@ describe('ScenarioCard with Permalink', () => {
         isBase={false}
         onApplyScenario={mockOnApplyScenario}
         onCopyPermalink={mockOnCopyPermalink}
+        onSharePermalink={mockOnSharePermalink}
       />
     )
 
     expect(screen.queryByRole('button', { name: /🔗/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^share$/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^copy$/i })).not.toBeInTheDocument()
   })
 
   it('should render permalink button for base scenario', () => {
@@ -66,6 +70,21 @@ describe('ScenarioCard with Permalink', () => {
     )
 
     expect(screen.getByRole('button', { name: /🔗/ })).toBeInTheDocument()
+  })
+
+  it('should render explicit mobile share and copy controls for base scenario', () => {
+    render(
+      <ScenarioCard
+        scenario={mockScenario}
+        index={0}
+        isBase={true}
+        onCopyPermalink={mockOnCopyPermalink}
+        onSharePermalink={mockOnSharePermalink}
+      />
+    )
+
+    expect(screen.getByRole('button', { name: /^share$/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^copy$/i })).toBeInTheDocument()
   })
 
   it('should call onCopyPermalink when permalink button is clicked on base scenario', async () => {
@@ -95,6 +114,52 @@ describe('ScenarioCard with Permalink', () => {
     }))
   })
 
+  it('should call onCopyPermalink when mobile copy button is clicked on base scenario', async () => {
+    mockOnCopyPermalink.mockResolvedValue({ success: true })
+    const user = userEvent.setup()
+
+    render(
+      <ScenarioCard
+        scenario={mockScenario}
+        index={0}
+        isBase={true}
+        onCopyPermalink={mockOnCopyPermalink}
+        onSharePermalink={mockOnSharePermalink}
+      />
+    )
+
+    await user.click(screen.getByRole('button', { name: /^copy$/i }))
+
+    expect(mockOnCopyPermalink).toHaveBeenCalledOnce()
+  })
+
+  it('should call onSharePermalink when mobile share button is clicked on base scenario', async () => {
+    mockOnSharePermalink.mockResolvedValue({ success: true })
+    const user = userEvent.setup()
+
+    render(
+      <ScenarioCard
+        scenario={mockScenario}
+        index={0}
+        isBase={true}
+        onCopyPermalink={mockOnCopyPermalink}
+        onSharePermalink={mockOnSharePermalink}
+      />
+    )
+
+    await user.click(screen.getByRole('button', { name: /^share$/i }))
+
+    expect(mockOnSharePermalink).toHaveBeenCalledOnce()
+    expect(mockOnSharePermalink).toHaveBeenCalledWith(expect.objectContaining({
+      postMoneyVal: mockScenario.postMoneyVal,
+      roundSize: mockScenario.roundSize,
+      investorPortion: mockScenario.investorAmount,
+      otherPortion: mockScenario.otherAmount,
+      investorName: 'US',
+      showAdvanced: false
+    }))
+  })
+
   it('should show success feedback after successful permalink copy', async () => {
     mockOnCopyPermalink.mockResolvedValue({ success: true })
     const user = userEvent.setup()
@@ -113,7 +178,7 @@ describe('ScenarioCard with Permalink', () => {
     await user.click(permalinkButton)
 
     await waitFor(() => {
-      expect(screen.getByText(/copied!/i)).toBeInTheDocument()
+      expect(screen.getAllByText(/copied!/i).length).toBeGreaterThan(0)
     })
   })
 
@@ -154,7 +219,7 @@ describe('ScenarioCard with Permalink', () => {
     await user.click(permalinkButton)
 
     await waitFor(() => {
-      expect(screen.getByText(/failed to copy/i)).toBeInTheDocument()
+      expect(screen.getAllByText(/failed to copy/i).length).toBeGreaterThan(0)
     })
   })
 

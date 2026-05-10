@@ -475,6 +475,46 @@ export async function copyPermalinkToClipboard(scenarioData) {
 }
 
 /**
+ * Shares a permalink through the native share sheet when available, falling
+ * back to clipboard copy for browsers that do not support Web Share.
+ * @param {Object} scenarioData - The scenario data to encode and share
+ * @returns {Promise<Object>} - Result object with success boolean and optional error
+ */
+export async function sharePermalink(scenarioData) {
+  try {
+    const permalink = generatePermalink(scenarioData)
+    const name = scenarioData?.name ? String(scenarioData.name).trim() : ''
+    const title = name ? `ValuFrame: ${name}` : 'ValuFrame scenario'
+    const text = 'Review this ValuFrame valuation scenario.'
+
+    if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+      try {
+        await navigator.share({ title, text, url: permalink })
+        return {
+          success: true,
+          url: permalink
+        }
+      } catch {
+        const fallback = await copyPermalinkToClipboard(scenarioData)
+        return fallback.success
+          ? { ...fallback, fallback: true }
+          : fallback
+      }
+    }
+
+    const fallback = await copyPermalinkToClipboard(scenarioData)
+    return fallback.success
+      ? { ...fallback, fallback: true }
+      : fallback
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message
+    }
+  }
+}
+
+/**
  * Loads scenario data from current URL and clears the URL parameters
  * @returns {Object|null} - Loaded scenario data or null if not present/invalid
  */
