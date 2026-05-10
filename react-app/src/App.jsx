@@ -42,8 +42,6 @@ function App() {
   const [scenarios, setScenarios] = useState([])
   const [baseScenariosById, setBaseScenariosById] = useState({})
   const [tourActive, setTourActive] = useState(false)
-  const [mobileView, setMobileView] = useState('results')
-  const [isPhoneLayout, setIsPhoneLayout] = useState(false)
   const [tabActivity, setTabActivity] = useState(null)
   const [inputHighlightToken, setInputHighlightToken] = useState(0)
   const { notifications, removeNotification, showSuccess, showError } = useNotifications()
@@ -86,26 +84,9 @@ function App() {
     return result
   }
 
-  const handleMobileViewChange = (view) => {
-    if (view === 'exit') {
-      if (!companies[activeCompany]?.showExitMath) {
-        updateCompany(activeCompany, { showExitMath: true })
-      }
-      setMobileView('exit')
-      return
-    }
-
-    setMobileView(view)
-  }
-
   const toggleExitMath = () => {
     const next = !companies[activeCompany]?.showExitMath
     updateCompany(activeCompany, { showExitMath: next })
-    if (next) {
-      setMobileView('exit')
-    } else if (mobileView === 'exit') {
-      setMobileView('results')
-    }
   }
 
 
@@ -198,22 +179,6 @@ function App() {
   }
 
   useEffect(() => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined
-
-    const media = window.matchMedia('(max-width: 768px)')
-    const update = () => setIsPhoneLayout(media.matches)
-    update()
-
-    if (typeof media.addEventListener === 'function') {
-      media.addEventListener('change', update)
-      return () => media.removeEventListener('change', update)
-    }
-
-    media.addListener(update)
-    return () => media.removeListener(update)
-  }, [])
-
-  useEffect(() => {
     const raw = JSON.stringify(storedCompanies)
     const normalized = JSON.stringify(companies)
 
@@ -260,7 +225,6 @@ function App() {
         }))
         setNextCompanyId(prev => prev + 1)
         setActiveCompany(newCompanyId)
-        setMobileView('results')
         showSuccess(decodedName
           ? `Loaded "${decodedName}" from shared link`
           : 'Loaded scenario from shared link')
@@ -364,12 +328,10 @@ function App() {
   const cardIds = isCompareMode ? compareIds : [activeCompany]
   const showExitMath = Boolean(companies[activeCompany]?.showExitMath)
   const advancedOpen = !isCompareMode && !showExitMath && Boolean(companies[activeCompany]?.showAdvanced)
-  const inputFormCollapsed = isPhoneLayout && mobileView === 'inputs'
-    ? false
-    : Boolean(companies[activeCompany]?.inputsCollapsed)
+  const inputFormCollapsed = Boolean(companies[activeCompany]?.inputsCollapsed)
 
   return (
-    <div className={`app mobile-view-${mobileView}`}>
+    <div className="app">
       <NotificationContainer
         notifications={notifications}
         onRemove={removeNotification}
@@ -512,45 +474,6 @@ function App() {
           </div>
         )}
       </main>
-
-      <nav className="mobile-bottom-nav" aria-label="Mobile sections">
-        <button
-          type="button"
-          className={mobileView === 'results' ? 'active' : ''}
-          onClick={() => handleMobileViewChange('results')}
-          aria-pressed={mobileView === 'results'}
-        >
-          <span className="mobile-nav-icon" aria-hidden="true">%</span>
-          <span>Results</span>
-        </button>
-        <button
-          type="button"
-          className={mobileView === 'inputs' ? 'active' : ''}
-          onClick={() => handleMobileViewChange('inputs')}
-          aria-pressed={mobileView === 'inputs'}
-        >
-          <span className="mobile-nav-icon" aria-hidden="true">$</span>
-          <span>Inputs</span>
-        </button>
-        <button
-          type="button"
-          className={mobileView === 'scenarios' ? 'active' : ''}
-          onClick={() => handleMobileViewChange('scenarios')}
-          aria-pressed={mobileView === 'scenarios'}
-        >
-          <span className="mobile-nav-icon" aria-hidden="true">±</span>
-          <span>Scenarios</span>
-        </button>
-        <button
-          type="button"
-          className={mobileView === 'exit' ? 'active' : ''}
-          onClick={() => handleMobileViewChange('exit')}
-          aria-pressed={mobileView === 'exit'}
-        >
-          <span className="mobile-nav-icon" aria-hidden="true">×</span>
-          <span>Exit</span>
-        </button>
-      </nav>
 
       <Walkthrough
         open={tourActive}
