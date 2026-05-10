@@ -42,6 +42,8 @@ function App() {
   const [scenarios, setScenarios] = useState([])
   const [baseScenariosById, setBaseScenariosById] = useState({})
   const [tourActive, setTourActive] = useState(false)
+  const [tabActivity, setTabActivity] = useState(null)
+  const [inputHighlightToken, setInputHighlightToken] = useState(0)
   const { notifications, removeNotification, showSuccess, showError } = useNotifications()
 
   const updateCompany = useCallback((companyId, data) => {
@@ -56,11 +58,19 @@ function App() {
 
   const applyScenario = (scenarioData) => {
     updateCompany(activeCompany, scenarioData)
+    setInputHighlightToken(Date.now())
     showSuccess('Scenario applied successfully')
   }
 
   const handleCopyPermalink = async (scenarioData) => {
-    return await copyPermalinkToClipboard(scenarioData)
+    const result = await copyPermalinkToClipboard(scenarioData)
+    if (result.success) {
+      const label = scenarioData?.name ? ` for ${scenarioData.name}` : ''
+      showSuccess(`Permalink copied${label}`, 1800)
+    } else {
+      showError('Failed to copy permalink', 2200)
+    }
+    return result
   }
 
 
@@ -72,6 +82,7 @@ function App() {
     setStoredCompanies(prev => ({ ...normalizeStoredCompanies(prev), [newCompanyId]: newCompany }))
     setActiveCompany(newCompanyId)
     setNextCompanyId(prev => prev + 1)
+    setTabActivity({ companyId: newCompanyId, type: 'add', nonce: Date.now() })
   }
 
   const ensureExample = useCallback(() => {
@@ -126,6 +137,7 @@ function App() {
     setStoredCompanies(prev => ({ ...normalizeStoredCompanies(prev), [newCompanyId]: copy }))
     setActiveCompany(newCompanyId)
     setNextCompanyId(prev => prev + 1)
+    setTabActivity({ companyId: newCompanyId, type: 'duplicate', nonce: Date.now() })
   }
 
   const removeCompany = (companyId) => {
@@ -188,7 +200,6 @@ function App() {
         const decodedName = (urlScenario.name || '').trim()
         const tabName = decodedName || `Loaded Scenario ${new Date().toLocaleDateString()}`
         // Strip the synthetic name field; the company already carries it as `name`.
-        // eslint-disable-next-line no-unused-vars
         const { name: _ignored, ...scenarioFields } = urlScenario
         const newCompanyId = `company${nextCompanyId}`
         const baseCompany = createDefaultCompany(tabName)
@@ -345,6 +356,7 @@ function App() {
           onLoadExample={loadExample}
           selectedCompanyIds={selectedCompanyIds}
           onToggleCompareSelection={toggleCompareSelection}
+          tabActivity={tabActivity}
         />
 
         <div className={`top-row${showExitMath ? ' with-exit-math' : ''}${isCompareMode ? ' compare-mode' : ''}${advancedOpen ? ' advanced-open' : ''}${companies[activeCompany]?.inputsCollapsed ? ' inputs-collapsed' : ''}`}>
@@ -353,6 +365,7 @@ function App() {
             onUpdate={(data) => updateCompany(activeCompany, data)}
             collapsed={Boolean(companies[activeCompany]?.inputsCollapsed)}
             onToggleCollapsed={() => updateCompany(activeCompany, { inputsCollapsed: !companies[activeCompany]?.inputsCollapsed })}
+            highlightToken={inputHighlightToken}
           />
 
           <div

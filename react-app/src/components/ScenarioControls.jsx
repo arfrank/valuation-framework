@@ -18,11 +18,14 @@ const isSameBand = (a, b) => JSON.stringify(a) === JSON.stringify(b)
 const ScenarioControls = ({ offsets = [], onChange }) => {
   const [adding, setAdding] = useState(false)
   const [draft, setDraft] = useState('')
+  const [customCommitted, setCustomCommitted] = useState(false)
 
   const currentBand = normalizeScenarioOffsets(offsets)
+  const activePresetIndex = PRESETS.findIndex(p => isSameBand(currentBand, buildScenarioOffsets(p.max)))
 
   const applyPreset = (max) => {
     onChange(buildScenarioOffsets(max))
+    setCustomCommitted(false)
   }
 
   const commitDraft = () => {
@@ -31,6 +34,8 @@ const ScenarioControls = ({ offsets = [], onChange }) => {
       const max = Math.abs(parsed)
       if (max > 0 && max < 100) {
         onChange(buildScenarioOffsets(max))
+        setCustomCommitted(true)
+        setTimeout(() => setCustomCommitted(false), 700)
       }
     }
     setDraft('')
@@ -43,15 +48,21 @@ const ScenarioControls = ({ offsets = [], onChange }) => {
   }
 
   return (
-    <div className="scenario-controls" data-tour="scenario-controls" role="group" aria-label="Sensitivity scenarios">
+    <div
+      className={`scenario-controls${adding ? ' is-adding' : ''}${customCommitted ? ' custom-committed' : ''}`}
+      data-tour="scenario-controls"
+      role="group"
+      aria-label="Sensitivity scenarios"
+    >
       <span className="scenario-controls-label" title="Adds offset scenario cards (e.g. ±10%, ±20%) so partners can see how the cap table flexes at different valuations">Sensitivity</span>
       <div className="scenario-pills">
-        {currentBand.map(n => {
+        {currentBand.map((n, index) => {
           const direction = n < 0 ? 'down' : 'up'
           return (
             <span
               key={n}
               className={`scenario-pill scenario-pill-${direction} active`}
+              style={{ '--pill-index': index }}
             >
               {formatOffset(n)}
             </span>
@@ -84,7 +95,11 @@ const ScenarioControls = ({ offsets = [], onChange }) => {
           </button>
         )}
       </div>
-      <div className="scenario-presets" aria-label="Range presets">
+      <div
+        className="scenario-presets"
+        aria-label="Range presets"
+        style={{ '--active-preset-index': activePresetIndex < 0 ? 0 : activePresetIndex, '--active-preset-visible': activePresetIndex < 0 ? 0 : 1 }}
+      >
         {PRESETS.map(p => {
           const active = isSameBand(currentBand, buildScenarioOffsets(p.max))
           return (

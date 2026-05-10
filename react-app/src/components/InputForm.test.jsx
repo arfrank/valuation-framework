@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import InputForm from './InputForm'
 
@@ -72,8 +72,7 @@ describe('InputForm with Pre-Money Toggle', () => {
     
     // Change pre-money input to 12
     const preMoneyInput = screen.getByLabelText('Pre-Money Valuation')
-    await user.clear(preMoneyInput)
-    await user.type(preMoneyInput, '12')
+    fireEvent.change(preMoneyInput, { target: { value: '12' } })
 
     // Should update to post-money = pre-money + round size = 12 + 3 = 15
     expect(mockOnUpdate).toHaveBeenCalledWith(
@@ -187,5 +186,25 @@ describe('InputForm with Pre-Money Toggle', () => {
         otherPortion: 0
       })
     )
+  })
+
+  it('pulses the auto-balanced other portion when round size changes', () => {
+    render(<InputForm company={defaultCompany} onUpdate={mockOnUpdate} />)
+
+    fireEvent.change(screen.getByLabelText('Round Size'), { target: { value: '4' } })
+
+    expect(screen.getByLabelText('Other Portion').closest('.form-input-group')).toHaveClass('is-auto-balanced')
+  })
+
+  it('focuses the first SAFE field when adding a SAFE row', async () => {
+    const user = userEvent.setup()
+    render(<InputForm company={{ ...defaultCompany, showAdvanced: true }} onUpdate={mockOnUpdate} />)
+
+    await user.click(screen.getByRole('button', { name: /add safe/i }))
+
+    const safeInvestorInput = screen.getByLabelText('Investor')
+    await waitFor(() => {
+      expect(document.activeElement).toBe(safeInvestorInput)
+    })
   })
 })

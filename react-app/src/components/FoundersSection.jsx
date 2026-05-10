@@ -1,10 +1,55 @@
 import { createFounder, calculateTotalOwnership } from '../utils/dataStructures'
 import FormInput from './FormInput'
+import { useEffect, useState } from 'react'
 
 function FoundersSection({ founders = [], onUpdate }) {
+  const [recentRowKey, setRecentRowKey] = useState(null)
+  const [removingRows, setRemovingRows] = useState({})
+  const [undoNotice, setUndoNotice] = useState(null)
+
+  const markRecentRow = (key) => {
+    setRecentRowKey(key)
+    setTimeout(() => {
+      setRecentRowKey((current) => (current === key ? null : current))
+    }, 850)
+  }
+
+  const markRemovingRow = (key) => {
+    setRemovingRows(prev => ({ ...prev, [key]: true }))
+    setTimeout(() => {
+      setRemovingRows(prev => {
+        const next = { ...prev }
+        delete next[key]
+        return next
+      })
+    }, 260)
+  }
+
+  const showRowUndo = (label, onUndo) => {
+    const notice = { id: Date.now(), label, onUndo }
+    setUndoNotice(notice)
+    setTimeout(() => {
+      setUndoNotice((current) => (current?.id === notice.id ? null : current))
+    }, 4200)
+  }
+
+  useEffect(() => {
+    if (!recentRowKey) return
+    const rowId = recentRowKey.replace('founder-', 'founder-name-')
+    const id = setTimeout(() => {
+      const el = document.getElementById(rowId)
+      if (el && typeof el.focus === 'function') {
+        el.focus()
+        if (typeof el.select === 'function') el.select()
+      }
+    }, 60)
+    return () => clearTimeout(id)
+  }, [recentRowKey, founders])
+
   const addFounder = () => {
     const newFounder = createFounder('New Founder', 0)
     onUpdate([...founders, newFounder])
+    markRecentRow(`founder-${newFounder.id}`)
   }
 
   const updateFounder = (founderId, field, value) => {
@@ -21,7 +66,19 @@ function FoundersSection({ founders = [], onUpdate }) {
   }
 
   const removeFounder = (founderId) => {
-    onUpdate(founders.filter(founder => founder.id !== founderId))
+    const removed = founders.find(founder => founder.id === founderId)
+    if (!removed) return
+    const originalIndex = founders.findIndex(founder => founder.id === founderId)
+    markRemovingRow(`founder-${founderId}`)
+    setTimeout(() => {
+      onUpdate(founders.filter(founder => founder.id !== founderId))
+      showRowUndo('Founder removed', () => {
+        const restored = founders.filter(founder => founder.id !== founderId)
+        restored.splice(Math.max(0, originalIndex), 0, removed)
+        onUpdate(restored)
+        markRecentRow(`founder-${founderId}`)
+      })
+    }, 180)
   }
 
   const totalOwnership = calculateTotalOwnership(founders)
@@ -60,7 +117,14 @@ function FoundersSection({ founders = [], onUpdate }) {
             <span className="repeater-col repeater-col--actions" aria-hidden="true" />
           </div>
           {founders.map((founder, index) => (
-            <div key={founder.id} className="repeater-row">
+            <div
+              key={founder.id}
+              className={[
+                'repeater-row',
+                recentRowKey === `founder-${founder.id}` ? 'repeater-row--new' : '',
+                removingRows[`founder-${founder.id}`] ? 'repeater-row--removing' : '',
+              ].filter(Boolean).join(' ')}
+            >
               <div className="repeater-col repeater-col--name">
                 <FormInput
                   label="Name"
@@ -68,6 +132,7 @@ function FoundersSection({ founders = [], onUpdate }) {
                   value={founder.name}
                   onChange={(value) => updateFounder(founder.id, 'name', value)}
                   placeholder={`Founder ${index + 1}`}
+                  id={`founder-name-${founder.id}`}
                   compact
                 />
               </div>
@@ -96,6 +161,21 @@ function FoundersSection({ founders = [], onUpdate }) {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {undoNotice && (
+        <div className="repeater-undo-toast" role="status">
+          <span>{undoNotice.label}</span>
+          <button
+            type="button"
+            onClick={() => {
+              undoNotice.onUndo()
+              setUndoNotice(null)
+            }}
+          >
+            Undo
+          </button>
         </div>
       )}
 

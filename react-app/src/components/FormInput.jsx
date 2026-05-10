@@ -19,11 +19,17 @@ const FormInput = ({
   tooltip,
   compact = false,
   ariaLabel,
+  onKeyDown,
   ...props
 }) => {
   const [isFocused, setIsFocused] = useState(false)
+  const [commitPulse, setCommitPulse] = useState(0)
 
   const inputId = id || `form-input-${label.toLowerCase().replace(/\s+/g, '-')}`
+
+  const pulseCommit = () => {
+    setCommitPulse((v) => v + 1)
+  }
   
   const handleChange = (e) => {
     if (type === 'number') {
@@ -41,13 +47,16 @@ const FormInput = ({
     } else {
       onChange('')
     }
+    pulseCommit()
   }
 
   const showClearButton = clearable && value && (type === 'number' ? value > 0 : value.length > 0)
 
   return (
     <div className={`form-input-group ${compact ? 'compact' : ''} ${className}`} title={tooltip || undefined}>
-      <div className={`form-input-wrapper ${compact ? 'compact' : ''} ${isFocused ? 'focused' : ''} ${disabled ? 'disabled' : ''} ${showClearButton ? 'with-clear' : ''}`}>
+      <div
+        className={`form-input-wrapper ${compact ? 'compact' : ''} ${isFocused ? 'focused' : ''} ${disabled ? 'disabled' : ''} ${showClearButton ? 'with-clear' : ''} ${commitPulse > 0 ? `commit-pulse commit-pulse-${commitPulse % 2}` : ''}`}
+      >
         {!compact && (
           <label htmlFor={inputId} className="form-input-label" title={tooltip || undefined}>
             {label}
@@ -75,7 +84,14 @@ const FormInput = ({
             value={value}
             onChange={handleChange}
             onFocus={() => setIsFocused(true)}
-            onBlur={() => setIsFocused(false)}
+            onBlur={() => {
+              setIsFocused(false)
+              pulseCommit()
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') pulseCommit()
+              onKeyDown?.(e)
+            }}
             placeholder={placeholder}
             min={min}
             max={max}

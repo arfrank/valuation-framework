@@ -117,6 +117,25 @@ describe('ScenarioCard with Permalink', () => {
     })
   })
 
+  it('morphs the apply button into a confirmation after applying a scenario', async () => {
+    const user = userEvent.setup()
+
+    render(
+      <ScenarioCard
+        scenario={mockScenario}
+        index={1}
+        isBase={false}
+        onApplyScenario={mockOnApplyScenario}
+      />
+    )
+
+    const applyButton = screen.getByRole('button', { name: /apply this scenario/i })
+    await user.click(applyButton)
+
+    expect(mockOnApplyScenario).toHaveBeenCalledOnce()
+    expect(applyButton).toHaveTextContent('✓')
+  })
+
   it('should show error feedback after failed permalink copy', async () => {
     mockOnCopyPermalink.mockResolvedValue({ success: false, error: 'Copy failed' })
     const user = userEvent.setup()
