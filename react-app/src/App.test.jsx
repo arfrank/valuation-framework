@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
 import App from './App'
 
 // Mock the child components to focus on App's permalink functionality
@@ -64,28 +63,6 @@ describe('App with Permalink Loading', () => {
     expect(screen.getByTestId('input-form')).toBeInTheDocument()
   })
 
-  it('should default the phone shell to results and switch sections from bottom nav', async () => {
-    const user = userEvent.setup()
-    const { container } = render(<App />)
-
-    expect(container.firstChild).toHaveClass('mobile-view-results')
-
-    await user.click(screen.getByRole('button', { name: /inputs/i }))
-
-    expect(container.firstChild).toHaveClass('mobile-view-inputs')
-    expect(screen.getByRole('button', { name: /inputs/i })).toHaveAttribute('aria-pressed', 'true')
-  })
-
-  it('should enable Exit Math when the phone Exit nav item is selected', async () => {
-    const user = userEvent.setup()
-    const { container } = render(<App />)
-
-    await user.click(screen.getByRole('button', { name: /^exit$/i }))
-
-    expect(container.firstChild).toHaveClass('mobile-view-exit')
-    expect(screen.getByRole('button', { name: /exit math/i })).toHaveAttribute('aria-pressed', 'true')
-  })
-
   it('should load scenario from URL parameters on mount', async () => {
     // Mock URL with scenario parameters
     Object.defineProperty(window, 'location', {
@@ -99,14 +76,13 @@ describe('App with Permalink Loading', () => {
       writable: true,
     })
 
-    const { container } = render(<App />)
+    render(<App />)
 
     await waitFor(() => {
       // Check that the input form received the loaded data
       const postMoneyInput = screen.getByTestId('post-money-input')
       expect(postMoneyInput.value).toBe('15')
     })
-    expect(container.firstChild).toHaveClass('mobile-view-results')
   })
 
   it('should handle invalid URL parameters gracefully', async () => {

@@ -1966,8 +1966,7 @@ body {
   align-items: center;
 }
 
-.mobile-share-btn,
-.mobile-bottom-nav {
+.mobile-share-btn {
   display: none;
 }
 
@@ -4656,7 +4655,7 @@ input.investor-name-input:focus, input.founder-name-input:focus {
 
   .app-main {
     padding: 0.75rem;
-    padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
     overflow-x: hidden;
   }
 
@@ -4732,37 +4731,6 @@ input.investor-name-input:focus, input.founder-name-input:focus {
     max-width: none;
     margin-bottom: 0.75rem;
     padding-inline: 0;
-  }
-
-  .top-row > .input-form,
-  .top-row > .base-result,
-  .top-row > .exit-math-module,
-  .mobile-scenarios-panel {
-    display: none;
-  }
-
-  .mobile-view-results .top-row > .base-result,
-  .mobile-view-inputs .top-row > .input-form,
-  .mobile-view-exit .top-row > .exit-math-module {
-    display: block;
-    width: 100%;
-  }
-
-  .mobile-view-results .top-row > .base-result {
-    display: flex;
-  }
-
-  .mobile-view-scenarios .top-row {
-    display: none;
-  }
-
-  .mobile-view-scenarios .mobile-scenarios-panel {
-    display: block;
-  }
-
-  .mobile-view-scenarios .scenarios-rows.mobile-scenarios-panel {
-    display: grid;
-    grid-template-columns: 1fr;
   }
 
   .base-result > .scenario-card,
@@ -4903,54 +4871,6 @@ input.investor-name-input:focus, input.founder-name-input:focus {
   .mobile-share-btn:disabled {
     opacity: 0.72;
     cursor: not-allowed;
-  }
-
-  .mobile-bottom-nav {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 40;
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 0.25rem;
-    padding: 0.45rem 0.55rem calc(0.45rem + env(safe-area-inset-bottom, 0px));
-    background: rgba(255, 255, 255, 0.96);
-    border-top: 1px solid var(--color-border);
-    box-shadow: 0 -8px 24px rgba(15, 23, 42, 0.08);
-    backdrop-filter: blur(12px);
-  }
-
-  .mobile-bottom-nav button {
-    min-width: 0;
-    min-height: 48px;
-    padding: 0.35rem 0.25rem;
-    border: 1px solid transparent;
-    border-radius: 8px;
-    background: transparent;
-    color: var(--color-fg-subtle);
-    font: inherit;
-    font-size: 0.72rem;
-    font-weight: 700;
-    line-height: 1.1;
-    display: inline-flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 0.2rem;
-    cursor: pointer;
-  }
-
-  .mobile-bottom-nav button.active {
-    color: var(--color-accent-hover);
-    background: var(--color-accent-soft);
-    border-color: color-mix(in srgb, var(--color-accent) 28%, var(--color-border));
-  }
-
-  .mobile-nav-icon {
-    font-family: 'JetBrains Mono', 'Consolas', 'Monaco', monospace;
-    font-size: 0.9rem;
-    line-height: 1;
   }
 }
 
