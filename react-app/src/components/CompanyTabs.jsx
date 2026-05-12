@@ -9,6 +9,7 @@ const CompanyTabs = ({
   onUpdateCompany,
   onDuplicateCompany,
   onLoadExample,
+  onImportCompany,
   selectedCompanyIds = [],
   onToggleCompareSelection,
   tabActivity,
@@ -248,6 +249,17 @@ const CompanyTabs = ({
             >
               <span className="load-example-icon" aria-hidden="true">★</span>
               <span className="load-example-text">Load Example</span>
+            </button>
+          )}
+          {onImportCompany && (
+            <button
+              type="button"
+              className="import-company-btn"
+              onClick={onImportCompany}
+              title="Import a cap table from JSON (paste the output of the Claude prompt)"
+            >
+              <span className="import-icon" aria-hidden="true">⇪</span>
+              <span className="import-text">Import</span>
             </button>
           )}
           <button className="add-company-btn" onClick={onAddCompany} title="Add new scenario">

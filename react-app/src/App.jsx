@@ -8,6 +8,7 @@ import Logo from './components/Logo'
 import NotificationContainer from './components/NotificationContainer'
 import ExitMathModule from './components/ExitMathModule'
 import Walkthrough from './components/Walkthrough'
+import ImportModal from './components/ImportModal'
 import { useLocalStorage } from './hooks/useLocalStorage'
 import { useNotifications } from './hooks/useNotifications'
 import { calculateEnhancedScenarios } from './utils/multiPartyCalculations'
@@ -44,6 +45,7 @@ function App() {
   const [tourActive, setTourActive] = useState(false)
   const [tabActivity, setTabActivity] = useState(null)
   const [inputHighlightToken, setInputHighlightToken] = useState(0)
+  const [importModalOpen, setImportModalOpen] = useState(false)
   const { notifications, removeNotification, showSuccess, showError } = useNotifications()
 
   const updateCompany = useCallback((companyId, data) => {
@@ -99,6 +101,25 @@ function App() {
     setActiveCompany(newCompanyId)
     setNextCompanyId(prev => prev + 1)
     setTabActivity({ companyId: newCompanyId, type: 'add', nonce: Date.now() })
+  }
+
+  const handleImportCompany = (importedCompany) => {
+    const desiredName = (importedCompany?.name || '').trim() || 'Imported Scenario'
+    const existingNames = new Set(Object.values(companies).map(c => c?.name))
+    const finalName = existingNames.has(desiredName)
+      ? nextUniqueName(desiredName, companies)
+      : desiredName
+
+    const newCompanyId = `company${nextCompanyId}`
+    setStoredCompanies(prev => ({
+      ...normalizeStoredCompanies(prev),
+      [newCompanyId]: { ...importedCompany, name: finalName }
+    }))
+    setActiveCompany(newCompanyId)
+    setNextCompanyId(prev => prev + 1)
+    setTabActivity({ companyId: newCompanyId, type: 'add', nonce: Date.now() })
+    setImportModalOpen(false)
+    showSuccess(`Imported "${finalName}"`, 2200)
   }
 
   const ensureExample = useCallback(() => {
@@ -371,6 +392,7 @@ function App() {
           onUpdateCompany={updateCompany}
           onDuplicateCompany={duplicateCompany}
           onLoadExample={loadExample}
+          onImportCompany={() => setImportModalOpen(true)}
           selectedCompanyIds={selectedCompanyIds}
           onToggleCompareSelection={toggleCompareSelection}
           tabActivity={tabActivity}
@@ -480,6 +502,14 @@ function App() {
         steps={tourSteps}
         onClose={closeTour}
         onComplete={closeTour}
+      />
+
+      <ImportModal
+        open={importModalOpen}
+        onClose={() => setImportModalOpen(false)}
+        onImport={handleImportCompany}
+        onShowSuccess={showSuccess}
+        onShowError={showError}
       />
     </div>
   )
