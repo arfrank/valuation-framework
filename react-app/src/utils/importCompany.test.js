@@ -144,6 +144,7 @@ describe('parseImportJson', () => {
     }))
     expect(r.ok).toBe(true)
     expect(r.warnings.some(w => /over 100/i.test(w))).toBe(true)
+    expect(r.warnings.some(w => /won't compute/i.test(w))).toBe(true)
   })
 
   it('warns when cap table looks incomplete (founders + priors + ESOP < 80%)', () => {

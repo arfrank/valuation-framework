@@ -3705,7 +3705,8 @@ input.investor-name-input:focus, input.founder-name-input:focus {
     flex-direction: column;
   }
   .tabs-actions > .add-company-btn,
-  .tabs-actions > .load-example-btn {
+  .tabs-actions > .load-example-btn,
+  .tabs-actions > .import-company-btn {
     width: 100%;
     justify-content: center;
     border-left: none;
@@ -4706,7 +4707,8 @@ input.investor-name-input:focus, input.founder-name-input:focus {
 
   .compare-count-chip,
   .tabs-actions > .load-example-btn,
-  .tabs-actions > .add-company-btn {
+  .tabs-actions > .add-company-btn,
+  .tabs-actions > .import-company-btn {
     width: auto;
     border-top: none;
     border-left: 1px solid var(--color-border);

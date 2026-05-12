@@ -168,7 +168,7 @@ function softWarnings(company) {
   const total = founderTotal + priorTotal + (Number(company.currentEsopPercent) || 0)
 
   if (founderTotal + priorTotal > 100) {
-    warnings.push(`Founders + prior investors = ${(founderTotal + priorTotal).toFixed(1)}% (over 100%). Calc engine will auto-scale.`)
+    warnings.push(`Founders + prior investors = ${(founderTotal + priorTotal).toFixed(1)}% (over 100%). The scenario won't compute until you trim this in the Inputs panel.`)
   } else if (total > 0 && total < 80) {
     warnings.push(`Founders + priors + ESOP = ${total.toFixed(1)}% (well under 100%). Cap table may be incomplete.`)
   }
