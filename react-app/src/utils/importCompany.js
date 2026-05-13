@@ -27,6 +27,9 @@ const MATERIAL_SCALAR_FIELDS = [
   'step2InvestorPortion',
   'step2OtherPortion'
 ]
+const ROUND_VALUATION_FIELDS = ['postMoneyVal', 'postMoney']
+const ROUND_SIZE_FIELDS = ['roundSize', 'round']
+const ROUND_ALLOCATION_FIELDS = ['investorPortion', 'investor', 'otherPortion', 'other']
 
 let importIdCounter = 0
 
@@ -54,6 +57,18 @@ function getImportKind(raw) {
     !hasMaterialCapTableData(raw)
     ? 'safe-only'
     : 'company'
+}
+
+function hasExplicitRoundConstruct(raw) {
+  const hasValueFor = (fields) => fields.some((key) => (
+    hasOwn(raw, key) &&
+    raw[key] !== null &&
+    raw[key] !== undefined &&
+    raw[key] !== ''
+  ))
+  return hasValueFor(ROUND_VALUATION_FIELDS) &&
+    hasValueFor(ROUND_SIZE_FIELDS) &&
+    hasValueFor(ROUND_ALLOCATION_FIELDS)
 }
 
 function createImportId(prefix, index) {
@@ -301,6 +316,7 @@ export function parseImportJson(text) {
 
   const { cleaned, warnings: metaWarnings } = extractMetadata(raw)
   const importKind = getImportKind(cleaned)
+  const roundConstructEntered = hasExplicitRoundConstruct(cleaned)
 
   // Run through the same migration path as localStorage loading. This handles
   // legacy field names (postMoney/round/investor/other/proRataAmount) and
@@ -311,5 +327,5 @@ export function parseImportJson(text) {
   const company = assignFreshRowIds(migrateLegacyCompany(cleaned, fallbackName))
 
   const warnings = [...metaWarnings, ...softWarnings(company)]
-  return { ok: true, importKind, company, safes: company.safes || [], warnings }
+  return { ok: true, importKind, company, safes: company.safes || [], warnings, roundConstructEntered }
 }

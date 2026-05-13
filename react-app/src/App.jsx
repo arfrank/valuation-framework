@@ -34,6 +34,52 @@ function formatSafeCount(count) {
   return `${count} SAFE${count === 1 ? '' : 's'}`
 }
 
+function hasAdvancedImportData(company) {
+  if (!company || typeof company !== 'object') return false
+  const hasRows = ['founders', 'priorInvestors', 'safes', 'warrants'].some((field) =>
+    Array.isArray(company[field]) && company[field].length > 0
+  )
+  if (hasRows) return true
+
+  const numericAdvancedFields = [
+    'currentEsopPercent',
+    'grantedEsopPercent',
+    'targetEsopPercent',
+    'proRataPercent',
+    'step2PostMoney',
+    'step2Amount',
+    'step2InvestorPortion',
+    'step2OtherPortion'
+  ]
+  return Boolean(company.twoStepEnabled) || numericAdvancedFields.some((field) => Number(company[field]) > 0)
+}
+
+function focusImportedCompany(company, roundConstructEntered = false) {
+  const shouldOpenAdvanced = hasAdvancedImportData(company)
+  return {
+    ...company,
+    showAdvanced: shouldOpenAdvanced ? true : Boolean(company?.showAdvanced),
+    inputsCollapsed: false,
+    roundConstructPending: !roundConstructEntered,
+    ...(shouldOpenAdvanced ? { showExitMath: false } : {})
+  }
+}
+
+function patchTouchesRoundConstruct(patch) {
+  if (!patch || typeof patch !== 'object') return false
+  return [
+    'postMoneyVal',
+    'roundSize',
+    'investorPortion',
+    'otherPortion',
+    'twoStepEnabled',
+    'step2PostMoney',
+    'step2Amount',
+    'step2InvestorPortion',
+    'step2OtherPortion'
+  ].some((field) => Object.prototype.hasOwnProperty.call(patch, field))
+}
+
 function App() {
   const [storedCompanies, setStoredCompanies] = useLocalStorage('valuationFramework', {
     company1: createDefaultCompany('Scenario 1')
@@ -62,8 +108,15 @@ function App() {
     })
   }, [setStoredCompanies])
 
+  const updateCompanyFromInputs = useCallback((companyId, data) => {
+    updateCompany(companyId, {
+      ...data,
+      ...(patchTouchesRoundConstruct(data) ? { roundConstructPending: false } : {})
+    })
+  }, [updateCompany])
+
   const applyScenario = (scenarioData) => {
-    updateCompany(activeCompany, scenarioData)
+    updateCompanyFromInputs(activeCompany, scenarioData)
     setInputHighlightToken(Date.now())
     showSuccess('Scenario applied successfully')
   }
@@ -111,6 +164,7 @@ function App() {
     const importKind = importResult?.importKind || 'company'
     const importedCompany = importResult?.company || importResult
     const importedSafes = importResult?.safes || importedCompany?.safes || []
+    const roundConstructEntered = Boolean(importResult?.roundConstructEntered)
 
     if (importKind === 'safe-only' && importResult?.destination === 'append') {
       const safeCount = importedSafes.length
@@ -132,10 +186,16 @@ function App() {
             importWarnings: [
               ...(Array.isArray(currentCompany.importWarnings) ? currentCompany.importWarnings : []),
               ...(Array.isArray(importedCompany.importWarnings) ? importedCompany.importWarnings : [])
-            ]
+            ],
+            showAdvanced: true,
+            inputsCollapsed: false,
+            roundConstructPending: !roundConstructEntered,
+            showExitMath: false
           }
         }
       })
+      setActiveCompany(activeCompany)
+      setSelectedCompanyIds([])
       setInputHighlightToken(Date.now())
       setImportModalOpen(false)
       showSuccess(`Appended ${formatSafeCount(safeCount)} to "${activeName}"`, 2200)
@@ -150,11 +210,14 @@ function App() {
     const safeCount = importKind === 'safe-only' ? importedSafes.length : null
 
     const newCompanyId = `company${nextCompanyId}`
+    const focusedCompany = focusImportedCompany({ ...importedCompany, name: finalName }, roundConstructEntered)
     setStoredCompanies(prev => ({
       ...normalizeStoredCompanies(prev),
-      [newCompanyId]: { ...importedCompany, name: finalName }
+      [newCompanyId]: focusedCompany
     }))
     setActiveCompany(newCompanyId)
+    setSelectedCompanyIds([])
+    setInputHighlightToken(Date.now())
     setNextCompanyId(prev => prev + 1)
     setTabActivity({ companyId: newCompanyId, type: 'add', nonce: Date.now() })
     setImportModalOpen(false)
@@ -350,7 +413,9 @@ function App() {
 
       // Check if the result is an error object
       if (newScenarios && newScenarios.error) {
-        showError(newScenarios.errorMessage)
+        if (!currentCompany.roundConstructPending) {
+          showError(newScenarios.errorMessage)
+        }
         setScenarios([]) // Clear scenarios
       } else if (!newScenarios || newScenarios.length === 0) {
         // Check if ownership exceeds 100%
@@ -445,7 +510,7 @@ function App() {
         <div className={`top-row${showExitMath ? ' with-exit-math' : ''}${isCompareMode ? ' compare-mode' : ''}${advancedOpen ? ' advanced-open' : ''}${companies[activeCompany]?.inputsCollapsed ? ' inputs-collapsed' : ''}`}>
           <InputForm
             company={companies[activeCompany]}
-            onUpdate={(data) => updateCompany(activeCompany, data)}
+            onUpdate={(data) => updateCompanyFromInputs(activeCompany, data)}
             collapsed={inputFormCollapsed}
             onToggleCollapsed={() => updateCompany(activeCompany, { inputsCollapsed: !companies[activeCompany]?.inputsCollapsed })}
             highlightToken={inputHighlightToken}
@@ -483,7 +548,7 @@ function App() {
                   scenario={base}
                   index={0}
                   isBase={true}
-                  onApplyScenario={(data) => updateCompany(cid, data)}
+                  onApplyScenario={(data) => updateCompanyFromInputs(cid, data)}
                   onCopyPermalink={handleCopyPermalink}
                   onSharePermalink={handleSharePermalink}
                   investorName={companies[cid]?.investorName || 'US'}
@@ -491,7 +556,7 @@ function App() {
                   percentPrecision={companies[cid]?.percentPrecision || 2}
                   onPercentPrecisionChange={(pp) => updateCompany(cid, { percentPrecision: pp })}
                   company={companies[cid]}
-                  onUpdateBase={(patch) => updateCompany(cid, patch)}
+                  onUpdateBase={(patch) => updateCompanyFromInputs(cid, patch)}
                   companyName={isCompareMode ? companies[cid]?.name : undefined}
                   compareActive={isCompareMode ? cid === activeCompany : undefined}
                   compareIndex={isCompareMode ? idx : undefined}

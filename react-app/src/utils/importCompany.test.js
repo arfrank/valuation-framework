@@ -152,6 +152,26 @@ describe('parseImportJson', () => {
     expect(r.company.safes[0]._safeType).toBeUndefined()
   })
 
+  it('tracks whether the import included a complete round construct', () => {
+    const pending = parseImportJson(JSON.stringify({
+      name: 'Cap Table Only',
+      postMoneyVal: 13,
+      founders: [{ name: 'CEO', ownershipPercent: 80 }]
+    }))
+    expect(pending.ok).toBe(true)
+    expect(pending.roundConstructEntered).toBe(false)
+
+    const entered = parseImportJson(JSON.stringify({
+      name: 'Round Included',
+      postMoneyVal: 13,
+      roundSize: 3,
+      investorPortion: 2.75,
+      founders: [{ name: 'CEO', ownershipPercent: 80 }]
+    }))
+    expect(entered.ok).toBe(true)
+    expect(entered.roundConstructEntered).toBe(true)
+  })
+
   it('keeps SAFE payloads as company imports when cap-table fields are present', () => {
     const r = parseImportJson(JSON.stringify({
       name: 'Acme',

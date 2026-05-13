@@ -61,6 +61,7 @@ function ImportModal({ open, activeCompanyName = 'active scenario', onClose, onI
       company: result.company,
       safes: result.safes || [],
       warnings: result.warnings || [],
+      roundConstructEntered: Boolean(result.roundConstructEntered),
       destination
     })
   }
