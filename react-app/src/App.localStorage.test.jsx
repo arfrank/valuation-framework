@@ -314,7 +314,8 @@ describe('App Component - Local Storage Integration', () => {
       fireEvent.change(screen.getByLabelText(/paste json/i), {
         target: {
           value: JSON.stringify({
-            safes: [{ investorName: 'Bridge Investor', amount: 1, cap: 20 }]
+            _warning: 'No cap table was provided',
+            safes: [{ investorName: 'Bridge Investor', amount: 1, cap: 20, _notes: 'Side letter says pro-rata' }]
           })
         }
       })
@@ -328,6 +329,8 @@ describe('App Component - Local Storage Integration', () => {
         const stored = JSON.parse(localStorage.getItem('valuationFramework'))
         expect(stored.company1.safes).toHaveLength(1)
         expect(stored.company1.safes[0].investorName).toBe('Bridge Investor')
+        expect(stored.company1.safes[0].notes).toBe('Side letter says pro-rata')
+        expect(stored.company1.importWarnings).toEqual(['No cap table was provided'])
       })
     })
 

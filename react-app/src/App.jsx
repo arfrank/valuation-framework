@@ -128,7 +128,11 @@ function App() {
           ...normalizedPrev,
           [activeCompany]: {
             ...currentCompany,
-            safes: [...(currentCompany.safes || []), ...importedSafes]
+            safes: [...(currentCompany.safes || []), ...importedSafes],
+            importWarnings: [
+              ...(Array.isArray(currentCompany.importWarnings) ? currentCompany.importWarnings : []),
+              ...(Array.isArray(importedCompany.importWarnings) ? importedCompany.importWarnings : [])
+            ]
           }
         }
       })

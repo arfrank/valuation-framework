@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { calculateEnhancedScenario, calculateEnhancedScenarios } from './multiPartyCalculations'
+import { calculateEnhancedScenario, calculateEnhancedScenarios, calculateSafeConversions } from './multiPartyCalculations'
 
 const baseInputs = {
   postMoneyVal: 100,
@@ -22,6 +22,69 @@ const baseInputs = {
 }
 
 describe('SAFE Pro-Rata', () => {
+  it('supports fixed-percent SAFEs', () => {
+    const result = calculateSafeConversions([
+      { id: 1, amount: 0.125, conversionType: 'fixed-percent', fixedOwnershipPercent: 7, investorName: 'YC ES' }
+    ], 80)
+
+    expect(result.totalSafePercent).toBe(7)
+    expect(result.safeDetails[0].conversionType).toBe('fixed-percent')
+    expect(result.safeDetails[0].conversionLabel).toBe('fixed 7.00%')
+  })
+
+  it('treats MFN with no cap or discount like round-price conversion', () => {
+    const mfn = calculateSafeConversions([
+      { id: 1, amount: 4, conversionType: 'mfn', cap: 0, discount: 0 }
+    ], 80)
+    const roundPrice = calculateSafeConversions([
+      { id: 1, amount: 4, conversionType: 'round-price', cap: 0, discount: 0 }
+    ], 80)
+
+    expect(mfn.totalSafePercent).toBe(roundPrice.totalSafePercent)
+    expect(mfn.totalSafePercent).toBe(5)
+    expect(mfn.safeDetails[0].conversionLabel).toBe('MFN at round price')
+  })
+
+  it('uses the most favorable MFN cap or discount economics', () => {
+    const result = calculateSafeConversions([
+      { id: 1, amount: 4, conversionType: 'mfn', cap: 40, discount: 20 }
+    ], 80)
+
+    expect(result.totalSafePercent).toBe(10)
+    expect(result.safeDetails[0].conversionPrice).toBe(40)
+    expect(result.safeDetails[0].conversionLabel).toContain('MFN')
+  })
+
+  it('counts YC fixed-percent and MFN SAFEs toward SAFE pro-rata', () => {
+    const result = calculateEnhancedScenario({
+      ...baseInputs,
+      safes: [
+        {
+          id: 1,
+          investorName: 'Y Combinator ES24, LLC',
+          amount: 0.125,
+          conversionType: 'fixed-percent',
+          fixedOwnershipPercent: 7,
+          proRata: true
+        },
+        {
+          id: 2,
+          investorName: 'YC ESP24, L.P.',
+          amount: 0.375,
+          conversionType: 'mfn',
+          cap: 0,
+          discount: 0,
+          proRata: true
+        }
+      ]
+    })
+
+    expect(result.error).toBeFalsy()
+    expect(result.totalSafeProRataAmount).toBeCloseTo(1.49, 2)
+    expect(result.safeDetails[0].proRataAmount).toBeCloseTo(1.4, 2)
+    expect(result.safeDetails[1].proRataAmount).toBeCloseTo(0.09, 2)
+  })
+
   it('does not change results when no SAFE has proRata enabled', () => {
     const result = calculateEnhancedScenario({
       ...baseInputs,

@@ -107,6 +107,38 @@ describe('Permalink Utilities', () => {
       expect(safesData[1]).toEqual({ a: 0.5, c: 0, d: 20 })
     })
 
+    it('should round-trip SAFE conversion type fields', () => {
+      const encoded = encodeScenarioToURL({
+        ...mockScenario,
+        safes: [
+          {
+            id: 1,
+            investorName: 'Y Combinator ES24, LLC',
+            amount: 0.125,
+            conversionType: 'fixed-percent',
+            fixedOwnershipPercent: 7,
+            proRata: true
+          },
+          {
+            id: 2,
+            investorName: 'YC ESP24, L.P.',
+            amount: 0.375,
+            conversionType: 'mfn',
+            cap: 0,
+            discount: 0,
+            proRata: true
+          }
+        ]
+      })
+      const decoded = decodeScenarioFromURL(encoded)
+
+      expect(decoded.safes).toHaveLength(2)
+      expect(decoded.safes[0].conversionType).toBe('fixed-percent')
+      expect(decoded.safes[0].fixedOwnershipPercent).toBe(7)
+      expect(decoded.safes[0].proRata).toBe(true)
+      expect(decoded.safes[1].conversionType).toBe('mfn')
+    })
+
     it('should handle special characters in investor name', () => {
       const scenarioWithSpecialName = { ...mockScenario, investorName: 'US & Partners' }
       const encoded = encodeScenarioToURL(scenarioWithSpecialName)

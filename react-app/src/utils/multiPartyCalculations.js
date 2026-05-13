@@ -12,6 +12,73 @@ function rp(v) { return Math.round(v * P) / P }           // round a percentage 
 function r2p(ratio) { return Math.round(ratio * 100 * P) / P } // ratio (0-1) → percentage
 function r$(v) { return Math.round(v * 100) / 100 }        // round a dollar value to cents
 
+function normalizeSafeConversionType(type) {
+  return ['fixed-percent', 'round-price', 'mfn'].includes(type) ? type : 'cap-discount'
+}
+
+export function resolveSafeConversion(safe, preMoneyVal) {
+  const conversionType = normalizeSafeConversionType(safe?.conversionType)
+  const amount = Number(safe?.amount) || 0
+  const cap = Number(safe?.cap) || 0
+  const discount = Number(safe?.discount) || 0
+  const fixedOwnershipPercent = Number(safe?.fixedOwnershipPercent) || 0
+
+  if (conversionType === 'fixed-percent') {
+    if (fixedOwnershipPercent <= 0) {
+      return {
+        conversionType,
+        conversionPrice: 0,
+        percent: 0,
+        conversionLabel: 'fixed percent'
+      }
+    }
+    return {
+      conversionType,
+      conversionPrice: amount > 0 ? r$(amount / (fixedOwnershipPercent / 100)) : 0,
+      percent: rp(fixedOwnershipPercent),
+      conversionLabel: `fixed ${fixedOwnershipPercent.toFixed(2)}%`
+    }
+  }
+
+  let conversionPrice = 0
+  let conversionLabel = 'round price'
+
+  if (conversionType === 'round-price') {
+    conversionPrice = preMoneyVal
+  } else if (cap > 0 && discount > 0) {
+    const capPrice = cap
+    const discountPrice = preMoneyVal * (1 - discount / 100)
+    conversionPrice = Math.min(capPrice, discountPrice)
+    conversionLabel = capPrice < discountPrice
+      ? `cap vs ${discount}% discount`
+      : `discount vs $${capPrice.toFixed(1)}M cap`
+  } else if (cap > 0) {
+    conversionPrice = Math.min(cap, preMoneyVal)
+    conversionLabel = conversionType === 'mfn'
+      ? `MFN, $${cap.toFixed(1)}M cap`
+      : `cap $${cap.toFixed(1)}M`
+  } else if (discount > 0) {
+    conversionPrice = preMoneyVal * (1 - discount / 100)
+    conversionLabel = conversionType === 'mfn'
+      ? `MFN, ${discount}% discount`
+      : `${discount}% discount`
+  } else {
+    conversionPrice = preMoneyVal
+    conversionLabel = conversionType === 'mfn' ? 'MFN at round price' : 'round price'
+  }
+
+  if (conversionType === 'mfn' && cap > 0 && discount > 0) {
+    conversionLabel = `MFN, ${conversionLabel}`
+  }
+
+  return {
+    conversionType,
+    conversionPrice,
+    percent: conversionPrice > 0 ? r2p(amount / conversionPrice) : 0,
+    conversionLabel
+  }
+}
+
 /**
  * Calculate pro-rata allocation for prior investors with pro-rata rights
  * @param {Array} priorInvestors - Array of prior investor objects
@@ -82,23 +149,11 @@ export function calculateSafeConversions(safes, preMoneyVal) {
   if (safes && safes.length > 0) {
     safes.forEach((safe, index) => {
       if (safe.amount > 0) {
-        let conversionPrice = 0
+        const conversion = resolveSafeConversion(safe, preMoneyVal)
+        const conversionPrice = conversion.conversionPrice
+        const safePercent = conversion.percent
 
-        if (safe.cap > 0 && safe.discount > 0) {
-          const capPrice = safe.cap
-          const discountPrice = preMoneyVal * (1 - safe.discount / 100)
-          conversionPrice = Math.min(capPrice, discountPrice)
-        } else if (safe.cap > 0) {
-          conversionPrice = Math.min(safe.cap, preMoneyVal)
-        } else if (safe.discount > 0) {
-          conversionPrice = preMoneyVal * (1 - safe.discount / 100)
-        } else {
-          conversionPrice = preMoneyVal
-        }
-
-        if (conversionPrice > 0) {
-          const safePercent = r2p(safe.amount / conversionPrice)
-
+        if (safePercent > 0) {
           if (safePercent <= 95) {
             totalSafePercent += safePercent
             totalSafeAmount += safe.amount
@@ -109,7 +164,10 @@ export function calculateSafeConversions(safes, preMoneyVal) {
               amount: safe.amount,
               cap: safe.cap,
               discount: safe.discount,
+              conversionType: conversion.conversionType,
+              fixedOwnershipPercent: safe.fixedOwnershipPercent || 0,
               conversionPrice: r$(conversionPrice),
+              conversionLabel: conversion.conversionLabel,
               percent: safePercent,
               investorName: safe.investorName || '',
               proRata: Boolean(safe.proRata),

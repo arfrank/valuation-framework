@@ -1,4 +1,4 @@
-import { migrateLegacyCompany } from './dataStructures'
+import { SAFE_CONVERSION_TYPES, migrateLegacyCompany } from './dataStructures'
 
 // Fields with these names are stripped before normalization. Claude is asked
 // to attach `_safeType` and `_notes` to SAFEs as metadata for the human user,
@@ -90,6 +90,13 @@ function checkPercent(label, value, errors) {
   }
 }
 
+function checkSafeConversionType(label, value, errors) {
+  if (value === null || value === undefined || value === '') return
+  if (typeof value !== 'string' || !SAFE_CONVERSION_TYPES.has(value)) {
+    errors.push(`${label} must be one of ${Array.from(SAFE_CONVERSION_TYPES).join(', ')}`)
+  }
+}
+
 function checkNonNegative(label, value, errors) {
   if (value === null || value === undefined || value === '') return
   const n = Number(value)
@@ -168,6 +175,16 @@ function hardValidate(raw) {
         checkNonNegative(`safes[${i}].amount`, s.amount, errors)
         checkNonNegative(`safes[${i}].cap`, s.cap, errors)
         checkPercent(`safes[${i}].discount`, s.discount, errors)
+        checkSafeConversionType(`safes[${i}].conversionType`, s.conversionType, errors)
+        checkPercent(`safes[${i}].fixedOwnershipPercent`, s.fixedOwnershipPercent, errors)
+        if (s.conversionType === 'fixed-percent' && (
+          s.fixedOwnershipPercent === null ||
+          s.fixedOwnershipPercent === undefined ||
+          s.fixedOwnershipPercent === '' ||
+          Number(s.fixedOwnershipPercent) <= 0
+        )) {
+          errors.push(`safes[${i}].fixedOwnershipPercent is required for fixed-percent SAFEs`)
+        }
       })
     }
   }
@@ -196,10 +213,17 @@ function extractMetadata(raw) {
   const warnings = []
 
   if (typeof raw._warning === 'string' && raw._warning.trim()) {
-    warnings.push(`Claude flagged: ${raw._warning.trim()}`)
+    const warning = raw._warning.trim()
+    warnings.push(`Claude flagged: ${warning}`)
   }
 
   const cleaned = { ...raw }
+  if (typeof raw._warning === 'string' && raw._warning.trim()) {
+    cleaned.importWarnings = [
+      ...(Array.isArray(raw.importWarnings) ? raw.importWarnings : []),
+      raw._warning.trim()
+    ]
+  }
   for (const key of STRIP_KEYS) delete cleaned[key]
 
   if (Array.isArray(cleaned.safes)) {
@@ -213,6 +237,12 @@ function extractMetadata(raw) {
         warnings.push(`${label}: pre-money SAFE — conversion math in this app assumes post-money SAFEs, so the dilution is approximate.`)
       }
       const stripped = { ...s }
+      if (typeof s._notes === 'string' && s._notes.trim() && !stripped.notes) {
+        stripped.notes = s._notes.trim()
+      }
+      if (stripped._safeType === 'mfn-only' && !stripped.conversionType) {
+        stripped.conversionType = 'mfn'
+      }
       for (const key of STRIP_KEYS) delete stripped[key]
       return stripped
     })

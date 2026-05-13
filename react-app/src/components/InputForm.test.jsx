@@ -207,4 +207,105 @@ describe('InputForm with Pre-Money Toggle', () => {
       expect(document.activeElement).toBe(safeInvestorInput)
     })
   })
+
+  it('shows fixed-percent SAFE controls and caption', () => {
+    render(<InputForm
+      company={{
+        ...defaultCompany,
+        showAdvanced: true,
+        safes: [{
+          id: 1,
+          investorName: 'Y Combinator ES24, LLC',
+          amount: 0.125,
+          conversionType: 'fixed-percent',
+          fixedOwnershipPercent: 7,
+          cap: 0,
+          discount: 0,
+          proRata: true
+        }]
+      }}
+      onUpdate={mockOnUpdate}
+    />)
+
+    expect(screen.getByLabelText('SAFE type')).toHaveValue('fixed-percent')
+    expect(screen.getByLabelText('Fixed %')).toHaveValue(7)
+    expect(screen.getByText(/Converts at fixed 7\.00%/)).toBeInTheDocument()
+  })
+
+  it('summarizes large SAFE imports and keeps side-letter notes visible', () => {
+    render(<InputForm
+      company={{
+        ...defaultCompany,
+        showAdvanced: true,
+        importWarnings: ['No cap table was provided'],
+        safes: [
+          {
+            id: 1,
+            investorName: 'The LegalTech Fund II, L.P.',
+            amount: 0.1,
+            conversionType: 'cap-discount',
+            cap: 8,
+            discount: 0,
+            proRata: true,
+            notes: 'Pro-rata, info rights, and MFN granted via separate side letter'
+          },
+          {
+            id: 2,
+            investorName: 'Y Combinator ES24, LLC',
+            amount: 0.125,
+            conversionType: 'fixed-percent',
+            fixedOwnershipPercent: 7,
+            proRata: false
+          }
+        ]
+      }}
+      onUpdate={mockOnUpdate}
+    />)
+
+    expect(screen.getByLabelText('SAFE import summary')).toHaveTextContent('2 SAFEs')
+    expect(screen.getByLabelText('SAFE import summary')).toHaveTextContent('$0.225M total')
+    expect(screen.getByText('No cap table was provided')).toBeInTheDocument()
+    expect(screen.getByText('Side letter')).toBeInTheDocument()
+    expect(screen.getByText(/Pro-rata, info rights, and MFN granted/)).toBeInTheDocument()
+  })
+
+  it('switches SAFE type selector to MFN and keeps cap/discount controls', async () => {
+    const user = userEvent.setup()
+    render(<InputForm
+      company={{
+        ...defaultCompany,
+        showAdvanced: true,
+        safes: [{ id: 1, investorName: 'YC ESP24, L.P.', amount: 0.375, cap: 0, discount: 0 }]
+      }}
+      onUpdate={mockOnUpdate}
+    />)
+
+    await user.selectOptions(screen.getByLabelText('SAFE type'), 'mfn')
+
+    expect(mockOnUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        safes: [expect.objectContaining({ conversionType: 'mfn' })]
+      })
+    )
+    expect(screen.getByLabelText('Cap')).toBeInTheDocument()
+    expect(screen.getByLabelText('Discount')).toBeInTheDocument()
+  })
+
+  it('shows round-price SAFE as non-editable round price fields', () => {
+    render(<InputForm
+      company={{
+        ...defaultCompany,
+        showAdvanced: true,
+        safes: [{ id: 1, investorName: 'Round Price SAFE', amount: 0.1, conversionType: 'round-price' }]
+      }}
+      onUpdate={mockOnUpdate}
+    />)
+
+    expect(screen.getByLabelText('SAFE type')).toHaveValue('round-price')
+    expect(screen.queryByLabelText('Cap')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Discount')).not.toBeInTheDocument()
+    expect(screen.getAllByText('Round price').length).toBeGreaterThan(0)
+    expect(screen.getByText('round')).toBeInTheDocument()
+    expect(screen.getByText('price')).toBeInTheDocument()
+  })
 })

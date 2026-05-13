@@ -107,6 +107,12 @@ export function encodeScenarioToURL(scenarioData) {
               c: safe.cap || 0,
               d: safe.discount || 0
             }
+            if (safe.conversionType && safe.conversionType !== 'cap-discount') {
+              encoded.t = safe.conversionType
+            }
+            if (safe.conversionType === 'fixed-percent' && safe.fixedOwnershipPercent > 0) {
+              encoded.fp = safe.fixedOwnershipPercent
+            }
             if (safe.investorName && safe.investorName.trim()) {
               encoded.n = safe.investorName.trim()
             }
@@ -285,6 +291,8 @@ export function decodeScenarioFromURL(urlParams) {
                 amount: safe.a || 0,
                 cap: safe.c || 0,
                 discount: safe.d || 0,
+                conversionType: safe.t || 'cap-discount',
+                fixedOwnershipPercent: safe.fp || 0,
                 investorName: safe.n || '',
                 proRata: safe.p === 1 || safe.p === true,
                 proRataOverride: (typeof safe.po === 'number' && safe.po >= 0) ? safe.po : null
