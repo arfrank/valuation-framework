@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { parseImportJson } from '../utils/importCompany'
-import { XLS_IMPORT_PROMPT, SAFE_PDF_IMPORT_PROMPT } from '../utils/importPrompts'
+import { IMPORT_PROMPT } from '../utils/importPrompts'
 
 function formatSafeCount(count) {
   return `${count} SAFE${count === 1 ? '' : 's'}`
@@ -13,8 +13,8 @@ function ImportModal({ open, activeCompanyName = 'active scenario', onClose, onI
   // before committing the import.
   const [pendingPreview, setPendingPreview] = useState(null)
   const [safeDestination, setSafeDestination] = useState('append')
-  const [openPrompt, setOpenPrompt] = useState(null) // 'xls' | 'safe' | null
-  const [copiedPrompt, setCopiedPrompt] = useState(null)
+  const [promptOpen, setPromptOpen] = useState(false)
+  const [copiedPrompt, setCopiedPrompt] = useState(false)
   const textareaRef = useRef(null)
   const closeBtnRef = useRef(null)
 
@@ -24,8 +24,8 @@ function ImportModal({ open, activeCompanyName = 'active scenario', onClose, onI
       setErrors([])
       setPendingPreview(null)
       setSafeDestination('append')
-      setOpenPrompt(null)
-      setCopiedPrompt(null)
+      setPromptOpen(false)
+      setCopiedPrompt(false)
     }
   }, [open])
 
@@ -94,11 +94,11 @@ function ImportModal({ open, activeCompanyName = 'active scenario', onClose, onI
     setPendingPreview({ ...result, warnings, sourceText: jsonText })
   }
 
-  const handleCopyPrompt = async (kind, text) => {
+  const handleCopyPrompt = async () => {
     try {
-      await navigator.clipboard.writeText(text)
-      setCopiedPrompt(kind)
-      setTimeout(() => setCopiedPrompt((c) => (c === kind ? null : c)), 1500)
+      await navigator.clipboard.writeText(IMPORT_PROMPT)
+      setCopiedPrompt(true)
+      setTimeout(() => setCopiedPrompt(false), 1500)
       onShowSuccess?.('Prompt copied to clipboard', 1500)
     } catch {
       onShowError?.('Could not copy — your browser blocked clipboard access', 2200)
@@ -141,29 +141,18 @@ function ImportModal({ open, activeCompanyName = 'active scenario', onClose, onI
         </div>
 
         <p className="import-modal-intro">
-          Paste a JSON cap table below. Get one by sending your XLS or SAFE PDF to Claude with the prompt below.
+          Paste a JSON cap table below. Get one by sending the prompt below to Claude with the cap table XLS and any SAFE PDFs attached.
         </p>
 
         <div className="import-modal-prompts">
           <PromptDisclosure
-            kind="xls"
-            title="Prompt for XLS cap tables"
-            description="Use with the company's cap table spreadsheet."
-            prompt={XLS_IMPORT_PROMPT}
-            isOpen={openPrompt === 'xls'}
-            isCopied={copiedPrompt === 'xls'}
-            onToggle={() => setOpenPrompt((p) => (p === 'xls' ? null : 'xls'))}
-            onCopy={() => handleCopyPrompt('xls', XLS_IMPORT_PROMPT)}
-          />
-          <PromptDisclosure
-            kind="safe"
-            title="Prompt for SAFE PDFs"
-            description="Use with one or more SAFE PDFs attached."
-            prompt={SAFE_PDF_IMPORT_PROMPT}
-            isOpen={openPrompt === 'safe'}
-            isCopied={copiedPrompt === 'safe'}
-            onToggle={() => setOpenPrompt((p) => (p === 'safe' ? null : 'safe'))}
-            onCopy={() => handleCopyPrompt('safe', SAFE_PDF_IMPORT_PROMPT)}
+            title="Prompt for cap table + SAFE files"
+            description="Use with the spreadsheet and any SAFE PDFs in one Claude chat."
+            prompt={IMPORT_PROMPT}
+            isOpen={promptOpen}
+            isCopied={copiedPrompt}
+            onToggle={() => setPromptOpen((open) => !open)}
+            onCopy={handleCopyPrompt}
           />
         </div>
 

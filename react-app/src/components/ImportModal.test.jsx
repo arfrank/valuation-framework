@@ -30,6 +30,22 @@ function pasteJson(payload) {
 }
 
 describe('ImportModal', () => {
+  it('shows one combined prompt for spreadsheets and SAFE PDFs', async () => {
+    const { user } = renderImportModal()
+    const writeText = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue(undefined)
+
+    expect(screen.getByText('Prompt for cap table + SAFE files')).toBeInTheDocument()
+    expect(screen.queryByText('Prompt for XLS cap tables')).not.toBeInTheDocument()
+    expect(screen.queryByText('Prompt for SAFE PDFs')).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /prompt for cap table/i }))
+    expect(screen.getByText(/Read all attached files together/i)).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Copy' }))
+    expect(writeText).toHaveBeenCalledWith(expect.stringContaining('One or more SAFE PDFs'))
+    expect(writeText).toHaveBeenCalledWith(expect.stringContaining('Excel/Google Sheets cap table export'))
+  })
+
   it('shows malformed JSON errors without importing', async () => {
     const { user, onImport } = renderImportModal()
 
