@@ -1,4 +1,4 @@
-import { migrateLegacyCompany } from './dataStructures'
+import { SAFE_CONVERSION_TYPES, migrateLegacyCompany } from './dataStructures'
 
 // Fields with these names are stripped before normalization. Claude is asked
 // to attach `_safeType` and `_notes` to SAFEs as metadata for the human user,
@@ -27,6 +27,9 @@ const MATERIAL_SCALAR_FIELDS = [
   'step2InvestorPortion',
   'step2OtherPortion'
 ]
+const ROUND_VALUATION_FIELDS = ['postMoneyVal', 'postMoney']
+const ROUND_SIZE_FIELDS = ['roundSize', 'round']
+const ROUND_ALLOCATION_FIELDS = ['investorPortion', 'investor', 'otherPortion', 'other']
 
 let importIdCounter = 0
 
@@ -54,6 +57,18 @@ function getImportKind(raw) {
     !hasMaterialCapTableData(raw)
     ? 'safe-only'
     : 'company'
+}
+
+function hasExplicitRoundConstruct(raw) {
+  const hasValueFor = (fields) => fields.some((key) => (
+    hasOwn(raw, key) &&
+    raw[key] !== null &&
+    raw[key] !== undefined &&
+    raw[key] !== ''
+  ))
+  return hasValueFor(ROUND_VALUATION_FIELDS) &&
+    hasValueFor(ROUND_SIZE_FIELDS) &&
+    hasValueFor(ROUND_ALLOCATION_FIELDS)
 }
 
 function createImportId(prefix, index) {
@@ -87,6 +102,13 @@ function checkPercent(label, value, errors) {
   }
   if (n < 0 || n > 100) {
     errors.push(`${label} = ${n} is outside 0–100`)
+  }
+}
+
+function checkSafeConversionType(label, value, errors) {
+  if (value === null || value === undefined || value === '') return
+  if (typeof value !== 'string' || !SAFE_CONVERSION_TYPES.has(value)) {
+    errors.push(`${label} must be one of ${Array.from(SAFE_CONVERSION_TYPES).join(', ')}`)
   }
 }
 
@@ -168,6 +190,16 @@ function hardValidate(raw) {
         checkNonNegative(`safes[${i}].amount`, s.amount, errors)
         checkNonNegative(`safes[${i}].cap`, s.cap, errors)
         checkPercent(`safes[${i}].discount`, s.discount, errors)
+        checkSafeConversionType(`safes[${i}].conversionType`, s.conversionType, errors)
+        checkPercent(`safes[${i}].fixedOwnershipPercent`, s.fixedOwnershipPercent, errors)
+        if (s.conversionType === 'fixed-percent' && (
+          s.fixedOwnershipPercent === null ||
+          s.fixedOwnershipPercent === undefined ||
+          s.fixedOwnershipPercent === '' ||
+          Number(s.fixedOwnershipPercent) <= 0
+        )) {
+          errors.push(`safes[${i}].fixedOwnershipPercent is required for fixed-percent SAFEs`)
+        }
       })
     }
   }
@@ -196,10 +228,17 @@ function extractMetadata(raw) {
   const warnings = []
 
   if (typeof raw._warning === 'string' && raw._warning.trim()) {
-    warnings.push(`Claude flagged: ${raw._warning.trim()}`)
+    const warning = raw._warning.trim()
+    warnings.push(`Claude flagged: ${warning}`)
   }
 
   const cleaned = { ...raw }
+  if (typeof raw._warning === 'string' && raw._warning.trim()) {
+    cleaned.importWarnings = [
+      ...(Array.isArray(raw.importWarnings) ? raw.importWarnings : []),
+      raw._warning.trim()
+    ]
+  }
   for (const key of STRIP_KEYS) delete cleaned[key]
 
   if (Array.isArray(cleaned.safes)) {
@@ -213,6 +252,12 @@ function extractMetadata(raw) {
         warnings.push(`${label}: pre-money SAFE — conversion math in this app assumes post-money SAFEs, so the dilution is approximate.`)
       }
       const stripped = { ...s }
+      if (typeof s._notes === 'string' && s._notes.trim() && !stripped.notes) {
+        stripped.notes = s._notes.trim()
+      }
+      if (stripped._safeType === 'mfn-only' && !stripped.conversionType) {
+        stripped.conversionType = 'mfn'
+      }
       for (const key of STRIP_KEYS) delete stripped[key]
       return stripped
     })
@@ -271,6 +316,7 @@ export function parseImportJson(text) {
 
   const { cleaned, warnings: metaWarnings } = extractMetadata(raw)
   const importKind = getImportKind(cleaned)
+  const roundConstructEntered = hasExplicitRoundConstruct(cleaned)
 
   // Run through the same migration path as localStorage loading. This handles
   // legacy field names (postMoney/round/investor/other/proRataAmount) and
@@ -281,5 +327,5 @@ export function parseImportJson(text) {
   const company = assignFreshRowIds(migrateLegacyCompany(cleaned, fallbackName))
 
   const warnings = [...metaWarnings, ...softWarnings(company)]
-  return { ok: true, importKind, company, safes: company.safes || [], warnings }
+  return { ok: true, importKind, company, safes: company.safes || [], warnings, roundConstructEntered }
 }

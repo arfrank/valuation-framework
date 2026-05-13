@@ -13,8 +13,9 @@ const SCHEMA_BLOCK = `{
     { "name": "Pre-seed Angel", "ownershipPercent": 4, "hasProRataRights": false }
   ],
   "safes": [
-    { "investorName": "Bridge Investor", "amount": 2.0, "cap": 40, "discount": 20, "proRata": true, "_safeType": "post-money", "_notes": "optional caveat" },
-    { "investorName": "Accelerator", "amount": 0.5, "cap": 25, "discount": 0, "proRata": false, "_safeType": "mfn-only" }
+    { "investorName": "Bridge Investor", "amount": 2.0, "conversionType": "cap-discount", "cap": 40, "discount": 20, "proRata": true, "_safeType": "post-money", "_notes": "optional caveat" },
+    { "investorName": "Accelerator", "amount": 0.5, "conversionType": "mfn", "cap": 0, "discount": 0, "proRata": false, "_safeType": "mfn-only" },
+    { "investorName": "Y Combinator ES24, LLC", "amount": 0.125, "conversionType": "fixed-percent", "fixedOwnershipPercent": 7, "proRata": true }
   ],
   "warrants": [
     { "name": "Silicon Valley Bank", "amount": 1.0, "valuation": 50 }
@@ -47,7 +48,10 @@ Mapping guidance
 - founders: individuals listed as founders / common stockholders. Roll up multiple share classes or grant tranches for the same person into a single entry (sum the percentages). Exclude granted options — those go into grantedEsopPercent.
 - priorInvestors: every existing investor entity (Seed Fund, angel, strategic). Sum across share classes (Pref-A, Pref-A-1, etc.). Set hasProRataRights: true if the cap table indicates pro-rata rights OR if you see a side letter / "MFN+PR" / explicit pro-rata column.
 - safes: any outstanding SAFEs (often on a separate tab or below the main table). cap in $M, discount 0–100. If both blank, set both to 0 (uncapped, no discount).
-- For each SAFE PDF, investorName is the "Investor" party, amount is the "Purchase Amount", cap is the "Valuation Cap", and discount is the economic discount. A SAFE saying "85% of price" means discount: 15.
+- For each standard cap/discount SAFE PDF, investorName is the "Investor" party, amount is the "Purchase Amount", cap is the "Valuation Cap", and discount is the economic discount. A SAFE saying "85% of price" means discount: 15.
+- Set conversionType to "cap-discount" for normal cap/discount SAFEs, "fixed-percent" when the SAFE converts into a stated ownership percentage (for example, YC Percentage = 7%), "round-price" when it converts at the next round price with no cap/discount economics, or "mfn" for MFN-only SAFEs.
+- For fixed-percent SAFEs, include fixedOwnershipPercent on a 0–100 scale. Example: YC Percentage of seven percent means fixedOwnershipPercent: 7.
+- YC batch packages commonly contain two SAFEs: a $125,000 YC ES SAFE with YC Percentage 7% (conversionType "fixed-percent", fixedOwnershipPercent 7), and a $375,000 YC ESP SAFE with MFN terms (conversionType "mfn", cap 0, discount 0).
 - Set proRata: true if the SAFE or side letter grants pro-rata / participation rights. Otherwise false.
 - Add _safeType: "post-money", "pre-money", or "mfn-only" when the SAFE type is visible. Add _notes for unusual terms such as MFN clauses, side letter caveats, unusual conversion triggers, or unclear extraction.
 - warrants: warrant coverage. valuation is the reference / strike valuation in $M.

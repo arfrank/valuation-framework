@@ -1,5 +1,7 @@
 import { buildScenarioOffsets, normalizeScenarioOffsets } from './scenarioOffsets'
 
+export const SAFE_CONVERSION_TYPES = new Set(['cap-discount', 'fixed-percent', 'round-price', 'mfn'])
+
 /**
  * Data structure definitions for the enhanced valuation framework
  * Supporting multiple prior investors and founders
@@ -174,7 +176,12 @@ function normalizeSafe(safe = {}) {
     ...restSafe
   } = safe
   const proRataOverride = getOptionalNumber(restSafe.proRataOverride, safe.proRataAmount)
+  const conversionType = SAFE_CONVERSION_TYPES.has(restSafe.conversionType)
+    ? restSafe.conversionType
+    : 'cap-discount'
   const base = {
+    conversionType: 'cap-discount',
+    fixedOwnershipPercent: 0,
     proRata: false,
     proRataOverride: null
   }
@@ -182,9 +189,18 @@ function normalizeSafe(safe = {}) {
   return {
     ...base,
     ...restSafe,
+    conversionType,
+    fixedOwnershipPercent: clamp(getOptionalNumber(restSafe.fixedOwnershipPercent) ?? 0, 0, 100),
+    notes: typeof restSafe.notes === 'string' ? restSafe.notes.trim() : '',
     proRata: Boolean(restSafe.proRata),
     proRataOverride: proRataOverride === undefined ? null : Math.max(0, proRataOverride)
   }
+}
+
+function normalizeStringArray(value) {
+  return Array.isArray(value)
+    ? value.map((item) => String(item || '').trim()).filter(Boolean)
+    : []
 }
 
 function looksLikeSingleStoredCompany(value) {
@@ -230,6 +246,7 @@ export function createDefaultCompany(companyName = 'New Company') {
     investorName: 'US',
     showAdvanced: false,
     percentPrecision: 2,
+    importWarnings: [],
 
     // 2-Step Round support
     twoStepEnabled: false,
@@ -386,6 +403,7 @@ export function migrateLegacyCompany(legacyCompany, fallbackName = 'New Company'
   delete migrated.preRoundWarrantsPercent
   delete migrated.fdSharesOutstanding
   migrated.percentPrecision = clamp(getOptionalNumber(migrated.percentPrecision) ?? defaults.percentPrecision, 0, 6)
+  migrated.importWarnings = normalizeStringArray(migrated.importWarnings)
 
   // Ensure scenarioOffsets exist
   migrated.scenarioOffsets = normalizeScenarioOffsets(migrated.scenarioOffsets)

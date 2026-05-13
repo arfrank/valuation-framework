@@ -8,13 +8,13 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
   const [pressedSection, setPressedSection] = useState(null)
   const [recalculated, setRecalculated] = useState(false)
   const firstScenarioRender = useRef(true)
-  const [collapsed, setCollapsed] = useState({
+  const [collapsed, setCollapsed] = useState(() => ({
     newRound: !isBase,
     founders: !isBase,
     priorInvestors: !isBase,
-    safes: !isBase,
+    safes: !isBase || ((scenario.safeDetails || []).length > 8),
     rolledUpInvestors: !isBase
-  })
+  }))
 
   const toggleCollapse = (section) => {
     setPressedSection(section)
@@ -214,6 +214,14 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
   const headlineFoundersPercent = foundersTotal
   const headlinePreMoney = isTwoStep ? scenario.step1.postMoney - scenario.step1.amount : scenario.preMoneyVal
   const headlinePostMoney = isTwoStep ? scenario.step1.postMoney : scenario.postMoneyVal
+  const safeDetails = scenario.safeDetails || []
+  const safeCount = safeDetails.length
+  const safeTotalAmount = Number.isFinite(Number(scenario.totalSafeAmount))
+    ? Number(scenario.totalSafeAmount)
+    : safeDetails.reduce((sum, safe) => sum + (Number(safe.amount) || 0), 0)
+  const safeProRataCount = safeDetails.filter(safe => (safe.proRataAmount || 0) > 0 || safe.proRata).length
+  const nonStandardSafeCount = safeDetails.filter(safe => ['fixed-percent', 'mfn', 'round-price'].includes(safe.conversionType)).length
+  const companyWarnings = Array.isArray(company?.importWarnings) ? company.importWarnings : []
   let deltaLsvp = null
   let deltaFounders = null
   let deltaPreMoney = null
@@ -321,6 +329,35 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
               <span className={`headline-delta ${deltaClass(deltaPreMoney)}`}>{formatDollarDelta(deltaPreMoney)}</span>
             )}
           </div>
+        </div>
+      )}
+
+      {isBase && (
+        <div className="scenario-headline base-headline">
+          <div className="headline-metric">
+            <span className="headline-label">{investorName}</span>
+            <span key={headlineLsvpPercent} className="headline-value metric-roll">{formatPercent(headlineLsvpPercent)}</span>
+          </div>
+          <div className="headline-metric">
+            <span className="headline-label">Founders</span>
+            <span key={headlineFoundersPercent} className="headline-value metric-roll">{formatPercent(headlineFoundersPercent)}</span>
+          </div>
+          <div className="headline-metric">
+            <span className="headline-label">SAFEs</span>
+            <span key={scenario.totalSafePercent || 0} className="headline-value metric-roll">{formatPercent(scenario.totalSafePercent || 0)}</span>
+          </div>
+          <div className="headline-metric">
+            <span className="headline-label">Pre-Money</span>
+            <span key={headlinePreMoney} className="headline-value metric-roll">{formatDollar(headlinePreMoney)}</span>
+          </div>
+        </div>
+      )}
+
+      {isBase && companyWarnings.length > 0 && (
+        <div className="base-case-warning">
+          {companyWarnings.map((warning, warningIndex) => (
+            <p key={warningIndex}>{warning}</p>
+          ))}
         </div>
       )}
 
@@ -626,7 +663,7 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
         )}
         
         {/* SAFEs */}
-        {showAdvanced && scenario.safeDetails && scenario.safeDetails.length > 0 && (
+        {showAdvanced && safeDetails.length > 0 && (
           <>
             {/* SAFEs header row */}
             <div 
@@ -636,21 +673,34 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
               <div className="label">
                 <span className={`collapse-indicator${collapsed.safes ? ' is-collapsed' : ''}`}>▼</span>
                 <strong>SAFEs Total</strong>
+                <span className="section-row-meta">
+                  {safeCount} notes
+                  {safeProRataCount > 0 ? `, ${safeProRataCount} pro-rata` : ''}
+                  {nonStandardSafeCount > 0 ? `, ${nonStandardSafeCount} non-standard` : ''}
+                </span>
               </div>
-              <div className="amount amount-neutral">converts</div>
+              <div className="amount amount-neutral">{formatDollar(safeTotalAmount)} converts</div>
               <div className="percent percent-bold">{formatPercent(scenario.totalSafePercent)}</div>
             </div>
             {/* Individual SAFEs */}
-            {!collapsed.safes && scenario.safeDetails.map((safe, safeIndex) => {
-              const isLast = safeIndex === scenario.safeDetails.length - 1
+            {!collapsed.safes && safeDetails.map((safe, safeIndex) => {
+              const isLast = safeIndex === safeDetails.length - 1
               const showProRata = (safe.proRataAmount || 0) > 0
               const safeDelay = `${Math.min(safeIndex, 6) * 0.035}s`
+              const safeLabel = safe.investorName || `SAFE #${safe.index}`
               return (
                 <div key={safe.id || safeIndex} style={{ display: 'contents' }}>
                   <div className="table-row sub-row" style={{ animationDelay: safeDelay }}>
-                    <div className="label">{isLast && !showProRata ? '└─' : '├─'} SAFE #{safe.index}{safe.investorName && <span className="safe-attribution"> ({safe.investorName})</span>}</div>
+                    <div className="label">
+                      {isLast && !showProRata ? '└─' : '├─'} {safeLabel}
+                      {safe.investorName && <span className="safe-attribution">SAFE #{safe.index}</span>}
+                    </div>
                     <div className="amount amount-neutral">
-                      <span style={{ fontSize: '0.85rem' }}>${safe.amount}M @ ${safe.conversionPrice}M</span>
+                      <span className="safe-conversion-summary">
+                        {safe.conversionLabel
+                          ? `${formatDollar(Number(safe.amount) || 0)} - ${safe.conversionLabel}`
+                          : `$${safe.amount}M @ $${safe.conversionPrice}M`}
+                      </span>
                     </div>
                     <div className="percent">{formatPercent(safe.percent)}</div>
                   </div>

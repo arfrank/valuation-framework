@@ -60,7 +60,7 @@ describe('ScenarioCard Base quick-edit', () => {
     )
     expect(screen.getByText('Post-Money')).toBeInTheDocument()
     expect(screen.getByText('Round')).toBeInTheDocument()
-    expect(screen.getByText('LSVP')).toBeInTheDocument()
+    expect(screen.getAllByText('LSVP').length).toBeGreaterThan(0)
   })
 
   it('updates postMoneyVal on valuation edit', () => {

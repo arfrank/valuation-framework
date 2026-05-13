@@ -97,6 +97,81 @@ describe('parseImportJson', () => {
     expect(r.company.safes[0].investorName).toBe('Bridge')
   })
 
+  it('accepts YC fixed-percent and MFN SAFEs', () => {
+    const r = parseImportJson(JSON.stringify({
+      safes: [
+        {
+          investorName: 'Y Combinator ES24, LLC',
+          amount: 0.125,
+          conversionType: 'fixed-percent',
+          fixedOwnershipPercent: 7,
+          proRata: true
+        },
+        {
+          investorName: 'YC ESP24, L.P.',
+          amount: 0.375,
+          conversionType: 'mfn',
+          cap: 0,
+          discount: 0,
+          proRata: true
+        }
+      ]
+    }))
+
+    expect(r.ok).toBe(true)
+    expect(r.importKind).toBe('safe-only')
+    expect(r.company.safes[0].conversionType).toBe('fixed-percent')
+    expect(r.company.safes[0].fixedOwnershipPercent).toBe(7)
+    expect(r.company.safes[1].conversionType).toBe('mfn')
+  })
+
+  it('preserves import warnings and SAFE notes for post-import review', () => {
+    const r = parseImportJson(JSON.stringify({
+      _warning: 'No cap table was provided',
+      safes: [{
+        investorName: 'The LegalTech Fund II, L.P.',
+        amount: 0.1,
+        cap: 8,
+        _notes: 'Pro-rata, info rights, and MFN granted via separate side letter'
+      }]
+    }))
+
+    expect(r.ok).toBe(true)
+    expect(r.company.importWarnings).toEqual(['No cap table was provided'])
+    expect(r.company.safes[0].notes).toBe('Pro-rata, info rights, and MFN granted via separate side letter')
+    expect(r.company.safes[0]._notes).toBeUndefined()
+  })
+
+  it('maps legacy mfn-only SAFE metadata to conversionType', () => {
+    const r = parseImportJson(JSON.stringify({
+      safes: [{ investorName: 'YC ESP', amount: 0.375, _safeType: 'mfn-only' }]
+    }))
+
+    expect(r.ok).toBe(true)
+    expect(r.company.safes[0].conversionType).toBe('mfn')
+    expect(r.company.safes[0]._safeType).toBeUndefined()
+  })
+
+  it('tracks whether the import included a complete round construct', () => {
+    const pending = parseImportJson(JSON.stringify({
+      name: 'Cap Table Only',
+      postMoneyVal: 13,
+      founders: [{ name: 'CEO', ownershipPercent: 80 }]
+    }))
+    expect(pending.ok).toBe(true)
+    expect(pending.roundConstructEntered).toBe(false)
+
+    const entered = parseImportJson(JSON.stringify({
+      name: 'Round Included',
+      postMoneyVal: 13,
+      roundSize: 3,
+      investorPortion: 2.75,
+      founders: [{ name: 'CEO', ownershipPercent: 80 }]
+    }))
+    expect(entered.ok).toBe(true)
+    expect(entered.roundConstructEntered).toBe(true)
+  })
+
   it('keeps SAFE payloads as company imports when cap-table fields are present', () => {
     const r = parseImportJson(JSON.stringify({
       name: 'Acme',
@@ -130,6 +205,15 @@ describe('parseImportJson', () => {
       safes: [{ amount: 1, discount: 150 }]
     }))
     expect(r.ok).toBe(false)
+  })
+
+  it('rejects invalid fixed-percent ownership', () => {
+    const r = parseImportJson(JSON.stringify({
+      name: 'X',
+      safes: [{ amount: 0.125, conversionType: 'fixed-percent', fixedOwnershipPercent: 150 }]
+    }))
+    expect(r.ok).toBe(false)
+    expect(r.errors.some(e => /fixedOwnershipPercent/.test(e))).toBe(true)
   })
 
   it('rejects non-numeric strings like "TBD"', () => {
@@ -230,9 +314,10 @@ describe('parseImportJson', () => {
     expect(r.warnings.some(w => /unclear/.test(w))).toBe(true)
     expect(r.warnings.some(w => /MFN clause/.test(w))).toBe(true)
     expect(r.warnings.some(w => /pre-money/i.test(w))).toBe(true)
-    // Should not be persisted on the safe itself
+    // Warning metadata should not be persisted on the safe itself.
     expect(r.company.safes[0]._safeType).toBeUndefined()
     expect(r.company.safes[0]._notes).toBeUndefined()
+    expect(r.company.safes[0].notes).toBe('MFN clause active')
   })
 
   it('replaces imported row ids so React keys stay unique', () => {

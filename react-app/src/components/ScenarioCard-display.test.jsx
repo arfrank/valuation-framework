@@ -332,6 +332,81 @@ describe('ScenarioCard Display Logic', () => {
   })
 
   describe('SAFE Display', () => {
+    it('shows base case headline metrics', () => {
+      const scenarioWithSafes = {
+        ...baseScenario,
+        founders: [{ id: 1, name: 'Founders', postRoundPercent: 60, dilution: 20 }],
+        totalSafePercent: 7.5,
+        safeDetails: [{ id: 1, index: 1, investorName: 'YC', amount: 0.125, conversionLabel: 'fixed 7.00%', percent: 7 }]
+      }
+
+      const { getByText, getAllByText } = render(
+        <ScenarioCard
+          scenario={scenarioWithSafes}
+          index={0}
+          isBase={true}
+          showAdvanced={true}
+          investorName="LSVP"
+        />
+      )
+
+      expect(getByText('LSVP')).toBeTruthy()
+      expect(getByText('Founders')).toBeTruthy()
+      expect(getByText('SAFEs')).toBeTruthy()
+      expect(getByText('Pre-Money')).toBeTruthy()
+      expect(getAllByText('7.50%').length).toBeGreaterThan(0)
+    })
+
+    it('shows import warning on the base case card', () => {
+      const { getByText } = render(
+        <ScenarioCard
+          scenario={baseScenario}
+          index={0}
+          isBase={true}
+          showAdvanced={true}
+          investorName="US"
+          company={{ importWarnings: ['No cap table was provided'] }}
+        />
+      )
+
+      expect(getByText('No cap table was provided')).toBeTruthy()
+    })
+
+    it('summarizes and collapses large SAFE lists on the base case card', () => {
+      const manySafes = Array.from({ length: 9 }, (_, index) => ({
+        id: index + 1,
+        index: index + 1,
+        investorName: `Investor ${index + 1}`,
+        amount: 0.1,
+        conversionType: index === 0 ? 'mfn' : 'cap-discount',
+        conversionLabel: index === 0 ? 'MFN at round price' : '$8.0M cap',
+        percent: 1,
+        proRata: index < 2,
+        proRataAmount: 0
+      }))
+      const scenarioWithSafes = {
+        ...baseScenario,
+        safeDetails: manySafes,
+        totalSafeAmount: 0.9,
+        totalSafePercent: 9
+      }
+
+      const { getByText, queryByText } = render(
+        <ScenarioCard
+          scenario={scenarioWithSafes}
+          index={0}
+          isBase={true}
+          showAdvanced={true}
+          investorName="US"
+        />
+      )
+
+      expect(getByText((content, _element) => content.includes('9 notes'))).toBeTruthy()
+      expect(getByText((content, _element) => content.includes('2 pro-rata'))).toBeTruthy()
+      expect(getByText((content, _element) => content.includes('1 non-standard'))).toBeTruthy()
+      expect(queryByText((content, _element) => content.includes('Investor 1'))).toBeNull()
+    })
+
     it('should show individual SAFEs from safeDetails', () => {
       const scenarioWithSafes = {
         ...baseScenario,
@@ -357,6 +432,48 @@ describe('ScenarioCard Display Logic', () => {
       expect(getByText((content, _element) => content.includes('SAFE #2'))).toBeTruthy()
       expect(getByText((content, _element) => content.includes('$1M @'))).toBeTruthy() // SAFE 1 amount display
       expect(getByText((content, _element) => content.includes('$0.5M @'))).toBeTruthy() // SAFE 2 amount display
+    })
+
+    it('should show first-class SAFE conversion labels', () => {
+      const scenarioWithSafes = {
+        ...baseScenario,
+        safeDetails: [
+          {
+            id: 1,
+            index: 1,
+            amount: 0.125,
+            conversionType: 'fixed-percent',
+            fixedOwnershipPercent: 7,
+            conversionPrice: 1.79,
+            conversionLabel: 'fixed 7.00%',
+            percent: 7
+          },
+          {
+            id: 2,
+            index: 2,
+            amount: 0.375,
+            conversionType: 'mfn',
+            conversionPrice: 80,
+            conversionLabel: 'MFN at round price',
+            percent: 0.46875
+          }
+        ],
+        totalSafeAmount: 0.5,
+        totalSafePercent: 7.46875
+      }
+
+      const { getByText } = render(
+        <ScenarioCard
+          scenario={scenarioWithSafes}
+          index={1}
+          isBase={true}
+          showAdvanced={true}
+          investorName="US"
+        />
+      )
+
+      expect(getByText((content, _element) => content.includes('fixed 7.00%'))).toBeTruthy()
+      expect(getByText((content, _element) => content.includes('MFN at round price'))).toBeTruthy()
     })
 
 

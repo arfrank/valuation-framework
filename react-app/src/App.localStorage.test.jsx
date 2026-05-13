@@ -298,15 +298,31 @@ describe('App Component - Local Storage Integration', () => {
           investorPortion: 4,
           otherPortion: 1,
           investorName: 'US',
-          showAdvanced: true,
+          showAdvanced: false,
+          inputsCollapsed: true,
+          showExitMath: true,
           founders: [{ name: 'Founder Team', ownershipPercent: 85 }],
           priorInvestors: [{ name: 'Seed Investors', ownershipPercent: 15 }],
           safes: [],
           currentEsopPercent: 0,
           targetEsopPercent: 0,
           esopTiming: 'pre-close'
+        },
+        company2: {
+          name: 'Compare Scenario',
+          postMoneyVal: 20,
+          roundSize: 5,
+          investorPortion: 4,
+          otherPortion: 1,
+          investorName: 'US',
+          showAdvanced: false,
+          safes: [],
+          currentEsopPercent: 0,
+          targetEsopPercent: 0,
+          esopTiming: 'pre-close'
         }
       }))
+      localStorage.setItem('valuationFrameworkSelected', JSON.stringify(['company1', 'company2']))
 
       render(<App />)
 
@@ -314,7 +330,8 @@ describe('App Component - Local Storage Integration', () => {
       fireEvent.change(screen.getByLabelText(/paste json/i), {
         target: {
           value: JSON.stringify({
-            safes: [{ investorName: 'Bridge Investor', amount: 1, cap: 20 }]
+            _warning: 'No cap table was provided',
+            safes: [{ investorName: 'Bridge Investor', amount: 1, cap: 20, _notes: 'Side letter says pro-rata' }]
           })
         }
       })
@@ -322,12 +339,20 @@ describe('App Component - Local Storage Integration', () => {
         within(screen.getByRole('dialog', { name: /import cap table/i }))
           .getByRole('button', { name: 'Import' })
       )
+      await user.click(screen.getByRole('radio', { name: /append to active scenario/i }))
       await user.click(screen.getByRole('button', { name: 'Append 1 SAFE' }))
 
       await waitFor(() => {
         const stored = JSON.parse(localStorage.getItem('valuationFramework'))
         expect(stored.company1.safes).toHaveLength(1)
         expect(stored.company1.safes[0].investorName).toBe('Bridge Investor')
+        expect(stored.company1.safes[0].notes).toBe('Side letter says pro-rata')
+        expect(stored.company1.importWarnings).toEqual(['No cap table was provided'])
+        expect(stored.company1.showAdvanced).toBe(true)
+        expect(stored.company1.inputsCollapsed).toBe(false)
+        expect(stored.company1.showExitMath).toBe(false)
+        expect(stored.company1.roundConstructPending).toBe(true)
+        expect(JSON.parse(localStorage.getItem('valuationFrameworkSelected'))).toEqual([])
       })
     })
 
@@ -348,8 +373,22 @@ describe('App Component - Local Storage Integration', () => {
           currentEsopPercent: 0,
           targetEsopPercent: 0,
           esopTiming: 'pre-close'
+        },
+        company2: {
+          name: 'Acme Variant',
+          postMoneyVal: 13,
+          roundSize: 3,
+          investorPortion: 2.75,
+          otherPortion: 0.25,
+          investorName: 'US',
+          showAdvanced: false,
+          safes: [],
+          currentEsopPercent: 0,
+          targetEsopPercent: 0,
+          esopTiming: 'pre-close'
         }
       }))
+      localStorage.setItem('valuationFrameworkSelected', JSON.stringify(['company1', 'company2']))
 
       render(<App />)
 
@@ -370,7 +409,74 @@ describe('App Component - Local Storage Integration', () => {
 
       await waitFor(() => {
         const stored = JSON.parse(localStorage.getItem('valuationFramework'))
-        expect(Object.values(stored).map(company => company.name)).toContain('Acme 2')
+        const imported = Object.values(stored).find(company => company.name === 'Acme 2')
+        expect(imported).toBeTruthy()
+        expect(imported.showAdvanced).toBe(true)
+        expect(imported.inputsCollapsed).toBe(false)
+        expect(imported.showExitMath).toBe(false)
+        expect(imported.roundConstructPending).toBe(true)
+        expect(JSON.parse(localStorage.getItem('valuationFrameworkSelected'))).toEqual([])
+      })
+
+      expect(screen.getByDisplayValue('CEO')).toBeInTheDocument()
+    })
+
+    it('should suppress imported round-split errors until round inputs are edited', async () => {
+      const user = userEvent.setup()
+      localStorage.setItem('valuationFramework', JSON.stringify({
+        company1: {
+          name: 'Default Round',
+          postMoneyVal: 13,
+          roundSize: 3,
+          investorPortion: 2.75,
+          otherPortion: 0.25,
+          investorName: 'US',
+          showAdvanced: false,
+          safes: [],
+          currentEsopPercent: 0,
+          targetEsopPercent: 0,
+          esopTiming: 'pre-close'
+        }
+      }))
+
+      render(<App />)
+
+      await user.click(screen.getByRole('button', { name: /import/i }))
+      fireEvent.change(screen.getByLabelText(/paste json/i), {
+        target: {
+          value: JSON.stringify({
+            safes: [{
+              investorName: 'Large Pro-Rata SAFE',
+              amount: 1,
+              conversionType: 'fixed-percent',
+              fixedOwnershipPercent: 50,
+              proRata: true
+            }]
+          })
+        }
+      })
+      await user.click(
+        within(screen.getByRole('dialog', { name: /import cap table/i }))
+          .getByRole('button', { name: 'Import' })
+      )
+      await user.click(screen.getByRole('radio', { name: /append to default round/i }))
+      await user.click(screen.getByRole('button', { name: 'Append 1 SAFE' }))
+
+      await waitFor(() => {
+        const stored = JSON.parse(localStorage.getItem('valuationFramework'))
+        expect(stored.company1.roundConstructPending).toBe(true)
+        expect(stored.company1.showAdvanced).toBe(true)
+      })
+
+      expect(screen.queryByText(/Total pro-rata amount/)).not.toBeInTheDocument()
+
+      const otherPortionInputs = screen.getAllByLabelText('Other Portion')
+      await user.clear(otherPortionInputs[0])
+      await user.type(otherPortionInputs[0], '0.2')
+
+      await waitFor(() => {
+        const stored = JSON.parse(localStorage.getItem('valuationFramework'))
+        expect(stored.company1.roundConstructPending).toBe(false)
       })
     })
   })

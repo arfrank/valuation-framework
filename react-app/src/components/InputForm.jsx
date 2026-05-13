@@ -3,6 +3,7 @@ import PriorInvestorsSection from './PriorInvestorsSection'
 import FoundersSection from './FoundersSection'
 import FormInput from './FormInput'
 import { migrateLegacyCompany } from '../utils/dataStructures'
+import { resolveSafeConversion } from '../utils/multiPartyCalculations'
 
 const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed, highlightToken = 0 }) => {
   const roundToCents = (value) => Math.round(Math.max(0, value) * 100) / 100
@@ -191,6 +192,38 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed, hi
 
   const preMoneyVal = Math.round((values.postMoneyVal - values.roundSize) * 100) / 100
   const safePreMoneyVal = isNaN(preMoneyVal) ? 0 : preMoneyVal
+  const safeRows = values.safes || []
+  const safeSummary = safeRows.reduce((summary, safe) => {
+    const amount = Number(safe.amount) || 0
+    summary.totalAmount += amount
+    if (safe.proRata) summary.proRataCount += 1
+    if (safe.conversionType === 'fixed-percent') summary.fixedCount += 1
+    if (safe.conversionType === 'mfn') summary.mfnCount += 1
+    if ((safe.notes || '').trim()) summary.noteCount += 1
+    return summary
+  }, { totalAmount: 0, proRataCount: 0, fixedCount: 0, mfnCount: 0, noteCount: 0 })
+  const importWarnings = Array.isArray(values.importWarnings) ? values.importWarnings : []
+
+  const formatSafeAmount = (amount) => {
+    const value = Number(amount) || 0
+    return `$${value.toLocaleString(undefined, { minimumFractionDigits: value < 1 ? 3 : 2, maximumFractionDigits: 3 })}M`
+  }
+
+  const getSafeTermLabel = (safe) => {
+    const conversionType = safe.conversionType || 'cap-discount'
+    if (conversionType === 'fixed-percent') {
+      return `Fixed ${(Number(safe.fixedOwnershipPercent) || 0).toFixed(2)}%`
+    }
+    if (conversionType === 'round-price') return 'Round price'
+
+    const cap = Number(safe.cap) || 0
+    const discount = Number(safe.discount) || 0
+    const pieces = []
+    if (cap > 0) pieces.push(`$${cap.toFixed(cap < 10 ? 1 : 0)}M cap`)
+    if (discount > 0) pieces.push(`${discount}% discount`)
+    const fallback = pieces.length > 0 ? pieces.join(' + ') : 'Round price'
+    return conversionType === 'mfn' ? `MFN - ${fallback}` : fallback
+  }
   
   const handleToggleInputMode = () => {
     setMoneyToggleSwapping(true)
@@ -205,6 +238,8 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed, hi
     const newSafe = {
       id, // Simple ID generation
       amount: 0,
+      conversionType: 'cap-discount',
+      fixedOwnershipPercent: 0,
       cap: 0,
       discount: 0,
       investorName: '',
@@ -248,13 +283,13 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed, hi
   }
 
   const updateSafe = (safeId, field, value) => {
-    // Handle string fields (investorName)
-    if (field === 'investorName') {
+    // Handle string fields.
+    if (field === 'investorName' || field === 'conversionType') {
       const newValues = {
         ...values,
         safes: (values.safes || []).map(safe =>
           safe.id === safeId
-            ? { ...safe, investorName: value }
+            ? { ...safe, [field]: value }
             : safe
         )
       }
@@ -309,6 +344,8 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed, hi
     if (numValue > 1000000) numValue = 1000000
     // Limit discount to 100%
     if (field === 'discount' && numValue > 100) numValue = 100
+    // Limit fixed ownership to 100%
+    if (field === 'fixedOwnershipPercent' && numValue > 100) numValue = 100
 
     const newValues = {
       ...values,
@@ -841,7 +878,32 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed, hi
               </div>
             </div>
 
-            {(!values.safes || values.safes.length === 0) ? (
+            {(importWarnings.length > 0 || safeRows.length > 0) && (
+              <div className="safe-import-context">
+                {safeRows.length > 0 && (
+                  <div className="safe-summary-strip" aria-label="SAFE import summary">
+                    <span><strong>{safeRows.length}</strong> SAFEs</span>
+                    <span><strong>{formatSafeAmount(safeSummary.totalAmount)}</strong> total</span>
+                    <span><strong>{safeSummary.proRataCount}</strong> pro-rata</span>
+                    {(safeSummary.fixedCount > 0 || safeSummary.mfnCount > 0) && (
+                      <span><strong>{safeSummary.fixedCount + safeSummary.mfnCount}</strong> non-standard</span>
+                    )}
+                    {safeSummary.noteCount > 0 && (
+                      <span><strong>{safeSummary.noteCount}</strong> notes</span>
+                    )}
+                  </div>
+                )}
+                {importWarnings.length > 0 && (
+                  <div className="safe-import-warning">
+                    {importWarnings.map((warning, index) => (
+                      <p key={index}>{warning}</p>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {safeRows.length === 0 ? (
               <div className="no-safes-message">
                 No SAFE notes. Add convertibles to see how they convert into this round at their cap or discount.
               </div>
@@ -850,51 +912,38 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed, hi
                 <div className="repeater-header">
                   <span className="repeater-col repeater-col--name">Investor</span>
                   <span className="repeater-col repeater-col--amount">Amount</span>
+                  <span className="repeater-col repeater-col--type">Type</span>
                   <span className="repeater-col repeater-col--cap">Cap</span>
                   <span className="repeater-col repeater-col--discount">Discount</span>
                   <span className="repeater-col repeater-col--prorata">Pro-rata</span>
                   <span className="repeater-col repeater-col--actions" aria-hidden="true" />
                 </div>
-                {values.safes.map((safe) => {
+                {safeRows.map((safe) => {
+                  const conversionType = safe.conversionType || 'cap-discount'
+                  const isFixedPercentSafe = conversionType === 'fixed-percent'
+                  const isRoundPriceSafe = conversionType === 'round-price'
+                  const safeNotes = (safe.notes || '').trim()
+                  const termLabel = getSafeTermLabel(safe)
                   // Conversion valuation for the caption under the row
                   const conversionInfo = (() => {
-                    if (!(safe.amount > 0 && (safe.cap > 0 || safe.discount > 0))) return null
-                    let val, note
-                    if (safe.cap > 0 && safe.discount > 0) {
-                      const capPrice = safe.cap
-                      const discountPrice = safePreMoneyVal * (1 - safe.discount / 100)
-                      if (capPrice < discountPrice) {
-                        val = capPrice
-                        note = `cap vs ${safe.discount}% discount`
-                      } else {
-                        val = discountPrice
-                        note = `discount vs $${capPrice.toFixed(1)}M cap`
-                      }
-                    } else if (safe.cap > 0) {
-                      val = Math.min(safe.cap, safePreMoneyVal)
-                      note = `cap $${safe.cap.toFixed(1)}M`
-                    } else {
-                      val = safePreMoneyVal * (1 - safe.discount / 100)
-                      note = `${safe.discount}% discount`
+                    if (safe.amount <= 0) return null
+                    const conversion = resolveSafeConversion(safe, safePreMoneyVal)
+                    if (!conversion.percent) return null
+                    if (conversion.conversionType === 'fixed-percent') {
+                      return `Converts at ${conversion.conversionLabel}`
                     }
-                    return `Converts at $${val.toFixed(1)}M (${note})`
+                    if (conversion.conversionType === 'round-price' || conversion.conversionLabel === 'round price') {
+                      return `Converts at round price ($${conversion.conversionPrice.toFixed(1)}M)`
+                    }
+                    return `Converts at $${conversion.conversionPrice.toFixed(1)}M (${conversion.conversionLabel})`
                   })()
 
                   // Pro-rata allocation calculation
                   let proRataBlock = null
                   if (safe.proRata && safe.amount > 0 && values.roundSize > 0) {
-                    let conversionPrice = 0
-                    if (safe.cap > 0 && safe.discount > 0) {
-                      conversionPrice = Math.min(safe.cap, safePreMoneyVal * (1 - safe.discount / 100))
-                    } else if (safe.cap > 0) {
-                      conversionPrice = Math.min(safe.cap, safePreMoneyVal)
-                    } else if (safe.discount > 0) {
-                      conversionPrice = safePreMoneyVal * (1 - safe.discount / 100)
-                    } else {
-                      conversionPrice = safePreMoneyVal
-                    }
-                    if (conversionPrice > 0) {
-                      const safeOwnership = (safe.amount / conversionPrice) * 100
+                    const conversion = resolveSafeConversion(safe, safePreMoneyVal)
+                    if (conversion.percent > 0) {
+                      const safeOwnership = conversion.percent
                       const calculatedProRata = (safeOwnership / 100) * values.roundSize
                       const hasOverride = safe.proRataOverride != null
                       const displayAmount = hasOverride ? safe.proRataOverride : calculatedProRata
@@ -938,34 +987,72 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed, hi
                           compact
                         />
                       </div>
+                      <div className="repeater-col repeater-col--type">
+                        <label className="sr-only" htmlFor={`safe-type-${safe.id}`}>SAFE type</label>
+                        <select
+                          id={`safe-type-${safe.id}`}
+                          className="repeater-select"
+                          value={conversionType}
+                          onChange={(e) => updateSafe(safe.id, 'conversionType', e.target.value)}
+                          aria-label="SAFE type"
+                        >
+                          <option value="cap-discount">Cap/Disc.</option>
+                          <option value="fixed-percent">Fixed %</option>
+                          <option value="round-price">Round price</option>
+                          <option value="mfn">MFN</option>
+                        </select>
+                      </div>
                       <div className="repeater-col repeater-col--cap">
-                        <FormInput
-                          label="Cap"
-                          type="number"
-                          value={safe.cap}
-                          onChange={(value) => updateSafe(safe.id, 'cap', value)}
-                          prefix="$"
-                          suffix="M"
-                          step="0.5"
-                          min="0"
-                          placeholder="0 = uncapped"
-                          id={`safe-cap-${safe.id}`}
-                          compact
-                        />
+                        {isFixedPercentSafe ? (
+                          <FormInput
+                            label="Fixed %"
+                            type="number"
+                            value={safe.fixedOwnershipPercent || 0}
+                            onChange={(value) => updateSafe(safe.id, 'fixedOwnershipPercent', value)}
+                            suffix="%"
+                            step="0.1"
+                            min="0"
+                            max="100"
+                            id={`safe-fixed-percent-${safe.id}`}
+                            compact
+                          />
+                        ) : isRoundPriceSafe ? (
+                          <span className="repeater-muted-cell">round</span>
+                        ) : (
+                          <FormInput
+                            label="Cap"
+                            type="number"
+                            value={safe.cap}
+                            onChange={(value) => updateSafe(safe.id, 'cap', value)}
+                            prefix="$"
+                            suffix="M"
+                            step="0.5"
+                            min="0"
+                            placeholder="0 = uncapped"
+                            id={`safe-cap-${safe.id}`}
+                            compact
+                          />
+                        )}
                       </div>
                       <div className="repeater-col repeater-col--discount">
-                        <FormInput
-                          label="Discount"
-                          type="number"
-                          value={safe.discount}
-                          onChange={(value) => updateSafe(safe.id, 'discount', value)}
-                          suffix="%"
-                          step="1"
-                          min="0"
-                          max="100"
-                          id={`safe-discount-${safe.id}`}
-                          compact
-                        />
+                        {isFixedPercentSafe ? (
+                          <span className="repeater-muted-cell">fixed</span>
+                        ) : isRoundPriceSafe ? (
+                          <span className="repeater-muted-cell">price</span>
+                        ) : (
+                          <FormInput
+                            label="Discount"
+                            type="number"
+                            value={safe.discount}
+                            onChange={(value) => updateSafe(safe.id, 'discount', value)}
+                            suffix="%"
+                            step="1"
+                            min="0"
+                            max="100"
+                            id={`safe-discount-${safe.id}`}
+                            compact
+                          />
+                        )}
                       </div>
                       <div className="repeater-col repeater-col--prorata">
                         <label className="repeater-checkbox" title="Pro-rata rights">
@@ -986,12 +1073,22 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed, hi
                           ×
                         </button>
                       </div>
-                      {(conversionInfo || proRataBlock) && (
+                      {(conversionInfo || proRataBlock || safeNotes) && (
                         <div className="repeater-row-caption">
-                          <span className="repeater-row-caption-text">
-                            {conversionInfo}
-                            {!conversionInfo && proRataBlock?.matchesLead && `Pro-rata handled via ${values.investorName || 'US'} round portion`}
-                          </span>
+                          <div className="safe-row-explainer">
+                            <div className="safe-term-line">
+                              <span className="safe-term-pill">{termLabel}</span>
+                              {Boolean(safe.proRata) && <span className="safe-term-pill safe-term-pill--positive">Pro-rata</span>}
+                              {safeNotes && <span className="safe-term-pill safe-term-pill--note">Side letter</span>}
+                            </div>
+                            <span className="repeater-row-caption-text">
+                              {conversionInfo}
+                              {!conversionInfo && proRataBlock?.matchesLead && `Pro-rata handled via ${values.investorName || 'US'} round portion`}
+                            </span>
+                            {safeNotes && (
+                              <span className="safe-row-note">{safeNotes}</span>
+                            )}
+                          </div>
                           {proRataBlock && !proRataBlock.matchesLead && (
                             <span className="repeater-row-caption-action">
                               <span className="repeater-row-caption-label">Allocation</span>

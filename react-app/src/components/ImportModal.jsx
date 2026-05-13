@@ -12,7 +12,7 @@ function ImportModal({ open, activeCompanyName = 'active scenario', onClose, onI
   // pendingPreview holds a validated result so the user can review warnings
   // before committing the import.
   const [pendingPreview, setPendingPreview] = useState(null)
-  const [safeDestination, setSafeDestination] = useState('append')
+  const [safeDestination, setSafeDestination] = useState('new')
   const [promptOpen, setPromptOpen] = useState(false)
   const [copiedPrompt, setCopiedPrompt] = useState(false)
   const textareaRef = useRef(null)
@@ -23,7 +23,7 @@ function ImportModal({ open, activeCompanyName = 'active scenario', onClose, onI
       setJsonText('')
       setErrors([])
       setPendingPreview(null)
-      setSafeDestination('append')
+      setSafeDestination('new')
       setPromptOpen(false)
       setCopiedPrompt(false)
     }
@@ -34,7 +34,7 @@ function ImportModal({ open, activeCompanyName = 'active scenario', onClose, onI
   useEffect(() => {
     if (pendingPreview && pendingPreview.sourceText !== jsonText) {
       setPendingPreview(null)
-      setSafeDestination('append')
+      setSafeDestination('new')
     }
   }, [jsonText, pendingPreview])
 
@@ -61,6 +61,7 @@ function ImportModal({ open, activeCompanyName = 'active scenario', onClose, onI
       company: result.company,
       safes: result.safes || [],
       warnings: result.warnings || [],
+      roundConstructEntered: Boolean(result.roundConstructEntered),
       destination
     })
   }
@@ -83,7 +84,7 @@ function ImportModal({ open, activeCompanyName = 'active scenario', onClose, onI
     setErrors([])
     const warnings = result.warnings || []
     if (result.importKind === 'safe-only') {
-      setSafeDestination('append')
+      setSafeDestination('new')
       setPendingPreview({ ...result, warnings, sourceText: jsonText })
       return
     }
@@ -140,81 +141,83 @@ function ImportModal({ open, activeCompanyName = 'active scenario', onClose, onI
           </button>
         </div>
 
-        <p className="import-modal-intro">
-          Paste a JSON cap table below. Get one by sending the prompt below to Claude with the cap table XLS and any SAFE PDFs attached.
-        </p>
+        <div className="import-modal-body">
+          <p className="import-modal-intro">
+            Paste a JSON cap table below. Get one by sending the prompt below to Claude with the cap table XLS and any SAFE PDFs attached.
+          </p>
 
-        <div className="import-modal-prompts">
-          <PromptDisclosure
-            title="Prompt for cap table + SAFE files"
-            description="Use with the spreadsheet and any SAFE PDFs in one Claude chat."
-            prompt={IMPORT_PROMPT}
-            isOpen={promptOpen}
-            isCopied={copiedPrompt}
-            onToggle={() => setPromptOpen((open) => !open)}
-            onCopy={handleCopyPrompt}
+          <div className="import-modal-prompts">
+            <PromptDisclosure
+              title="Prompt for cap table + SAFE files"
+              description="Use with the spreadsheet and any SAFE PDFs in one Claude chat."
+              prompt={IMPORT_PROMPT}
+              isOpen={promptOpen}
+              isCopied={copiedPrompt}
+              onToggle={() => setPromptOpen((open) => !open)}
+              onCopy={handleCopyPrompt}
+            />
+          </div>
+
+          <label className="import-modal-textarea-label" htmlFor="import-json-textarea">
+            Paste JSON
+          </label>
+          <textarea
+            id="import-json-textarea"
+            ref={textareaRef}
+            className="import-modal-textarea"
+            value={jsonText}
+            onChange={(e) => setJsonText(e.target.value)}
+            placeholder={'{\n  "name": "Acme",\n  "founders": [ ... ],\n  "priorInvestors": [ ... ],\n  "safes": [ ... ]\n}'}
+            spellCheck={false}
           />
+
+          {errors.length > 0 && (
+            <div className="import-modal-errors" role="alert">
+              <strong>Couldn&rsquo;t import:</strong>
+              <ul>
+                {errors.map((e, i) => <li key={i}>{e}</li>)}
+              </ul>
+            </div>
+          )}
+
+          {pendingPreview && pendingPreview.warnings.length > 0 && (
+            <div className="import-modal-warnings">
+              <strong>Looks good — but check these before importing:</strong>
+              <ul>
+                {pendingPreview.warnings.map((w, i) => <li key={i}>{w}</li>)}
+              </ul>
+            </div>
+          )}
+
+          {isSafeOnlyPreview && (
+            <div className="import-modal-destination" role="group" aria-labelledby="import-destination-title">
+              <strong id="import-destination-title">Found {formatSafeCount(previewSafeCount)}</strong>
+              <p>Choose where to import these SAFE notes.</p>
+              <label className="import-destination-option">
+                <input
+                  type="radio"
+                  name="safe-import-destination"
+                  value="new"
+                  checked={safeDestination === 'new'}
+                  onChange={() => setSafeDestination('new')}
+                />
+                <span>Create a new imported scenario</span>
+              </label>
+              <label className="import-destination-option">
+                <input
+                  type="radio"
+                  name="safe-import-destination"
+                  value="append"
+                  checked={safeDestination === 'append'}
+                  onChange={() => setSafeDestination('append')}
+                />
+                <span>
+                  Append to <strong>{activeCompanyName}</strong>
+                </span>
+              </label>
+            </div>
+          )}
         </div>
-
-        <label className="import-modal-textarea-label" htmlFor="import-json-textarea">
-          Paste JSON
-        </label>
-        <textarea
-          id="import-json-textarea"
-          ref={textareaRef}
-          className="import-modal-textarea"
-          value={jsonText}
-          onChange={(e) => setJsonText(e.target.value)}
-          placeholder={'{\n  "name": "Acme",\n  "founders": [ ... ],\n  "priorInvestors": [ ... ],\n  "safes": [ ... ]\n}'}
-          spellCheck={false}
-        />
-
-        {errors.length > 0 && (
-          <div className="import-modal-errors" role="alert">
-            <strong>Couldn&rsquo;t import:</strong>
-            <ul>
-              {errors.map((e, i) => <li key={i}>{e}</li>)}
-            </ul>
-          </div>
-        )}
-
-        {pendingPreview && pendingPreview.warnings.length > 0 && (
-          <div className="import-modal-warnings">
-            <strong>Looks good — but check these before importing:</strong>
-            <ul>
-              {pendingPreview.warnings.map((w, i) => <li key={i}>{w}</li>)}
-            </ul>
-          </div>
-        )}
-
-        {isSafeOnlyPreview && (
-          <div className="import-modal-destination" role="group" aria-labelledby="import-destination-title">
-            <strong id="import-destination-title">Found {formatSafeCount(previewSafeCount)}</strong>
-            <p>Choose where to import these SAFE notes.</p>
-            <label className="import-destination-option">
-              <input
-                type="radio"
-                name="safe-import-destination"
-                value="append"
-                checked={safeDestination === 'append'}
-                onChange={() => setSafeDestination('append')}
-              />
-              <span>
-                Append to <strong>{activeCompanyName}</strong>
-              </span>
-            </label>
-            <label className="import-destination-option">
-              <input
-                type="radio"
-                name="safe-import-destination"
-                value="new"
-                checked={safeDestination === 'new'}
-                onChange={() => setSafeDestination('new')}
-              />
-              <span>Create a new imported scenario</span>
-            </label>
-          </div>
-        )}
 
         <div className="import-modal-actions">
           <button
