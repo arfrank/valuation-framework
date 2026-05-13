@@ -4931,6 +4931,15 @@ input.investor-name-input:focus, input.founder-name-input:focus {
   padding-right: var(--space-4);
 }
 
+.import-company-btn:focus-visible {
+  outline: 2px solid rgba(99, 91, 255, 0.45);
+  outline-offset: -2px;
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+  gap: 6px;
+  padding-right: var(--space-4);
+}
+
 .import-icon {
   display: inline-flex;
   align-items: center;
@@ -5019,6 +5028,14 @@ input.investor-name-input:focus, input.founder-name-input:focus {
 .import-modal-close:hover {
   background: var(--color-bg-muted);
   color: var(--color-fg);
+}
+
+.import-modal-close:focus-visible,
+.import-prompt-toggle:focus-visible,
+.import-prompt-copy:focus-visible,
+.import-modal-btn:focus-visible {
+  outline: 2px solid rgba(99, 91, 255, 0.45);
+  outline-offset: 2px;
 }
 
 .import-modal-intro {
@@ -5181,6 +5198,57 @@ input.investor-name-input:focus, input.founder-name-input:focus {
 .import-modal-errors li,
 .import-modal-warnings li {
   margin: 2px 0;
+}
+
+.import-modal-destination {
+  margin: 4px 22px 8px;
+  padding: 12px 14px;
+  border: 1px solid rgba(99, 91, 255, 0.28);
+  border-radius: 8px;
+  background: var(--color-accent-soft);
+  color: var(--color-fg);
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+.import-modal-destination p {
+  margin: 2px 0 10px;
+  color: var(--color-fg-muted);
+}
+
+.import-destination-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.65);
+  cursor: pointer;
+}
+
+.import-destination-option + .import-destination-option {
+  margin-top: 6px;
+}
+
+.import-destination-option:hover {
+  border-color: rgba(99, 91, 255, 0.24);
+  background: #ffffff;
+}
+
+.import-destination-option input {
+  flex: 0 0 auto;
+  accent-color: #635bff;
+}
+
+.import-destination-option:has(input:checked) {
+  border-color: rgba(99, 91, 255, 0.45);
+  background: #ffffff;
+}
+
+.import-destination-option:has(input:focus-visible) {
+  outline: 2px solid rgba(99, 91, 255, 0.45);
+  outline-offset: 2px;
 }
 
 .import-modal-actions {

@@ -30,6 +30,10 @@ function getNextCompanyNumber(companies) {
   return Math.max(2, maxExisting + 1)
 }
 
+function formatSafeCount(count) {
+  return `${count} SAFE${count === 1 ? '' : 's'}`
+}
+
 function App() {
   const [storedCompanies, setStoredCompanies] = useLocalStorage('valuationFramework', {
     company1: createDefaultCompany('Scenario 1')
@@ -103,12 +107,43 @@ function App() {
     setTabActivity({ companyId: newCompanyId, type: 'add', nonce: Date.now() })
   }
 
-  const handleImportCompany = (importedCompany) => {
+  const handleImportCompany = (importResult) => {
+    const importKind = importResult?.importKind || 'company'
+    const importedCompany = importResult?.company || importResult
+    const importedSafes = importResult?.safes || importedCompany?.safes || []
+
+    if (importKind === 'safe-only' && importResult?.destination === 'append') {
+      const safeCount = importedSafes.length
+      if (safeCount === 0) {
+        showError('No SAFEs found to import', 2200)
+        return
+      }
+
+      const activeName = companies[activeCompany]?.name || 'active scenario'
+      setStoredCompanies(prev => {
+        const normalizedPrev = normalizeStoredCompanies(prev)
+        const currentCompany = normalizedPrev[activeCompany]
+        if (!currentCompany) return normalizedPrev
+        return {
+          ...normalizedPrev,
+          [activeCompany]: {
+            ...currentCompany,
+            safes: [...(currentCompany.safes || []), ...importedSafes]
+          }
+        }
+      })
+      setInputHighlightToken(Date.now())
+      setImportModalOpen(false)
+      showSuccess(`Appended ${formatSafeCount(safeCount)} to "${activeName}"`, 2200)
+      return
+    }
+
     const desiredName = (importedCompany?.name || '').trim() || 'Imported Scenario'
     const existingNames = new Set(Object.values(companies).map(c => c?.name))
     const finalName = existingNames.has(desiredName)
       ? nextUniqueName(desiredName, companies)
       : desiredName
+    const safeCount = importKind === 'safe-only' ? importedSafes.length : null
 
     const newCompanyId = `company${nextCompanyId}`
     setStoredCompanies(prev => ({
@@ -119,7 +154,12 @@ function App() {
     setNextCompanyId(prev => prev + 1)
     setTabActivity({ companyId: newCompanyId, type: 'add', nonce: Date.now() })
     setImportModalOpen(false)
-    showSuccess(`Imported "${finalName}"`, 2200)
+    showSuccess(
+      safeCount === null
+        ? `Imported "${finalName}"`
+        : `Imported "${finalName}" with ${formatSafeCount(safeCount)}`,
+      2200
+    )
   }
 
   const ensureExample = useCallback(() => {
@@ -506,6 +546,7 @@ function App() {
 
       <ImportModal
         open={importModalOpen}
+        activeCompanyName={companies[activeCompany]?.name || 'active scenario'}
         onClose={() => setImportModalOpen(false)}
         onImport={handleImportCompany}
         onShowSuccess={showSuccess}

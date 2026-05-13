@@ -1,11 +1,13 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import App from './App'
 
 describe('App Component - Local Storage Integration', () => {
   beforeEach(() => {
     // Clear localStorage before each test
     window.localStorage.clear()
+    window.localStorage.setItem('valuationFrameworkTourSeen', '1')
     
     // Mock console.error to suppress expected error logs during testing
     vi.spyOn(console, 'error').mockImplementation(() => {})
@@ -282,6 +284,94 @@ describe('App Component - Local Storage Integration', () => {
       
       // Should handle unicode gracefully
       expect(screen.getByText('测试公司 🚀')).toBeInTheDocument()
+    })
+  })
+
+  describe('Import Integration', () => {
+    it('should append SAFE-only imports to the active company', async () => {
+      const user = userEvent.setup()
+      localStorage.setItem('valuationFramework', JSON.stringify({
+        company1: {
+          name: 'Active Scenario',
+          postMoneyVal: 20,
+          roundSize: 5,
+          investorPortion: 4,
+          otherPortion: 1,
+          investorName: 'US',
+          showAdvanced: true,
+          founders: [{ name: 'Founder Team', ownershipPercent: 85 }],
+          priorInvestors: [{ name: 'Seed Investors', ownershipPercent: 15 }],
+          safes: [],
+          currentEsopPercent: 0,
+          targetEsopPercent: 0,
+          esopTiming: 'pre-close'
+        }
+      }))
+
+      render(<App />)
+
+      await user.click(screen.getByRole('button', { name: /import/i }))
+      fireEvent.change(screen.getByLabelText(/paste json/i), {
+        target: {
+          value: JSON.stringify({
+            safes: [{ investorName: 'Bridge Investor', amount: 1, cap: 20 }]
+          })
+        }
+      })
+      await user.click(
+        within(screen.getByRole('dialog', { name: /import cap table/i }))
+          .getByRole('button', { name: 'Import' })
+      )
+      await user.click(screen.getByRole('button', { name: 'Append 1 SAFE' }))
+
+      await waitFor(() => {
+        const stored = JSON.parse(localStorage.getItem('valuationFramework'))
+        expect(stored.company1.safes).toHaveLength(1)
+        expect(stored.company1.safes[0].investorName).toBe('Bridge Investor')
+      })
+    })
+
+    it('should create a uniquely named scenario for full cap-table imports', async () => {
+      const user = userEvent.setup()
+      localStorage.setItem('valuationFramework', JSON.stringify({
+        company1: {
+          name: 'Acme',
+          postMoneyVal: 13,
+          roundSize: 3,
+          investorPortion: 2.75,
+          otherPortion: 0.25,
+          investorName: 'US',
+          showAdvanced: true,
+          founders: [{ name: 'Founder Team', ownershipPercent: 85 }],
+          priorInvestors: [{ name: 'Seed Investors', ownershipPercent: 15 }],
+          safes: [],
+          currentEsopPercent: 0,
+          targetEsopPercent: 0,
+          esopTiming: 'pre-close'
+        }
+      }))
+
+      render(<App />)
+
+      await user.click(screen.getByRole('button', { name: /import/i }))
+      fireEvent.change(screen.getByLabelText(/paste json/i), {
+        target: {
+          value: JSON.stringify({
+            name: 'Acme',
+            founders: [{ name: 'CEO', ownershipPercent: 80 }],
+            priorInvestors: [{ name: 'Seed Fund', ownershipPercent: 20 }]
+          })
+        }
+      })
+      await user.click(
+        within(screen.getByRole('dialog', { name: /import cap table/i }))
+          .getByRole('button', { name: 'Import' })
+      )
+
+      await waitFor(() => {
+        const stored = JSON.parse(localStorage.getItem('valuationFramework'))
+        expect(Object.values(stored).map(company => company.name)).toContain('Acme 2')
+      })
     })
   })
 })

@@ -2,12 +2,17 @@ import { useEffect, useRef, useState } from 'react'
 import { parseImportJson } from '../utils/importCompany'
 import { XLS_IMPORT_PROMPT, SAFE_PDF_IMPORT_PROMPT } from '../utils/importPrompts'
 
-function ImportModal({ open, onClose, onImport, onShowError, onShowSuccess }) {
+function formatSafeCount(count) {
+  return `${count} SAFE${count === 1 ? '' : 's'}`
+}
+
+function ImportModal({ open, activeCompanyName = 'active scenario', onClose, onImport, onShowError, onShowSuccess }) {
   const [jsonText, setJsonText] = useState('')
   const [errors, setErrors] = useState([])
   // pendingPreview holds a validated result so the user can review warnings
   // before committing the import.
   const [pendingPreview, setPendingPreview] = useState(null)
+  const [safeDestination, setSafeDestination] = useState('append')
   const [openPrompt, setOpenPrompt] = useState(null) // 'xls' | 'safe' | null
   const [copiedPrompt, setCopiedPrompt] = useState(null)
   const textareaRef = useRef(null)
@@ -18,6 +23,7 @@ function ImportModal({ open, onClose, onImport, onShowError, onShowSuccess }) {
       setJsonText('')
       setErrors([])
       setPendingPreview(null)
+      setSafeDestination('append')
       setOpenPrompt(null)
       setCopiedPrompt(null)
     }
@@ -28,6 +34,7 @@ function ImportModal({ open, onClose, onImport, onShowError, onShowSuccess }) {
   useEffect(() => {
     if (pendingPreview && pendingPreview.sourceText !== jsonText) {
       setPendingPreview(null)
+      setSafeDestination('append')
     }
   }, [jsonText, pendingPreview])
 
@@ -48,10 +55,23 @@ function ImportModal({ open, onClose, onImport, onShowError, onShowSuccess }) {
 
   if (!open) return null
 
+  const commitImport = (result, destination) => {
+    onImport({
+      importKind: result.importKind,
+      company: result.company,
+      safes: result.safes || [],
+      warnings: result.warnings || [],
+      destination
+    })
+  }
+
   const handleImport = () => {
     // Two-step UX so the user can review warnings before committing.
     if (pendingPreview && pendingPreview.sourceText === jsonText) {
-      onImport(pendingPreview.company, pendingPreview.warnings)
+      commitImport(
+        pendingPreview,
+        pendingPreview.importKind === 'safe-only' ? safeDestination : 'new'
+      )
       return
     }
     const result = parseImportJson(jsonText)
@@ -62,11 +82,16 @@ function ImportModal({ open, onClose, onImport, onShowError, onShowSuccess }) {
     }
     setErrors([])
     const warnings = result.warnings || []
-    if (warnings.length === 0) {
-      onImport(result.company, [])
+    if (result.importKind === 'safe-only') {
+      setSafeDestination('append')
+      setPendingPreview({ ...result, warnings, sourceText: jsonText })
       return
     }
-    setPendingPreview({ company: result.company, warnings, sourceText: jsonText })
+    if (warnings.length === 0) {
+      commitImport(result, 'new')
+      return
+    }
+    setPendingPreview({ ...result, warnings, sourceText: jsonText })
   }
 
   const handleCopyPrompt = async (kind, text) => {
@@ -83,6 +108,16 @@ function ImportModal({ open, onClose, onImport, onShowError, onShowSuccess }) {
   const handleBackdropClick = (e) => {
     if (e.target === e.currentTarget) onClose()
   }
+
+  const isSafeOnlyPreview = pendingPreview?.importKind === 'safe-only'
+  const previewSafeCount = pendingPreview?.safes?.length || 0
+  const importButtonLabel = pendingPreview && pendingPreview.sourceText === jsonText
+    ? isSafeOnlyPreview
+      ? safeDestination === 'append'
+        ? `Append ${formatSafeCount(previewSafeCount)}`
+        : 'Create scenario'
+      : 'Import anyway'
+    : 'Import'
 
   return (
     <div className="import-modal-backdrop" onClick={handleBackdropClick}>
@@ -163,6 +198,35 @@ function ImportModal({ open, onClose, onImport, onShowError, onShowSuccess }) {
           </div>
         )}
 
+        {isSafeOnlyPreview && (
+          <div className="import-modal-destination" role="group" aria-labelledby="import-destination-title">
+            <strong id="import-destination-title">Found {formatSafeCount(previewSafeCount)}</strong>
+            <p>Choose where to import these SAFE notes.</p>
+            <label className="import-destination-option">
+              <input
+                type="radio"
+                name="safe-import-destination"
+                value="append"
+                checked={safeDestination === 'append'}
+                onChange={() => setSafeDestination('append')}
+              />
+              <span>
+                Append to <strong>{activeCompanyName}</strong>
+              </span>
+            </label>
+            <label className="import-destination-option">
+              <input
+                type="radio"
+                name="safe-import-destination"
+                value="new"
+                checked={safeDestination === 'new'}
+                onChange={() => setSafeDestination('new')}
+              />
+              <span>Create a new imported scenario</span>
+            </label>
+          </div>
+        )}
+
         <div className="import-modal-actions">
           <button
             type="button"
@@ -177,7 +241,7 @@ function ImportModal({ open, onClose, onImport, onShowError, onShowSuccess }) {
             onClick={handleImport}
             disabled={jsonText.trim() === ''}
           >
-            {pendingPreview && pendingPreview.sourceText === jsonText ? 'Import anyway' : 'Import'}
+            {importButtonLabel}
           </button>
         </div>
       </div>

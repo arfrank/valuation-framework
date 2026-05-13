@@ -5,15 +5,77 @@ import { migrateLegacyCompany } from './dataStructures'
 // and may emit a top-level `_warning` if the cap table looked off. We surface
 // those as warnings but never persist them on the company.
 const STRIP_KEYS = new Set(['_safeType', '_notes', '_warning'])
+const MATERIAL_ARRAY_FIELDS = ['founders', 'priorInvestors', 'warrants']
+const MATERIAL_SCALAR_FIELDS = [
+  'postMoneyVal',
+  'postMoney',
+  'roundSize',
+  'round',
+  'investorPortion',
+  'investor',
+  'otherPortion',
+  'other',
+  'investorName',
+  'currentEsopPercent',
+  'grantedEsopPercent',
+  'targetEsopPercent',
+  'esopTiming',
+  'showAdvanced',
+  'twoStepEnabled',
+  'step2PostMoney',
+  'step2Amount',
+  'step2InvestorPortion',
+  'step2OtherPortion'
+]
+
+let importIdCounter = 0
 
 function isPlainObject(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
 }
 
-function getNumber(value) {
-  if (value === null || value === undefined || value === '') return undefined
-  const n = Number(value)
-  return Number.isFinite(n) ? n : undefined
+function hasOwn(value, key) {
+  return Object.prototype.hasOwnProperty.call(value, key)
+}
+
+function hasMaterialCapTableData(raw) {
+  return MATERIAL_ARRAY_FIELDS.some((key) => Array.isArray(raw[key]) && raw[key].length > 0) ||
+    MATERIAL_SCALAR_FIELDS.some((key) => (
+      hasOwn(raw, key) &&
+      raw[key] !== null &&
+      raw[key] !== undefined &&
+      raw[key] !== ''
+    ))
+}
+
+function getImportKind(raw) {
+  return Array.isArray(raw.safes) &&
+    raw.safes.length > 0 &&
+    !hasMaterialCapTableData(raw)
+    ? 'safe-only'
+    : 'company'
+}
+
+function createImportId(prefix, index) {
+  importIdCounter += 1
+  return `${prefix}-${Date.now()}-${importIdCounter}-${index}`
+}
+
+function assignFreshIds(items, prefix) {
+  return (items || []).map((item, index) => ({
+    ...item,
+    id: createImportId(prefix, index)
+  }))
+}
+
+function assignFreshRowIds(company) {
+  return {
+    ...company,
+    founders: assignFreshIds(company.founders, 'imported-founder'),
+    priorInvestors: assignFreshIds(company.priorInvestors, 'imported-prior'),
+    safes: assignFreshIds(company.safes, 'imported-safe'),
+    warrants: assignFreshIds(company.warrants, 'imported-warrant')
+  }
 }
 
 function checkPercent(label, value, errors) {
@@ -189,7 +251,7 @@ function softWarnings(company) {
 }
 
 // Parses a JSON string and runs validation + normalization. Returns either
-// `{ ok: true, company, warnings }` or `{ ok: false, errors }`.
+// `{ ok: true, importKind, company, safes, warnings }` or `{ ok: false, errors }`.
 export function parseImportJson(text) {
   if (typeof text !== 'string' || text.trim() === '') {
     return { ok: false, errors: ['No JSON provided'] }
@@ -208,6 +270,7 @@ export function parseImportJson(text) {
   }
 
   const { cleaned, warnings: metaWarnings } = extractMetadata(raw)
+  const importKind = getImportKind(cleaned)
 
   // Run through the same migration path as localStorage loading. This handles
   // legacy field names (postMoney/round/investor/other/proRataAmount) and
@@ -215,14 +278,8 @@ export function parseImportJson(text) {
   const fallbackName = typeof cleaned.name === 'string' && cleaned.name.trim()
     ? cleaned.name.trim()
     : 'Imported Scenario'
-  const company = migrateLegacyCompany(cleaned, fallbackName)
-
-  // normalizeSafe in dataStructures.js preserves but doesn't generate `id`,
-  // so an imported SAFE without an id would cause a React key collision.
-  company.safes = (company.safes || []).map((s, i) => (
-    s && s.id !== undefined ? s : { ...s, id: `imported-safe-${Date.now()}-${i}` }
-  ))
+  const company = assignFreshRowIds(migrateLegacyCompany(cleaned, fallbackName))
 
   const warnings = [...metaWarnings, ...softWarnings(company)]
-  return { ok: true, company, warnings }
+  return { ok: true, importKind, company, safes: company.safes || [], warnings }
 }

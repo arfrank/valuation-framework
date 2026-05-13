@@ -22,6 +22,7 @@ describe('parseImportJson', () => {
   it('accepts a minimal payload (just name)', () => {
     const r = parseImportJson(JSON.stringify({ name: 'Acme' }))
     expect(r.ok).toBe(true)
+    expect(r.importKind).toBe('company')
     expect(r.company.name).toBe('Acme')
     // Defaults applied via migrateLegacyCompany
     expect(r.company.postMoneyVal).toBe(13)
@@ -68,17 +69,42 @@ describe('parseImportJson', () => {
     }
     const r = parseImportJson(JSON.stringify(payload))
     expect(r.ok).toBe(true)
+    expect(r.importKind).toBe('company')
     expect(r.company.founders).toHaveLength(2)
     expect(r.company.founders.every(f => f.id !== undefined)).toBe(true)
     expect(r.company.priorInvestors).toHaveLength(2)
     expect(r.company.priorInvestors[0].hasProRataRights).toBe(true)
     expect(r.company.priorInvestors[0].proRataOverride).toBeNull()
     expect(r.company.safes).toHaveLength(2)
+    expect(r.safes).toHaveLength(2)
     expect(r.company.safes[0].proRata).toBe(true)
     expect(r.company.warrants).toHaveLength(1)
     expect(r.company.warrants[0].amount).toBe(1)
     expect(r.company.currentEsopPercent).toBe(8)
     expect(r.company.grantedEsopPercent).toBe(5)
+  })
+
+  it('classifies SAFE-only payloads separately', () => {
+    const r = parseImportJson(JSON.stringify({
+      safes: [
+        { investorName: 'Bridge', amount: 1.5, cap: 30, discount: 0, proRata: false }
+      ]
+    }))
+    expect(r.ok).toBe(true)
+    expect(r.importKind).toBe('safe-only')
+    expect(r.safes).toHaveLength(1)
+    expect(r.company.name).toBe('Imported Scenario')
+    expect(r.company.safes[0].investorName).toBe('Bridge')
+  })
+
+  it('keeps SAFE payloads as company imports when cap-table fields are present', () => {
+    const r = parseImportJson(JSON.stringify({
+      name: 'Acme',
+      founders: [{ name: 'CEO', ownershipPercent: 70 }],
+      safes: [{ investorName: 'Bridge', amount: 1, cap: 25 }]
+    }))
+    expect(r.ok).toBe(true)
+    expect(r.importKind).toBe('company')
   })
 
   it('rejects ownership > 100', () => {
@@ -209,19 +235,33 @@ describe('parseImportJson', () => {
     expect(r.company.safes[0]._notes).toBeUndefined()
   })
 
-  it('assigns ids to imported SAFEs (required for React keys)', () => {
+  it('replaces imported row ids so React keys stay unique', () => {
     const r = parseImportJson(JSON.stringify({
       name: 'X',
+      founders: [
+        { id: 'duplicate', name: 'Founder A', ownershipPercent: 45 },
+        { id: 'duplicate', name: 'Founder B', ownershipPercent: 35 }
+      ],
+      priorInvestors: [
+        { id: 'duplicate', name: 'Seed', ownershipPercent: 20 }
+      ],
       safes: [
-        { investorName: 'A', amount: 1, cap: 20 },
-        { investorName: 'B', amount: 0.5, cap: 15 }
+        { id: 'duplicate', investorName: 'A', amount: 1, cap: 20 },
+        { id: 'duplicate', investorName: 'B', amount: 0.5, cap: 15 }
+      ],
+      warrants: [
+        { id: 'duplicate', name: 'Lender', amount: 0.2, valuation: 20 }
       ]
     }))
     expect(r.ok).toBe(true)
-    expect(r.company.safes).toHaveLength(2)
-    expect(r.company.safes[0].id).toBeDefined()
-    expect(r.company.safes[1].id).toBeDefined()
-    expect(r.company.safes[0].id).not.toBe(r.company.safes[1].id)
+    const ids = [
+      ...r.company.founders,
+      ...r.company.priorInvestors,
+      ...r.company.safes,
+      ...r.company.warrants
+    ].map(row => row.id)
+    expect(ids.every(id => id && id !== 'duplicate')).toBe(true)
+    expect(new Set(ids).size).toBe(ids.length)
   })
 
   it('preserves duplicate investor names verbatim for the rollup engine', () => {
