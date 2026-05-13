@@ -339,6 +339,7 @@ describe('App Component - Local Storage Integration', () => {
         within(screen.getByRole('dialog', { name: /import cap table/i }))
           .getByRole('button', { name: 'Import' })
       )
+      await user.click(screen.getByRole('radio', { name: /append to active scenario/i }))
       await user.click(screen.getByRole('button', { name: 'Append 1 SAFE' }))
 
       await waitFor(() => {
@@ -458,6 +459,7 @@ describe('App Component - Local Storage Integration', () => {
         within(screen.getByRole('dialog', { name: /import cap table/i }))
           .getByRole('button', { name: 'Import' })
       )
+      await user.click(screen.getByRole('radio', { name: /append to default round/i }))
       await user.click(screen.getByRole('button', { name: 'Append 1 SAFE' }))
 
       await waitFor(() => {

@@ -5115,7 +5115,7 @@ input.investor-name-input:focus, input.founder-name-input:focus {
   box-shadow: 0 20px 50px rgba(15, 23, 42, 0.35), 0 4px 12px rgba(15, 23, 42, 0.15);
   border: 1px solid rgba(99, 91, 255, 0.18);
   width: min(720px, 100%);
-  max-height: calc(100vh - 80px);
+  max-height: min(820px, calc(100vh - 32px));
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -5131,6 +5131,7 @@ input.investor-name-input:focus, input.founder-name-input:focus {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex: 0 0 auto;
   padding: 18px 22px 12px;
   border-bottom: 1px solid var(--color-border);
 }
@@ -5165,6 +5166,13 @@ input.investor-name-input:focus, input.founder-name-input:focus {
 .import-modal-btn:focus-visible {
   outline: 2px solid rgba(99, 91, 255, 0.45);
   outline-offset: 2px;
+}
+
+.import-modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .import-modal-intro {
@@ -5429,10 +5437,12 @@ input.investor-name-input:focus, input.founder-name-input:focus {
 .import-modal-actions {
   display: flex;
   justify-content: flex-end;
+  flex: 0 0 auto;
   gap: 8px;
   padding: 12px 22px 18px;
   border-top: 1px solid var(--color-border);
-  margin-top: auto;
+  background: #ffffff;
+  box-shadow: 0 -8px 18px rgba(15, 23, 42, 0.05);
 }
 
 .import-modal-btn {

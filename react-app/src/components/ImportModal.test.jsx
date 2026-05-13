@@ -73,7 +73,7 @@ describe('ImportModal', () => {
     }))
   })
 
-  it('previews SAFE-only JSON and appends to the active scenario by default', async () => {
+  it('previews SAFE-only JSON and creates a new scenario by default', async () => {
     const { user, onImport } = renderImportModal()
 
     pasteJson({
@@ -82,19 +82,19 @@ describe('ImportModal', () => {
     await user.click(screen.getByRole('button', { name: 'Import' }))
 
     expect(screen.getByText('Found 1 SAFE')).toBeInTheDocument()
-    expect(screen.getByRole('radio', { name: /append to scenario 1/i })).toBeChecked()
+    expect(screen.getByRole('radio', { name: /create a new imported scenario/i })).toBeChecked()
     expect(onImport).not.toHaveBeenCalled()
 
-    await user.click(screen.getByRole('button', { name: 'Append 1 SAFE' }))
+    await user.click(screen.getByRole('button', { name: 'Create scenario' }))
 
     expect(onImport).toHaveBeenCalledWith(expect.objectContaining({
       importKind: 'safe-only',
-      destination: 'append',
+      destination: 'new',
       safes: [expect.objectContaining({ investorName: 'Bridge Investor' })]
     }))
   })
 
-  it('can create a new scenario from SAFE-only JSON', async () => {
+  it('can append SAFE-only JSON to the active scenario', async () => {
     const { user, onImport } = renderImportModal()
 
     pasteJson({
@@ -104,12 +104,12 @@ describe('ImportModal', () => {
       ]
     })
     await user.click(screen.getByRole('button', { name: 'Import' }))
-    await user.click(screen.getByRole('radio', { name: /create a new imported scenario/i }))
-    await user.click(screen.getByRole('button', { name: 'Create scenario' }))
+    await user.click(screen.getByRole('radio', { name: /append to scenario 1/i }))
+    await user.click(screen.getByRole('button', { name: 'Append 2 SAFEs' }))
 
     expect(onImport).toHaveBeenCalledWith(expect.objectContaining({
       importKind: 'safe-only',
-      destination: 'new',
+      destination: 'append',
       safes: [
         expect.objectContaining({ investorName: 'Bridge Investor' }),
         expect.objectContaining({ investorName: 'Angel' })
