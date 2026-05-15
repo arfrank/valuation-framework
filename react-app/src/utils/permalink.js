@@ -125,6 +125,9 @@ export function encodeScenarioToURL(scenarioData) {
             if (safe.investorName && safe.investorName.trim()) {
               encoded.n = safe.investorName.trim()
             }
+            if (safe.notes && String(safe.notes).trim()) {
+              encoded.nt = String(safe.notes).trim()
+            }
             if (safe.proRata) {
               encoded.p = 1
               if (safe.proRataOverride != null && safe.proRataOverride >= 0) {
@@ -306,6 +309,9 @@ export function decodeScenarioFromURL(urlParams) {
                 conversionType: safe.t || 'cap-discount',
                 fixedOwnershipPercent: safe.fp || 0,
                 investorName: safe.n || '',
+                notes: typeof safe.nt === 'string'
+                  ? safe.nt.trim()
+                  : (typeof safe.notes === 'string' ? safe.notes.trim() : ''),
                 proRata: safe.p === 1 || safe.p === true,
                 proRataOverride: (typeof safe.po === 'number' && safe.po >= 0) ? safe.po : null
               }))
