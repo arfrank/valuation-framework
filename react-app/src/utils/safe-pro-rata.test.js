@@ -168,6 +168,33 @@ describe('SAFE Pro-Rata', () => {
     expect(result.totalOwnership + result.unknownOwnership).toBeCloseTo(100, 1)
   })
 
+  it('suppresses prior and SAFE pro-rata in a SAFE round while keeping pro-forma dilution', () => {
+    const result = calculateEnhancedScenario({
+      ...baseInputs,
+      roundInstrument: 'safe',
+      investorPortion: 20,
+      otherPortion: 0,
+      priorInvestors: [
+        { id: 10, name: 'Seed Co', ownershipPercent: 10, hasProRataRights: true, proRataOverride: null }
+      ],
+      founders: [{ id: 99, name: 'Founders', ownershipPercent: 70 }],
+      safes: [
+        { id: 1, amount: 1, cap: 10, discount: 0, investorName: 'Acme', proRata: true }
+      ]
+    })
+
+    expect(result.error).toBeFalsy()
+    expect(result.roundInstrument).toBe('safe')
+    expect(result.proRataSuppressed).toBe(true)
+    expect(result.totalProRataAmount).toBe(0)
+    expect(result.totalSafeProRataAmount).toBe(0)
+    expect(result.priorInvestors[0].proRataAmount).toBe(0)
+    expect(result.safeDetails[0].proRataAmount).toBe(0)
+    expect(result.otherAmount).toBe(0)
+    expect(result.totalSafePercent).toBeCloseTo(10, 2)
+    expect(result.founders[0].postRoundPercent).toBeCloseTo(49, 2)
+  })
+
   it('persists SAFE pro-rata fields in permalink round-trip', async () => {
     const { encodeScenarioToURL, decodeScenarioFromURL } = await import('./permalink')
     const encoded = encodeScenarioToURL({
@@ -205,5 +232,38 @@ describe('SAFE Pro-Rata in Two-Step Round', () => {
     expect(base.error).toBeFalsy()
     expect(base.totalSafeProRataAmount).toBeGreaterThan(0)
     expect(base.safeDetails[0].proRataAmount).toBeGreaterThan(0)
+  })
+
+  it('suppresses step-2 prior and SAFE pro-rata in a SAFE round', () => {
+    const scenarios = calculateEnhancedScenarios({
+      ...baseInputs,
+      roundInstrument: 'safe',
+      twoStepEnabled: true,
+      postMoneyVal: 50,
+      roundSize: 10,
+      investorPortion: 8,
+      otherPortion: 2,
+      step2PostMoney: 150,
+      step2Amount: 30,
+      step2InvestorPortion: 30,
+      step2OtherPortion: 0,
+      priorInvestors: [
+        { id: 10, name: 'Seed Co', ownershipPercent: 10, hasProRataRights: true, proRataOverride: null }
+      ],
+      founders: [{ id: 99, name: 'Founders', ownershipPercent: 70 }],
+      safes: [
+        { id: 1, amount: 1, cap: 10, discount: 0, investorName: 'Acme', proRata: true }
+      ]
+    })
+    const base = scenarios[0]
+
+    expect(base.error).toBeFalsy()
+    expect(base.roundInstrument).toBe('safe')
+    expect(base.proRataSuppressed).toBe(true)
+    expect(base.totalProRataAmount).toBe(0)
+    expect(base.totalSafeProRataAmount).toBe(0)
+    expect(base.priorInvestors[0].proRataAmount).toBe(0)
+    expect(base.safeDetails[0].proRataAmount).toBe(0)
+    expect(base.founders[0].postRoundPercent).toBeLessThan(70)
   })
 })

@@ -1,6 +1,7 @@
 import { buildScenarioOffsets, normalizeScenarioOffsets } from './scenarioOffsets'
 
 export const SAFE_CONVERSION_TYPES = new Set(['cap-discount', 'fixed-percent', 'round-price', 'mfn'])
+export const ROUND_INSTRUMENT_TYPES = new Set(['priced', 'safe'])
 
 /**
  * Data structure definitions for the enhanced valuation framework
@@ -197,6 +198,10 @@ function normalizeSafe(safe = {}) {
   }
 }
 
+function normalizeRoundInstrument(value) {
+  return ROUND_INSTRUMENT_TYPES.has(value) ? value : 'priced'
+}
+
 function normalizeStringArray(value) {
   return Array.isArray(value)
     ? value.map((item) => String(item || '').trim()).filter(Boolean)
@@ -216,6 +221,7 @@ function looksLikeSingleStoredCompany(value) {
     'otherPortion',
     'other',
     'investorName',
+    'roundInstrument',
     'showAdvanced',
     'proRataPercent',
     'preRoundFounderOwnership',
@@ -244,6 +250,7 @@ export function createDefaultCompany(companyName = 'New Company') {
     investorPortion: 2.75,
     otherPortion: 0.25,
     investorName: 'US',
+    roundInstrument: 'priced',
     showAdvanced: false,
     percentPrecision: 2,
     importWarnings: [],
@@ -328,6 +335,7 @@ export function migrateLegacyCompany(legacyCompany, fallbackName = 'New Company'
   migrated.investorName = typeof migrated.investorName === 'string' && migrated.investorName.trim()
     ? migrated.investorName.trim()
     : defaults.investorName
+  migrated.roundInstrument = normalizeRoundInstrument(migrated.roundInstrument)
   migrated.showAdvanced = Boolean(migrated.showAdvanced)
   migrated.esopTiming = migrated.esopTiming === 'post-close' ? 'post-close' : defaults.esopTiming
   delete migrated.postMoney

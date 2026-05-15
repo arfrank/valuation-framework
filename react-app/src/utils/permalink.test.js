@@ -75,7 +75,20 @@ describe('Permalink Utilities', () => {
       expect(encoded).toMatch(/ip=2\.75/)
       expect(encoded).toMatch(/op=0\.25/)
       expect(encoded).toMatch(/in=US/)
+      expect(encoded).not.toMatch(/rt=/)
       expect(encoded).not.toMatch(/safes=/) // No SAFEs should not be included
+    })
+
+    it('should round-trip SAFE round instrument and omit priced default', () => {
+      const priced = encodeScenarioToURL({ ...mockScenario, roundInstrument: 'priced' })
+      expect(new URLSearchParams(priced).get('rt')).toBeNull()
+
+      const encoded = encodeScenarioToURL({ ...mockScenario, roundInstrument: 'safe' })
+      expect(new URLSearchParams(encoded).get('rt')).toBe('safe')
+
+      const decoded = decodeScenarioFromURL(encoded)
+      expect(decoded.roundInstrument).toBe('safe')
+      expect(decodeScenarioFromURL(`${encoded.replace('rt=safe', 'rt=note')}`).roundInstrument).toBe('priced')
     })
 
     it('should encode advanced scenario data when showAdvanced is true', () => {

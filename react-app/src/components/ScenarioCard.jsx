@@ -59,6 +59,7 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
       investorPortion: useCompanyInputs ? (sourceCompany.investorPortion || 0) : (isTwoStep ? scenario.step1.investorAmount : scenario.investorAmount),
       otherPortion: useCompanyInputs ? (sourceCompany.otherPortion || 0) : (isTwoStep ? scenario.step1.otherAmount : (scenario.otherAmountOriginal || scenario.otherAmount)),
       investorName: sourceCompany.investorName || investorName,
+      roundInstrument: sourceCompany.roundInstrument || scenario.roundInstrument || 'priced',
       showAdvanced: sourceCompany.showAdvanced ?? showAdvanced,
       proRataPercent: useCompanyInputs ? (sourceCompany.proRataPercent || 0) : (scenario.proRataPercentInput || 0),
       safes: useCompanyInputs ? (sourceCompany.safes || []) : (scenario.safes || []),
@@ -220,6 +221,7 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
     ? Number(scenario.totalSafeAmount)
     : safeDetails.reduce((sum, safe) => sum + (Number(safe.amount) || 0), 0)
   const safeProRataCount = safeDetails.filter(safe => (safe.proRataAmount || 0) > 0 || safe.proRata).length
+  const proRataSuppressed = Boolean(scenario.proRataSuppressed)
   const nonStandardSafeCount = safeDetails.filter(safe => ['fixed-percent', 'mfn', 'round-price'].includes(safe.conversionType)).length
   const companyWarnings = Array.isArray(company?.importWarnings) ? company.importWarnings : []
   let deltaLsvp = null
@@ -627,7 +629,9 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
                     >
                       <div className="label">{isLast ? '└─' : '├─'} {investor.name}</div>
                       <div className="amount">
-                        {investor.proRataAmount > 0 ? (
+                        {proRataSuppressed && investor.hasProRataRights ? (
+                          <span className="amount-neutral">pro-rata suppressed</span>
+                        ) : investor.proRataAmount > 0 ? (
                           <span className="amount-positive">+{formatDollar(investor.proRataAmount)} (pro-rata)</span>
                         ) : (
                           <span className="amount-negative">-{investor.dilution.toFixed(1)}%</span>
@@ -675,7 +679,7 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
                 <strong>SAFEs Total</strong>
                 <span className="section-row-meta">
                   {safeCount} notes
-                  {safeProRataCount > 0 ? `, ${safeProRataCount} pro-rata` : ''}
+                  {safeProRataCount > 0 ? `, ${safeProRataCount} ${proRataSuppressed ? 'suppressed pro-rata' : 'pro-rata'}` : ''}
                   {nonStandardSafeCount > 0 ? `, ${nonStandardSafeCount} non-standard` : ''}
                 </span>
               </div>
@@ -686,13 +690,14 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
             {!collapsed.safes && safeDetails.map((safe, safeIndex) => {
               const isLast = safeIndex === safeDetails.length - 1
               const showProRata = (safe.proRataAmount || 0) > 0
+              const showSuppressedProRata = proRataSuppressed && safe.proRata
               const safeDelay = `${Math.min(safeIndex, 6) * 0.035}s`
               const safeLabel = safe.investorName || `SAFE #${safe.index}`
               return (
                 <div key={safe.id || safeIndex} style={{ display: 'contents' }}>
                   <div className="table-row sub-row" style={{ animationDelay: safeDelay }}>
                     <div className="label">
-                      {isLast && !showProRata ? '└─' : '├─'} {safeLabel}
+                      {isLast && !showProRata && !showSuppressedProRata ? '└─' : '├─'} {safeLabel}
                       {safe.investorName && <span className="safe-attribution">SAFE #{safe.index}</span>}
                     </div>
                     <div className="amount amount-neutral">
@@ -709,6 +714,13 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
                       <div className="label">    {isLast ? '└─' : '├─'} pro-rata</div>
                       <div className="amount amount-positive">+{formatDollar(safe.proRataAmount)}</div>
                       <div className="percent">{formatPercent(safe.proRataPercent || 0)}</div>
+                    </div>
+                  )}
+                  {showSuppressedProRata && (
+                    <div className="table-row sub-sub-row">
+                      <div className="label">    {isLast ? '└─' : '├─'} pro-rata</div>
+                      <div className="amount amount-neutral">suppressed for SAFE round</div>
+                      <div className="percent">{formatPercent(0)}</div>
                     </div>
                   )}
                 </div>
