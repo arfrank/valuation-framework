@@ -1543,6 +1543,22 @@ body {
   min-width: 0;
 }
 
+.form-select-control {
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: #2d3748;
+  font-size: 0.9rem;
+  font-weight: 600;
+  outline: none;
+  min-width: 0;
+  padding: 0.35rem 0.25rem;
+}
+
+.round-type-field .form-input-wrapper {
+  min-width: 170px;
+}
+
 .form-input-control {
   flex: 1;
   border: none;

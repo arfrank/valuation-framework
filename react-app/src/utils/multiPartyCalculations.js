@@ -138,6 +138,24 @@ function calculateProRataAllocations(priorInvestors, roundSize) {
   }
 }
 
+function calculateSuppressedProRataAllocations(priorInvestors) {
+  const proRataResults = Array.isArray(priorInvestors)
+    ? priorInvestors.map(investor => ({
+      id: investor.id,
+      name: investor.name,
+      preRoundOwnership: investor.ownershipPercent,
+      proRataAmount: 0,
+      calculatedProRataAmount: 0,
+      proRataPercent: 0,
+      hasRights: investor.hasProRataRights,
+      isOverridden: false,
+      suppressed: Boolean(investor.hasProRataRights)
+    }))
+    : []
+
+  return { proRataResults, totalProRataAmount: 0, totalProRataPercent: 0 }
+}
+
 /**
  * Calculate SAFE conversions (unchanged from original logic)
  */
@@ -238,6 +256,24 @@ function calculateSafeProRataAllocations(safeDetails, roundSize, investorName) {
   }
 }
 
+function calculateSuppressedSafeProRataAllocations(safeDetails) {
+  const safeProRataResults = Array.isArray(safeDetails)
+    ? safeDetails
+      .filter(safe => safe.proRata)
+      .map(safe => ({
+        id: safe.id,
+        investorName: safe.investorName || '',
+        preRoundSafePercent: safe.percent || 0,
+        proRataAmount: 0,
+        calculatedProRataAmount: 0,
+        isOverridden: false,
+        suppressed: true
+      }))
+    : []
+
+  return { safeProRataResults, totalSafeProRataAmount: 0 }
+}
+
 /**
  * Calculate ESOP dilution and timing effects
  *
@@ -330,6 +366,7 @@ function calculateTwoStepScenario(inputs) {
     investorPortion: s1Investor,
     otherPortion: s1Other,
     investorName = 'US',
+    roundInstrument = 'priced',
     showAdvanced = false,
     step2PostMoney: V2,
     step2Amount: S2,
@@ -344,6 +381,8 @@ function calculateTwoStepScenario(inputs) {
     esopTiming = 'pre-close',
     warrants = []
   } = migratedInputs
+  const isSafeRound = roundInstrument === 'safe'
+  const proRataSuppressed = isSafeRound
 
   if (V1 <= 0 || S1 <= 0 || V1 <= S1 || V2 <= 0 || S2 <= 0 || V2 <= S2) {
     return null
@@ -394,13 +433,17 @@ function calculateTwoStepScenario(inputs) {
 
   // --- Pro-rata from step 2's other portion ---
   const priorInvestorsForProRata = scaledPriorInvestors.map(inv =>
-    inv.name === investorName ? { ...inv, hasProRataRights: false } : inv
+    inv.name === investorName || isSafeRound ? { ...inv, hasProRataRights: false } : inv
   )
-  const proRataCalc = calculateProRataAllocations(priorInvestorsForProRata, S2)
+  const proRataCalc = isSafeRound
+    ? calculateSuppressedProRataAllocations(scaledPriorInvestors)
+    : calculateProRataAllocations(priorInvestorsForProRata, S2)
 
   // SAFE pro-rata also draws from step 2's other portion. Use pre-dilution SAFE percent
   // relative to step 2 round (treat safeCalc.totalSafePercent as the step-1 post-money % of SAFE).
-  const safeProRataCalc = calculateSafeProRataAllocations(safeCalc.safeDetails, S2, investorName)
+  const safeProRataCalc = isSafeRound
+    ? calculateSuppressedSafeProRataAllocations(safeCalc.safeDetails)
+    : calculateSafeProRataAllocations(safeCalc.safeDetails, S2, investorName)
 
   // Combined pro-rata clamped to available step 2 other portion
   const combinedRequestedProRata = r$(proRataCalc.totalProRataAmount + safeProRataCalc.totalSafeProRataAmount)
@@ -642,6 +685,8 @@ function calculateTwoStepScenario(inputs) {
     roundSize: r$(S1 + S2),
     preMoneyVal: preMoneyV1,
     investorName,
+    roundInstrument,
+    proRataSuppressed,
     twoStepEnabled: true,
 
     // Round composition — combined from both steps
@@ -847,6 +892,7 @@ export function calculateEnhancedScenario(inputs) {
     investorPortion, 
     otherPortion,
     investorName = 'US',
+    roundInstrument = 'priced',
     showAdvanced = false,
     // New multi-party structures
     priorInvestors = [],
@@ -859,6 +905,8 @@ export function calculateEnhancedScenario(inputs) {
     esopTiming = 'pre-close',
     warrants = []
   } = migratedInputs
+  const isSafeRound = roundInstrument === 'safe'
+  const proRataSuppressed = isSafeRound
 
   // When showAdvanced is false, ignore all advanced inputs
   const effectivePriorInvestors = showAdvanced ? priorInvestors : []
@@ -916,15 +964,19 @@ export function calculateEnhancedScenario(inputs) {
   // If a prior investor matches the lead investor name, skip their pro-rata —
   // their participation in the round already covers their pro-rata rights
   const priorInvestorsForProRata = scaledPriorInvestors.map(inv =>
-    inv.name === investorName ? { ...inv, hasProRataRights: false } : inv
+    inv.name === investorName || isSafeRound ? { ...inv, hasProRataRights: false } : inv
   )
-  const proRataCalc = calculateProRataAllocations(priorInvestorsForProRata, roundSize)
+  const proRataCalc = isSafeRound
+    ? calculateSuppressedProRataAllocations(scaledPriorInvestors)
+    : calculateProRataAllocations(priorInvestorsForProRata, roundSize)
 
   // Calculate SAFE conversions (needed before SAFE pro-rata)
   const safeCalc = calculateSafeConversions(effectiveSafes, preMoneyVal)
 
   // Calculate SAFE pro-rata on SAFEs flagged with pro-rata rights
-  const safeProRataCalc = calculateSafeProRataAllocations(safeCalc.safeDetails, roundSize, investorName)
+  const safeProRataCalc = isSafeRound
+    ? calculateSuppressedSafeProRataAllocations(safeCalc.safeDetails)
+    : calculateSafeProRataAllocations(safeCalc.safeDetails, roundSize, investorName)
 
   // Pro-rata (prior + SAFE) comes from the "Other" portion, not from round size
   const combinedProRataAmount = r$(proRataCalc.totalProRataAmount + safeProRataCalc.totalSafeProRataAmount)
@@ -936,7 +988,9 @@ export function calculateEnhancedScenario(inputs) {
       otherPortion,
       roundSize,
       postMoneyVal,
-      preMoneyVal
+      preMoneyVal,
+      roundInstrument,
+      proRataSuppressed
     }
   }
 
@@ -1148,6 +1202,8 @@ export function calculateEnhancedScenario(inputs) {
     roundSize: roundSize || 3,
     preMoneyVal: preMoneyVal || 10,
     investorName: investorName || 'US',
+    roundInstrument,
+    proRataSuppressed,
 
     // Round composition - ensure no undefined values
     newMoneyAmount: roundSize || 0,

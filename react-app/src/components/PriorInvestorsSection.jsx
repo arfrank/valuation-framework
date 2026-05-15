@@ -10,7 +10,8 @@ function PriorInvestorsSection({
   investorName = '',
   safes = [],
   postMoneyVal = 0,
-  investorPortion = 0
+  investorPortion = 0,
+  roundInstrument = 'priced'
 }) {
   const [recentRowKey, setRecentRowKey] = useState(null)
   const [removingRows, setRemovingRows] = useState({})
@@ -113,6 +114,7 @@ function PriorInvestorsSection({
 
   const totalOwnership = calculateTotalOwnership(priorInvestors)
   const hasProRataInvestors = priorInvestors.some(inv => inv.hasProRataRights)
+  const isSafeRound = roundInstrument === 'safe'
 
   // Build unified row list: prior investors + SAFEs (post-conversion) + new lead
   const preMoneyVal = Math.max(0, (postMoneyVal || 0) - (roundSize || 0))
@@ -253,7 +255,13 @@ function PriorInvestorsSection({
                       ×
                     </button>
                   </div>
-                  {matchesLead ? (
+                  {isSafeRound && investor.hasProRataRights ? (
+                    <div className="repeater-row-caption">
+                      <span className="repeater-row-caption-text" title="SAFE rounds do not trigger pro-rata participation">
+                        Pro-rata suppressed for SAFE round
+                      </span>
+                    </div>
+                  ) : matchesLead ? (
                     <div className="repeater-row-caption">
                       <span className="repeater-row-caption-text" title={`Handled via ${investorName} round portion`}>
                         Pro-rata handled via {investorName} round portion
@@ -322,7 +330,13 @@ function PriorInvestorsSection({
                     </label>
                   </div>
                   <div className="repeater-col repeater-col--actions" aria-hidden="true" />
-                  {matchesLead ? (
+                  {isSafeRound && safe.proRata ? (
+                    <div className="repeater-row-caption">
+                      <span className="repeater-row-caption-text" title="SAFE rounds do not trigger pro-rata participation">
+                        Pro-rata suppressed for SAFE round
+                      </span>
+                    </div>
+                  ) : matchesLead ? (
                     <div className="repeater-row-caption">
                       <span className="repeater-row-caption-text" title={`Handled via ${investorName} round portion`}>
                         Pro-rata handled via {investorName} round portion
@@ -392,7 +406,9 @@ function PriorInvestorsSection({
         <div className="pro-rata-explanation pro-rata-explanation--compact">
           <div className="explanation-icon">ℹ️</div>
           <div className="explanation-text">
-            Pro-rata participants buy in proportional to ownership; allocation is deducted from the "Other" portion. Edit inline to adjust.
+            {isSafeRound
+              ? 'SAFE rounds model pro-forma dilution without triggering pro-rata participation.'
+              : 'Pro-rata participants buy in proportional to ownership; allocation is deducted from the "Other" portion. Edit inline to adjust.'}
           </div>
         </div>
       )}

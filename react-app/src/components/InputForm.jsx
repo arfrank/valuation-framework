@@ -14,6 +14,7 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed, hi
     investorPortion: 2.75,
     otherPortion: 0.25,
     investorName: 'US',
+    roundInstrument: 'priced',
     // Advanced features
     showAdvanced: false,
     proRataPercent: 0,
@@ -28,6 +29,7 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed, hi
   
   // New state for tracking input mode
   const [inputMode, setInputMode] = useState('post-money') // 'post-money' or 'pre-money'
+  const moneySwapTimerRef = useRef(null)
   const [pulseField, setPulseField] = useState(null)
   const [formHighlight, setFormHighlight] = useState(false)
   const [moneyToggleSwapping, setMoneyToggleSwapping] = useState(false)
@@ -71,6 +73,10 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed, hi
     return () => clearTimeout(focusTimerRef.current)
   }, [pendingFocusId, values.safes, values.warrants, inputMode])
 
+  useEffect(() => () => {
+    if (moneySwapTimerRef.current) clearTimeout(moneySwapTimerRef.current)
+  }, [])
+
   const pulseComputedField = (field) => {
     setPulseField(field)
     setTimeout(() => {
@@ -105,10 +111,10 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed, hi
   }
 
   const handleChange = (field, value) => {
-    let numValue = field === 'investorName' || field === 'showAdvanced' || field === 'twoStepEnabled' || field === 'esopTiming' ? value : parseFloat(value)
+    let numValue = field === 'investorName' || field === 'roundInstrument' || field === 'showAdvanced' || field === 'twoStepEnabled' || field === 'esopTiming' ? value : parseFloat(value)
 
     // Input validation for numeric fields
-    if (field !== 'investorName' && field !== 'showAdvanced' && field !== 'twoStepEnabled' && field !== 'esopTiming') {
+    if (field !== 'investorName' && field !== 'roundInstrument' && field !== 'showAdvanced' && field !== 'twoStepEnabled' && field !== 'esopTiming') {
       // Handle NaN, empty strings, and invalid inputs
       if (isNaN(numValue) || value === '' || value === null || value === undefined) {
         numValue = 0
@@ -193,6 +199,7 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed, hi
   const preMoneyVal = Math.round((values.postMoneyVal - values.roundSize) * 100) / 100
   const safePreMoneyVal = isNaN(preMoneyVal) ? 0 : preMoneyVal
   const safeRows = values.safes || []
+  const isSafeRound = values.roundInstrument === 'safe'
   const safeSummary = safeRows.reduce((summary, safe) => {
     const amount = Number(safe.amount) || 0
     summary.totalAmount += amount
@@ -229,7 +236,8 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed, hi
     setMoneyToggleSwapping(true)
     setInputMode(inputMode === 'post-money' ? 'pre-money' : 'post-money')
     setPendingFocusId('core-valuation-input')
-    setTimeout(() => setMoneyToggleSwapping(false), 380)
+    if (moneySwapTimerRef.current) clearTimeout(moneySwapTimerRef.current)
+    moneySwapTimerRef.current = setTimeout(() => setMoneyToggleSwapping(false), 380)
   }
 
   // SAFE management functions
@@ -534,6 +542,27 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed, hi
           step="0.1"
           min="0"
         />
+
+        <div className="form-input-group round-type-field">
+          <div className="form-input-wrapper">
+            <label htmlFor="round-instrument" className="form-input-label">
+              Round Type
+            </label>
+            <div className="form-input-field">
+              <select
+                id="round-instrument"
+                className="form-select-control"
+                value={values.roundInstrument || 'priced'}
+                onChange={(e) => handleChange('roundInstrument', e.target.value)}
+                aria-label="Round type"
+                title="SAFE rounds model pro-forma dilution but do not trigger pro-rata participation."
+              >
+                <option value="priced">Priced</option>
+                <option value="safe">SAFE</option>
+              </select>
+            </div>
+          </div>
+        </div>
 
         <FormInput
           label={`${values.investorName || 'US'} Portion`}
@@ -948,7 +977,7 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed, hi
                       const hasOverride = safe.proRataOverride != null
                       const displayAmount = hasOverride ? safe.proRataOverride : calculatedProRata
                       const matchesLead = (safe.investorName || '').trim() === (values.investorName || 'US').trim()
-                      proRataBlock = { calculatedProRata, hasOverride, displayAmount, matchesLead: matchesLead && !!safe.investorName }
+                      proRataBlock = { calculatedProRata, hasOverride, displayAmount, matchesLead: matchesLead && !!safe.investorName, suppressed: isSafeRound }
                     }
                   }
 
@@ -1085,11 +1114,16 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed, hi
                               {conversionInfo}
                               {!conversionInfo && proRataBlock?.matchesLead && `Pro-rata handled via ${values.investorName || 'US'} round portion`}
                             </span>
+                            {proRataBlock?.suppressed && (
+                              <span className="repeater-row-caption-text">
+                                Pro-rata suppressed for SAFE round
+                              </span>
+                            )}
                             {safeNotes && (
                               <span className="safe-row-note">{safeNotes}</span>
                             )}
                           </div>
-                          {proRataBlock && !proRataBlock.matchesLead && (
+                          {proRataBlock && !proRataBlock.matchesLead && !proRataBlock.suppressed && (
                             <span className="repeater-row-caption-action">
                               <span className="repeater-row-caption-label">Allocation</span>
                               <FormInput
@@ -1132,6 +1166,7 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed, hi
             safes={values.safes || []}
             postMoneyVal={values.postMoneyVal}
             investorPortion={values.investorPortion}
+            roundInstrument={values.roundInstrument || 'priced'}
           />
 
           <FoundersSection

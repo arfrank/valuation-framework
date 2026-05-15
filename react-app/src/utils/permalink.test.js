@@ -75,7 +75,49 @@ describe('Permalink Utilities', () => {
       expect(encoded).toMatch(/ip=2\.75/)
       expect(encoded).toMatch(/op=0\.25/)
       expect(encoded).toMatch(/in=US/)
+      expect(encoded).not.toMatch(/rt=/)
       expect(encoded).not.toMatch(/safes=/) // No SAFEs should not be included
+    })
+
+    it('should round-trip SAFE round instrument and omit priced default', () => {
+      const priced = encodeScenarioToURL({ ...mockScenario, roundInstrument: 'priced' })
+      expect(new URLSearchParams(priced).get('rt')).toBeNull()
+
+      const encoded = encodeScenarioToURL({ ...mockScenario, roundInstrument: 'safe' })
+      expect(new URLSearchParams(encoded).get('rt')).toBe('safe')
+
+      const decoded = decodeScenarioFromURL(encoded)
+      expect(decoded.roundInstrument).toBe('safe')
+      expect(decodeScenarioFromURL(`${encoded.replace('rt=safe', 'rt=note')}`).roundInstrument).toBe('priced')
+    })
+
+    it('should preserve SAFE round type and side-letter notes in hyperlinks', () => {
+      const encoded = encodeScenarioToURL({
+        ...mockScenario,
+        roundInstrument: 'safe',
+        showAdvanced: true,
+        safes: [
+          {
+            id: 1,
+            investorName: 'Bridge Investor',
+            amount: 1,
+            cap: 8,
+            discount: 0,
+            proRata: true,
+            notes: 'Side letter says pro-rata, but this SAFE round should not trigger it.'
+          }
+        ]
+      })
+
+      const params = new URLSearchParams(encoded)
+      expect(params.get('rt')).toBe('safe')
+      const safesData = JSON.parse(params.get('safes'))
+      expect(safesData[0].nt).toBe('Side letter says pro-rata, but this SAFE round should not trigger it.')
+
+      const decoded = decodeScenarioFromURL(encoded)
+      expect(decoded.roundInstrument).toBe('safe')
+      expect(decoded.safes[0].notes).toBe('Side letter says pro-rata, but this SAFE round should not trigger it.')
+      expect(decoded.safes[0].proRata).toBe(true)
     })
 
     it('should encode advanced scenario data when showAdvanced is true', () => {

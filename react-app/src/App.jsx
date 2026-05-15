@@ -72,6 +72,7 @@ function patchTouchesRoundConstruct(patch) {
     'roundSize',
     'investorPortion',
     'otherPortion',
+    'roundInstrument',
     'twoStepEnabled',
     'step2PostMoney',
     'step2Amount',

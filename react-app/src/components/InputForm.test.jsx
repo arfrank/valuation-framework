@@ -151,6 +151,19 @@ describe('InputForm with Pre-Money Toggle', () => {
     )
   })
 
+  it('updates round type when switching to SAFE', async () => {
+    const user = userEvent.setup()
+    render(<InputForm company={defaultCompany} onUpdate={mockOnUpdate} />)
+
+    await user.selectOptions(screen.getByLabelText('Round type'), 'safe')
+
+    expect(mockOnUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        roundInstrument: 'safe'
+      })
+    )
+  })
+
   it('should maintain compact styling with proper spacing', () => {
     render(<InputForm company={defaultCompany} onUpdate={mockOnUpdate} />)
     
@@ -307,5 +320,37 @@ describe('InputForm with Pre-Money Toggle', () => {
     expect(screen.getAllByText('Round price').length).toBeGreaterThan(0)
     expect(screen.getByText('round')).toBeInTheDocument()
     expect(screen.getByText('price')).toBeInTheDocument()
+  })
+
+  it('shows pro-rata suppression copy for SAFE rounds', () => {
+    render(<InputForm
+      company={{
+        ...defaultCompany,
+        showAdvanced: true,
+        roundInstrument: 'safe',
+        safes: [{
+          id: 1,
+          investorName: 'Seed SAFE',
+          amount: 1,
+          conversionType: 'cap-discount',
+          cap: 10,
+          discount: 0,
+          proRata: true
+        }],
+        priorInvestors: [{
+          id: 2,
+          name: 'Seed Fund',
+          ownershipPercent: 10,
+          hasProRataRights: true,
+          proRataOverride: null
+        }],
+        founders: []
+      }}
+      onUpdate={mockOnUpdate}
+    />)
+
+    expect(screen.getAllByText('Pro-rata suppressed for SAFE round').length).toBeGreaterThanOrEqual(2)
+    expect(screen.queryByText('Pro-rata allocation')).not.toBeInTheDocument()
+    expect(screen.queryByText('SAFE pro-rata:')).not.toBeInTheDocument()
   })
 })

@@ -10,6 +10,7 @@ const URL_PARAM_MAP = {
   investorPortion: 'ip',
   otherPortion: 'op',
   investorName: 'in',
+  roundInstrument: 'rt',
   showAdvanced: 'adv',
   proRataPercent: 'pr',
   // N SAFEs array will be encoded as 'safes' parameter
@@ -96,6 +97,14 @@ export function encodeScenarioToURL(scenarioData) {
         }
         return // Don't include if false (default)
       }
+
+      // Handle round instrument; priced is the default and omitted.
+      if (field === 'roundInstrument') {
+        if (value === 'safe') {
+          params.set(param, 'safe')
+        }
+        return
+      }
       
       // Handle SAFEs array encoding
       if (field === 'safes') {
@@ -115,6 +124,9 @@ export function encodeScenarioToURL(scenarioData) {
             }
             if (safe.investorName && safe.investorName.trim()) {
               encoded.n = safe.investorName.trim()
+            }
+            if (safe.notes && String(safe.notes).trim()) {
+              encoded.nt = String(safe.notes).trim()
             }
             if (safe.proRata) {
               encoded.p = 1
@@ -258,6 +270,7 @@ export function decodeScenarioFromURL(urlParams) {
       esopTiming: 'pre-close',
       // Warrants defaults
       warrants: [],
+      roundInstrument: 'priced',
       percentPrecision: 2,
       // 2-Step Round defaults
       twoStepEnabled: false,
@@ -274,6 +287,8 @@ export function decodeScenarioFromURL(urlParams) {
       if (value !== null) {
         if (field === 'investorName' || field === 'name') {
           scenarioData[field] = value
+        } else if (field === 'roundInstrument') {
+          scenarioData[field] = value === 'safe' ? 'safe' : 'priced'
         } else if (field === 'showAdvanced' || field === 'twoStepEnabled') {
           scenarioData[field] = value === '1'
         } else if (field === 'esopTiming') {
@@ -294,6 +309,9 @@ export function decodeScenarioFromURL(urlParams) {
                 conversionType: safe.t || 'cap-discount',
                 fixedOwnershipPercent: safe.fp || 0,
                 investorName: safe.n || '',
+                notes: typeof safe.nt === 'string'
+                  ? safe.nt.trim()
+                  : (typeof safe.notes === 'string' ? safe.notes.trim() : ''),
                 proRata: safe.p === 1 || safe.p === true,
                 proRataOverride: (typeof safe.po === 'number' && safe.po >= 0) ? safe.po : null
               }))
