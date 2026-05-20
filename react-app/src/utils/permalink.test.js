@@ -94,6 +94,7 @@ describe('Permalink Utilities', () => {
     it('should preserve optional lead fields in hyperlinks', () => {
       const encoded = encodeScenarioToURL({
         ...mockScenario,
+        firmLeadsRound: false,
         investorPortion: 0.3,
         leadPortion: 2.45,
         leadInvestorName: 'Series A Lead',
@@ -101,10 +102,12 @@ describe('Permalink Utilities', () => {
       })
 
       const params = new URLSearchParams(encoded)
+      expect(params.get('fl')).toBe('0')
       expect(params.get('lp')).toBe('2.45')
       expect(params.get('ln')).toBe('Series A Lead')
 
       const decoded = decodeScenarioFromURL(encoded)
+      expect(decoded.firmLeadsRound).toBe(false)
       expect(decoded.leadPortion).toBe(2.45)
       expect(decoded.leadInvestorName).toBe('Series A Lead')
     })

@@ -218,6 +218,7 @@ function looksLikeSingleStoredCompany(value) {
     'round',
     'investorPortion',
     'investor',
+    'firmLeadsRound',
     'leadPortion',
     'leadInvestorName',
     'otherPortion',
@@ -250,6 +251,7 @@ export function createDefaultCompany(companyName = 'New Company') {
     postMoneyVal: 13,
     roundSize: 3,
     investorPortion: 2.75,
+    firmLeadsRound: true,
     leadPortion: 0,
     otherPortion: 0.25,
     investorName: 'US',
@@ -347,6 +349,14 @@ export function migrateLegacyCompany(legacyCompany, fallbackName = 'New Company'
   migrated.leadInvestorName = typeof migrated.leadInvestorName === 'string' && migrated.leadInvestorName.trim()
     ? migrated.leadInvestorName.trim()
     : defaults.leadInvestorName
+  migrated.firmLeadsRound = typeof legacyCompany.firmLeadsRound === 'boolean'
+    ? legacyCompany.firmLeadsRound
+    : !(migrated.leadPortion > 0 || migrated.leadInvestorName)
+  if (migrated.firmLeadsRound) {
+    migrated.leadPortion = 0
+    migrated.leadInvestorName = ''
+    migrated.otherPortion = Math.max(0, migrated.roundSize - migrated.investorPortion)
+  }
   migrated.roundInstrument = normalizeRoundInstrument(migrated.roundInstrument)
   migrated.showAdvanced = Boolean(migrated.showAdvanced)
   migrated.esopTiming = migrated.esopTiming === 'post-close' ? 'post-close' : defaults.esopTiming

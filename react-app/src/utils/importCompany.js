@@ -13,6 +13,7 @@ const MATERIAL_SCALAR_FIELDS = [
   'round',
   'investorPortion',
   'investor',
+  'firmLeadsRound',
   'leadPortion',
   'otherPortion',
   'other',
@@ -31,7 +32,7 @@ const MATERIAL_SCALAR_FIELDS = [
 ]
 const ROUND_VALUATION_FIELDS = ['postMoneyVal', 'postMoney']
 const ROUND_SIZE_FIELDS = ['roundSize', 'round']
-const ROUND_ALLOCATION_FIELDS = ['investorPortion', 'investor', 'leadPortion', 'otherPortion', 'other']
+const ROUND_ALLOCATION_FIELDS = ['investorPortion', 'investor', 'firmLeadsRound', 'leadPortion', 'otherPortion', 'other']
 
 let importIdCounter = 0
 

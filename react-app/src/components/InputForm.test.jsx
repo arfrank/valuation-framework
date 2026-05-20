@@ -201,16 +201,46 @@ describe('InputForm with Pre-Money Toggle', () => {
     )
   })
 
-  it('renders lead fields and auto-balances other when lead portion changes', () => {
+  it('hides lead fields by default and shows them when firm leads is unchecked', () => {
     render(<InputForm company={defaultCompany} onUpdate={mockOnUpdate} />)
+
+    expect(screen.getByLabelText('Firm leads')).toBeChecked()
+    expect(screen.queryByLabelText('Lead')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByLabelText('Firm leads'))
 
     expect(screen.getByLabelText('Lead')).toBeInTheDocument()
     fireEvent.change(screen.getByLabelText('Lead Portion'), { target: { value: '0.2' } })
 
     expect(mockOnUpdate).toHaveBeenCalledWith(
       expect.objectContaining({
+        firmLeadsRound: false,
         leadPortion: 0.2,
         otherPortion: 0.05
+      })
+    )
+  })
+
+  it('folds the lead split away when firm leads is checked back on', () => {
+    render(<InputForm
+      company={{
+        ...defaultCompany,
+        firmLeadsRound: false,
+        leadPortion: 0.2,
+        leadInvestorName: 'Series A Lead',
+        otherPortion: 0.05
+      }}
+      onUpdate={mockOnUpdate}
+    />)
+
+    fireEvent.click(screen.getByLabelText('Firm leads'))
+
+    expect(mockOnUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        firmLeadsRound: true,
+        leadPortion: 0,
+        leadInvestorName: '',
+        otherPortion: 0.25
       })
     )
   })

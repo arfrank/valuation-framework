@@ -71,6 +71,7 @@ function patchTouchesRoundConstruct(patch) {
     'postMoneyVal',
     'roundSize',
     'investorPortion',
+    'firmLeadsRound',
     'leadPortion',
     'otherPortion',
     'leadInvestorName',

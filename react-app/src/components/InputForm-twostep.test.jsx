@@ -176,8 +176,7 @@ describe('InputForm - Two-Step Round', () => {
       step2OtherPortion: 100
     }} onUpdate={mockOnUpdate} />)
 
-    const inputs = screen.getAllByRole('spinbutton')
-    const step2InvestorInput = inputs[7]
+    const step2InvestorInput = screen.getAllByRole('spinbutton')[6]
     fireEvent.change(step2InvestorInput, { target: { value: '250' } })
 
     expect(mockOnUpdate).toHaveBeenCalledWith(

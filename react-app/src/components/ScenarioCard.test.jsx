@@ -121,6 +121,7 @@ describe('ScenarioCard with Permalink', () => {
       <ScenarioCard
         scenario={{
           ...mockScenario,
+          firmLeadsRound: false,
           investorAmount: 0.3,
           leadAmount: 2.45,
           leadInvestorName: 'Series A Lead',
@@ -137,6 +138,7 @@ describe('ScenarioCard with Permalink', () => {
     expect(mockOnCopyPermalink).toHaveBeenCalledWith(expect.objectContaining({
       investorPortion: 0.3,
       leadPortion: 2.45,
+      firmLeadsRound: false,
       leadInvestorName: 'Series A Lead',
       otherPortion: 0.25
     }))
@@ -147,6 +149,7 @@ describe('ScenarioCard with Permalink', () => {
       <ScenarioCard
         scenario={{
           ...mockScenario,
+          firmLeadsRound: false,
           investorAmount: 0.3,
           investorPercent: 2.31,
           leadAmount: 2.45,

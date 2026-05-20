@@ -57,6 +57,7 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
       postMoneyVal: isTwoStep ? scenario.step1.postMoney : scenario.postMoneyVal,
       roundSize: useCompanyInputs ? (sourceCompany.roundSize || 0) : (isTwoStep ? scenario.step1.amount : scenario.roundSize),
       investorPortion: useCompanyInputs ? (sourceCompany.investorPortion || 0) : (isTwoStep ? scenario.step1.investorAmount : scenario.investorAmount),
+      firmLeadsRound: useCompanyInputs ? (sourceCompany.firmLeadsRound !== false) : (scenario.firmLeadsRound !== false),
       leadPortion: useCompanyInputs ? (sourceCompany.leadPortion || 0) : (isTwoStep ? (scenario.step1.leadAmount || 0) : (scenario.leadAmount || 0)),
       otherPortion: useCompanyInputs ? (sourceCompany.otherPortion || 0) : (isTwoStep ? scenario.step1.otherAmount : (scenario.otherAmountOriginal || scenario.otherAmount)),
       investorName: sourceCompany.investorName || investorName,
@@ -427,7 +428,7 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
               <span className="base-quick-suffix">M</span>
             </span>
           </label>
-          {((Number(company.leadPortion) || 0) > 0 || company.leadInvestorName) && (
+          {company.firmLeadsRound === false && (
             <label className="base-quick-field">
               <span className="base-quick-label">{company.leadInvestorName || 'Lead'}</span>
               <span className="base-quick-input-wrap">
