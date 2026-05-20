@@ -11,6 +11,7 @@ function PriorInvestorsSection({
   safes = [],
   postMoneyVal = 0,
   investorPortion = 0,
+  firmLeadsRound = true,
   roundInstrument = 'priced'
 }) {
   const [recentRowKey, setRecentRowKey] = useState(null)
@@ -118,7 +119,7 @@ function PriorInvestorsSection({
   const hasProRataInvestors = priorInvestors.some(inv => inv.hasProRataRights)
   const isSafeRound = roundInstrument === 'safe'
 
-  // Build unified row list: prior investors + SAFEs (post-conversion) + new lead
+  // Build unified row list: prior investors + SAFEs (post-conversion) + firm round allocation
   const preMoneyVal = Math.max(0, (postMoneyVal || 0) - (roundSize || 0))
   const { safeDetails } = calculateSafeConversions(safes, preMoneyVal)
 
@@ -379,18 +380,20 @@ function PriorInvestorsSection({
               >
                 <div className="repeater-col repeater-col--name">
                   <span className="repeater-readonly-name">
-                    <span className="repeater-kind-tag repeater-kind-tag--lead">LEAD</span> {row.name}
+                    <span className={`repeater-kind-tag${firmLeadsRound ? ' repeater-kind-tag--lead' : ''}`}>
+                      {firmLeadsRound ? 'LEAD' : 'FIRM'}
+                    </span> {row.name}
                   </span>
                 </div>
                 <div className="repeater-col repeater-col--pct">
                   <span className="repeater-readonly-value">{row.fdoPct.toFixed(2)}%</span>
                 </div>
                 <div className="repeater-col repeater-col--prorata">
-                  <span className="repeater-alloc-placeholder" title="Lead is taking the round">—</span>
+                  <span className="repeater-alloc-placeholder" title="Taking part in the round">—</span>
                 </div>
                 <div className="repeater-col repeater-col--actions" aria-hidden="true" />
                 <div className="repeater-row-caption">
-                  <span className="repeater-row-caption-text">Taking the round</span>
+                  <span className="repeater-row-caption-text">Taking part in the round</span>
                 </div>
               </div>
             )

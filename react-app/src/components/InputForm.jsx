@@ -1237,6 +1237,7 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed, hi
             safes={values.safes || []}
             postMoneyVal={values.postMoneyVal}
             investorPortion={values.investorPortion}
+            firmLeadsRound={values.firmLeadsRound !== false}
             roundInstrument={values.roundInstrument || 'priced'}
           />
 

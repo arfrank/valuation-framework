@@ -245,6 +245,43 @@ describe('InputForm with Pre-Money Toggle', () => {
     )
   })
 
+  it('labels the firm round row as firm participation when firm leads is unchecked', () => {
+    const { container } = render(<InputForm
+      company={{
+        ...defaultCompany,
+        investorName: 'LSVP',
+        firmLeadsRound: false,
+        leadPortion: 0.2,
+        leadInvestorName: 'Series A Lead',
+        otherPortion: 0.05,
+        showAdvanced: true
+      }}
+      onUpdate={mockOnUpdate}
+    />)
+
+    expect(container).toHaveTextContent(/FIRM\s+LSVP/)
+    expect(container).toHaveTextContent('Taking part in the round')
+    expect(container).not.toHaveTextContent(/LEAD\s+LSVP/)
+    expect(container).not.toHaveTextContent('Taking the round')
+    expect(screen.queryByTitle('Lead is taking the round')).not.toBeInTheDocument()
+  })
+
+  it('labels the firm round row as lead participation when firm leads is checked', () => {
+    const { container } = render(<InputForm
+      company={{
+        ...defaultCompany,
+        investorName: 'LSVP',
+        firmLeadsRound: true,
+        showAdvanced: true
+      }}
+      onUpdate={mockOnUpdate}
+    />)
+
+    expect(container).toHaveTextContent(/LEAD\s+LSVP/)
+    expect(container).toHaveTextContent('Taking part in the round')
+    expect(screen.getByTitle('Taking part in the round')).toBeInTheDocument()
+  })
+
   it('clamps firm portion against the lead portion', () => {
     render(<InputForm
       company={{
