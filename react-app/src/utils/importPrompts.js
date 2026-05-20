@@ -56,7 +56,7 @@ Mapping guidance
 - Add _safeType: "post-money", "pre-money", or "mfn-only" when the SAFE type is visible. Add _notes for unusual terms such as MFN clauses, side letter caveats, unusual conversion triggers, or unclear extraction.
 - warrants: warrant coverage. valuation is the reference / strike valuation in $M.
 - currentEsopPercent: total authorized option pool. grantedEsopPercent: portion already issued to employees. If only one number is given, assume it's currentEsopPercent and set grantedEsopPercent: 0.
-- Leave postMoneyVal, roundSize, investorPortion, otherPortion, investorName, targetEsopPercent OUT of the JSON — these are the deal terms the user will model afterward, not artifacts of the existing cap.
+- Leave postMoneyVal, roundSize, investorPortion, firmLeadsRound, leadPortion, otherPortion, investorName, leadInvestorName, targetEsopPercent OUT of the JSON — these are the deal terms the user will model afterward, not artifacts of the existing cap.
 - Trim whitespace from names. Keep canonical casing ("Sequoia Capital", not "sequoia").
 
 Sanity checks before returning:

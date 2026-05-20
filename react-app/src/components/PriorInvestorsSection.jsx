@@ -112,6 +112,8 @@ function PriorInvestorsSection({
     return (ownershipPercent / 100) * roundSize
   }
 
+  const formatMoney = (amount) => `$${(Number(amount) || 0).toFixed(2)}M`
+
   const totalOwnership = calculateTotalOwnership(priorInvestors)
   const hasProRataInvestors = priorInvestors.some(inv => inv.hasProRataRights)
   const isSafeRound = roundInstrument === 'safe'
@@ -261,10 +263,13 @@ function PriorInvestorsSection({
                         Pro-rata suppressed for SAFE round
                       </span>
                     </div>
-                  ) : matchesLead ? (
+                  ) : matchesLead && investor.hasProRataRights && calculatedProRata > 0 ? (
                     <div className="repeater-row-caption">
-                      <span className="repeater-row-caption-text" title={`Handled via ${investorName} round portion`}>
-                        Pro-rata handled via {investorName} round portion
+                      <span
+                        className="repeater-row-caption-text"
+                        title={`Pro-rata ${formatMoney(displayAmount)} modeled in ${investorName} portion (${formatMoney(investorPortion)})`}
+                      >
+                        Pro-rata <span key={displayAmount} className="calculated-allocation money-roll">{formatMoney(displayAmount)}</span> modeled in {investorName} portion ({formatMoney(investorPortion)})
                       </span>
                     </div>
                   ) : allocActive ? (
@@ -308,7 +313,10 @@ function PriorInvestorsSection({
             if (row.kind === 'safe') {
               const safe = row.safe
               const safeLabel = safe.investorName ? safe.investorName : `#${safe.index}`
-              const safeProRata$ = safe.proRata ? getCalculatedProRata(safe.percent) : 0
+              const calculatedSafeProRata = getCalculatedProRata(safe.percent)
+              const safeProRata$ = safe.proRata
+                ? (safe.proRataOverride != null ? safe.proRataOverride : calculatedSafeProRata)
+                : 0
               const matchesLead = safe.investorName && investorName && safe.investorName.trim() === investorName.trim()
               return (
                 <div
@@ -336,10 +344,13 @@ function PriorInvestorsSection({
                         Pro-rata suppressed for SAFE round
                       </span>
                     </div>
-                  ) : matchesLead ? (
+                  ) : matchesLead && safe.proRata && safeProRata$ > 0 ? (
                     <div className="repeater-row-caption">
-                      <span className="repeater-row-caption-text" title={`Handled via ${investorName} round portion`}>
-                        Pro-rata handled via {investorName} round portion
+                      <span
+                        className="repeater-row-caption-text"
+                        title={`Pro-rata ${formatMoney(safeProRata$)} modeled in ${investorName} portion (${formatMoney(investorPortion)})`}
+                      >
+                        Pro-rata <span key={safeProRata$} className="calculated-allocation money-roll">{formatMoney(safeProRata$)}</span> modeled in {investorName} portion ({formatMoney(investorPortion)})
                       </span>
                     </div>
                   ) : safe.proRata && safeProRata$ > 0 ? (

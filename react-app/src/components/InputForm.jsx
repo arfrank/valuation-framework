@@ -12,8 +12,11 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed, hi
     postMoneyVal: 13,
     roundSize: 3,
     investorPortion: 2.75,
+    firmLeadsRound: true,
+    leadPortion: 0,
     otherPortion: 0.25,
     investorName: 'US',
+    leadInvestorName: '',
     roundInstrument: 'priced',
     // Advanced features
     showAdvanced: false,
@@ -111,10 +114,11 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed, hi
   }
 
   const handleChange = (field, value) => {
-    let numValue = field === 'investorName' || field === 'roundInstrument' || field === 'showAdvanced' || field === 'twoStepEnabled' || field === 'esopTiming' ? value : parseFloat(value)
+    const nonNumericFields = ['investorName', 'leadInvestorName', 'roundInstrument', 'showAdvanced', 'twoStepEnabled', 'firmLeadsRound', 'esopTiming']
+    let numValue = nonNumericFields.includes(field) ? value : parseFloat(value)
 
     // Input validation for numeric fields
-    if (field !== 'investorName' && field !== 'roundInstrument' && field !== 'showAdvanced' && field !== 'twoStepEnabled' && field !== 'esopTiming') {
+    if (!nonNumericFields.includes(field)) {
       // Handle NaN, empty strings, and invalid inputs
       if (isNaN(numValue) || value === '' || value === null || value === undefined) {
         numValue = 0
@@ -126,6 +130,17 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed, hi
     }
     
     const newValues = { ...values, [field]: numValue }
+    const firmLeadsRound = field === 'firmLeadsRound' ? Boolean(value) : values.firmLeadsRound !== false
+
+    if (field === 'firmLeadsRound') {
+      newValues.firmLeadsRound = Boolean(value)
+      if (newValues.firmLeadsRound) {
+        newValues.leadPortion = 0
+        newValues.leadInvestorName = ''
+        newValues.otherPortion = roundToCents((values.roundSize || 0) - (values.investorPortion || 0))
+        pulseComputedField('otherPortion')
+      }
+    }
     
     // Handle pre-money input mode
     if (field === 'preMoneyVal' && inputMode === 'pre-money') {
@@ -160,14 +175,17 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed, hi
       pulseComputedField('step2InvestorPortion')
     }
 
-    // Auto-calculate other portion when round size or investor portion changes
-    if (field === 'roundSize' || field === 'investorPortion') {
+    // Auto-calculate other portion when round size, firm portion, or lead portion changes
+    if (field === 'roundSize' || field === 'investorPortion' || field === 'leadPortion') {
       if (field === 'roundSize') {
         const clampedInvestor = Math.min(values.investorPortion || 0, numValue)
+        const clampedLead = firmLeadsRound ? 0 : Math.min(values.leadPortion || 0, Math.max(0, numValue - clampedInvestor))
         newValues.investorPortion = roundToCents(clampedInvestor)
-        newValues.otherPortion = roundToCents(numValue - clampedInvestor)
+        newValues.leadPortion = roundToCents(clampedLead)
+        newValues.otherPortion = roundToCents(numValue - clampedInvestor - clampedLead)
         pulseComputedField('otherPortion')
         if (clampedInvestor !== (values.investorPortion || 0)) pulseComputedField('investorPortion')
+        if (clampedLead !== (values.leadPortion || 0)) pulseComputedField('leadPortion')
         // Update post-money if in pre-money mode
         if (inputMode === 'pre-money') {
           const currentPreMoney = values.postMoneyVal - values.roundSize
@@ -175,20 +193,33 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed, hi
           pulseComputedField('postMoneyVal')
         }
       } else if (field === 'investorPortion') {
-        const clampedInvestor = Math.min(numValue, values.roundSize || 0)
+        const currentLead = firmLeadsRound ? 0 : (values.leadPortion || 0)
+        const clampedInvestor = Math.min(numValue, Math.max(0, (values.roundSize || 0) - currentLead))
         newValues.investorPortion = roundToCents(clampedInvestor)
-        newValues.otherPortion = roundToCents((values.roundSize || 0) - clampedInvestor)
+        newValues.otherPortion = roundToCents((values.roundSize || 0) - clampedInvestor - currentLead)
         pulseComputedField('otherPortion')
+      } else if (field === 'leadPortion') {
+        if (firmLeadsRound) {
+          newValues.leadPortion = 0
+          newValues.otherPortion = roundToCents((values.roundSize || 0) - (values.investorPortion || 0))
+          pulseComputedField('otherPortion')
+        } else {
+          const clampedLead = Math.min(numValue, Math.max(0, (values.roundSize || 0) - (values.investorPortion || 0)))
+          newValues.leadPortion = roundToCents(clampedLead)
+          newValues.otherPortion = roundToCents((values.roundSize || 0) - (values.investorPortion || 0) - clampedLead)
+          pulseComputedField('otherPortion')
+        }
       }
     }
 
-    // When other portion is edited directly, sync investor portion
+    // When other portion is edited directly, preserve your firm check and sync lead portion
     if (field === 'otherPortion') {
-      // Clamp to round size
-      const clampedOther = Math.min(numValue, values.roundSize)
+      const clampedOther = Math.min(numValue, Math.max(0, (values.roundSize || 0) - (values.investorPortion || 0)))
       newValues.otherPortion = roundToCents(clampedOther)
-      newValues.investorPortion = roundToCents((values.roundSize || 0) - newValues.otherPortion)
-      pulseComputedField('investorPortion')
+      newValues.leadPortion = firmLeadsRound
+        ? 0
+        : roundToCents((values.roundSize || 0) - (values.investorPortion || 0) - newValues.otherPortion)
+      if (!firmLeadsRound) pulseComputedField('leadPortion')
     }
     
     
@@ -198,6 +229,8 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed, hi
 
   const preMoneyVal = Math.round((values.postMoneyVal - values.roundSize) * 100) / 100
   const safePreMoneyVal = isNaN(preMoneyVal) ? 0 : preMoneyVal
+  const firmLeadsRound = values.firmLeadsRound !== false
+  const activeLeadPortion = firmLeadsRound ? 0 : (values.leadPortion || 0)
   const safeRows = values.safes || []
   const isSafeRound = values.roundInstrument === 'safe'
   const safeSummary = safeRows.reduce((summary, safe) => {
@@ -501,6 +534,14 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed, hi
               placeholder="e.g. LSVP"
               title="Your firm's name. Used as a label throughout the model."
             />
+            <label className="firm-leads-toggle" title="Checked when your firm is leading the round. Uncheck to model an outside lead separately.">
+              <input
+                type="checkbox"
+                checked={firmLeadsRound}
+                onChange={(e) => handleChange('firmLeadsRound', e.target.checked)}
+              />
+              <span>Firm leads</span>
+            </label>
           </div>
           <div
             className={`calculated-money-toggle${moneyToggleSwapping ? ' is-swapping' : ''}`}
@@ -573,13 +614,41 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed, hi
           suffix="M"
           step="0.01"
           min="0"
-          max={values.roundSize}
+          max={Math.max(0, (values.roundSize || 0) - activeLeadPortion)}
           className={pulseField === 'investorPortion' ? 'is-auto-balanced' : ''}
         />
 
+        {!firmLeadsRound && (
+          <>
+            <FormInput
+              label="Lead"
+              type="text"
+              value={values.leadInvestorName || ''}
+              onChange={(value) => handleChange('leadInvestorName', value)}
+              placeholder="Optional lead"
+              tooltip="Outside round lead."
+            />
+
+            <FormInput
+              label={`${values.leadInvestorName || 'Lead'} Portion`}
+              type="number"
+              value={values.leadPortion || 0}
+              onChange={(value) => handleChange('leadPortion', value)}
+              prefix="$"
+              suffix="M"
+              step="0.01"
+              min="0"
+              max={Math.max(0, (values.roundSize || 0) - (values.investorPortion || 0))}
+              className={pulseField === 'leadPortion' ? 'is-auto-balanced' : ''}
+            />
+          </>
+        )}
+
         <FormInput
           label="Other Portion"
-          tooltip="Everything in the round that isn't your firm's check — co-investors and pro-rata participants."
+          tooltip={firmLeadsRound
+            ? "Everything in the round that is not your firm's check — co-investors and pro-rata participants."
+            : 'Everything in the round that is not your firm or the named lead — co-investors and pro-rata participants.'}
           type="number"
           value={values.otherPortion}
           onChange={(value) => handleChange('otherPortion', value)}
@@ -587,7 +656,7 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed, hi
           suffix="M"
           step="0.01"
           min="0"
-          max={values.roundSize}
+          max={Math.max(0, (values.roundSize || 0) - (values.investorPortion || 0))}
           className={pulseField === 'otherPortion' ? 'is-auto-balanced' : ''}
         />
       </div>
@@ -980,6 +1049,9 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed, hi
                       proRataBlock = { calculatedProRata, hasOverride, displayAmount, matchesLead: matchesLead && !!safe.investorName, suppressed: isSafeRound }
                     }
                   }
+                  const matchedLeadProRataText = proRataBlock?.matchesLead
+                    ? `Pro-rata $${proRataBlock.displayAmount.toFixed(2)}M modeled in ${values.investorName || 'US'} portion ($${(Number(values.investorPortion) || 0).toFixed(2)}M)`
+                    : ''
 
                   return (
                     <div
@@ -1111,8 +1183,7 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed, hi
                               {safeNotes && <span className="safe-term-pill safe-term-pill--note">Side letter</span>}
                             </div>
                             <span className="repeater-row-caption-text">
-                              {conversionInfo}
-                              {!conversionInfo && proRataBlock?.matchesLead && `Pro-rata handled via ${values.investorName || 'US'} round portion`}
+                              {[conversionInfo, matchedLeadProRataText].filter(Boolean).join(' · ')}
                             </span>
                             {proRataBlock?.suppressed && (
                               <span className="repeater-row-caption-text">
@@ -1193,10 +1264,10 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed, hi
       )}
 
       <div className="validation-info">
-        {!isNaN(values.investorPortion) && !isNaN(values.otherPortion) && !isNaN(values.roundSize) && 
-         (values.investorPortion + values.otherPortion).toFixed(2) !== values.roundSize.toFixed(2) && (
+        {!isNaN(values.investorPortion) && !isNaN(values.leadPortion) && !isNaN(values.otherPortion) && !isNaN(values.roundSize) &&
+         ((values.investorPortion || 0) + (values.leadPortion || 0) + (values.otherPortion || 0)).toFixed(2) !== values.roundSize.toFixed(2) && (
           <div className="warning warning-attention">
-            ⚠️ {values.investorName || 'Investor'} + Other ({(values.investorPortion + values.otherPortion).toFixed(2)}M) doesn't equal Round Size ({values.roundSize.toFixed(2)}M)
+            ⚠️ {values.investorName || 'Investor'} + {values.leadInvestorName || 'Lead'} + Other ({((values.investorPortion || 0) + (values.leadPortion || 0) + (values.otherPortion || 0)).toFixed(2)}M) doesn't equal Round Size ({values.roundSize.toFixed(2)}M)
           </div>
         )}
         {!isNaN(values.postMoneyVal) && !isNaN(values.roundSize) && values.postMoneyVal <= values.roundSize && values.postMoneyVal > 0 && (

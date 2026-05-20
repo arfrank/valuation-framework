@@ -8,8 +8,11 @@ const URL_PARAM_MAP = {
   postMoneyVal: 'pmv',
   roundSize: 'rs', 
   investorPortion: 'ip',
+  firmLeadsRound: 'fl',
+  leadPortion: 'lp',
   otherPortion: 'op',
   investorName: 'in',
+  leadInvestorName: 'ln',
   roundInstrument: 'rt',
   showAdvanced: 'adv',
   proRataPercent: 'pr',
@@ -96,6 +99,13 @@ export function encodeScenarioToURL(scenarioData) {
           params.set(param, '1')
         }
         return // Don't include if false (default)
+      }
+
+      if (field === 'firmLeadsRound') {
+        if (value === false) {
+          params.set(param, '0')
+        }
+        return
       }
 
       // Handle round instrument; priced is the default and omitted.
@@ -204,8 +214,12 @@ export function encodeScenarioToURL(scenarioData) {
       }
       
       // Only include non-zero values for optional fields
-      if (['proRataPercent', 'currentEsopPercent', 'grantedEsopPercent', 'targetEsopPercent',
+      if (['leadPortion', 'proRataPercent', 'currentEsopPercent', 'grantedEsopPercent', 'targetEsopPercent',
            'step2PostMoney', 'step2Amount', 'step2InvestorPortion', 'step2OtherPortion'].includes(field) && value === 0) {
+        return
+      }
+
+      if (field === 'leadInvestorName' && String(value).trim() === '') {
         return
       }
       
@@ -257,6 +271,9 @@ export function decodeScenarioFromURL(urlParams) {
     const scenarioData = {
       // Default values
       showAdvanced: false,
+      firmLeadsRound: true,
+      leadPortion: 0,
+      leadInvestorName: '',
       proRataPercent: 0,
       safes: [], // N SAFEs array
       preRoundFounderOwnership: 0,
@@ -285,12 +302,14 @@ export function decodeScenarioFromURL(urlParams) {
       const value = params.get(param)
       
       if (value !== null) {
-        if (field === 'investorName' || field === 'name') {
+        if (field === 'investorName' || field === 'leadInvestorName' || field === 'name') {
           scenarioData[field] = value
         } else if (field === 'roundInstrument') {
           scenarioData[field] = value === 'safe' ? 'safe' : 'priced'
         } else if (field === 'showAdvanced' || field === 'twoStepEnabled') {
           scenarioData[field] = value === '1'
+        } else if (field === 'firmLeadsRound') {
+          scenarioData[field] = value !== '0'
         } else if (field === 'esopTiming') {
           scenarioData[field] = value // String value, no parsing needed
         } else if (field === 'percentPrecision') {
@@ -383,6 +402,10 @@ export function decodeScenarioFromURL(urlParams) {
           scenarioData[field] = numValue
         }
       }
+    }
+
+    if (!params.has('fl') && (scenarioData.leadPortion > 0 || scenarioData.leadInvestorName)) {
+      scenarioData.firmLeadsRound = false
     }
 
     // Set showAdvanced to true if any advanced features are present (but don't override explicit setting)
