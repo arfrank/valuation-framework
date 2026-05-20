@@ -1251,6 +1251,7 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed, hi
             investorPortion={values.investorPortion}
             firmLeadsRound={values.firmLeadsRound !== false}
             roundInstrument={values.roundInstrument || 'priced'}
+            onSetInvestorPortion={(amount) => handleChange('investorPortion', amount)}
           />
 
           <FoundersSection

@@ -12,7 +12,8 @@ function PriorInvestorsSection({
   postMoneyVal = 0,
   investorPortion = 0,
   firmLeadsRound = true,
-  roundInstrument = 'priced'
+  roundInstrument = 'priced',
+  onSetInvestorPortion
 }) {
   const [recentRowKey, setRecentRowKey] = useState(null)
   const [removingRows, setRemovingRows] = useState({})
@@ -144,6 +145,24 @@ function PriorInvestorsSection({
     : []
 
   const allRows = [...priorRows, ...safeRows, ...leadRows].sort((a, b) => b.fdoPct - a.fdoPct)
+
+  // If the firm/lead row matches an existing prior investor by name, group it
+  // immediately after that prior row so the same firm doesn't appear in two
+  // unrelated positions in the FDO-sorted list.
+  const normalizedLeadName = (investorName || '').trim().toLowerCase()
+  if (showLeadRow && normalizedLeadName) {
+    const leadIdx = allRows.findIndex(row => row.kind === 'lead')
+    const matchIdx = allRows.findIndex(
+      row => row.kind === 'prior' &&
+        (row.investor?.name || '').trim().toLowerCase() === normalizedLeadName
+    )
+    if (leadIdx >= 0 && matchIdx >= 0) {
+      const [leadRow] = allRows.splice(leadIdx, 1)
+      const adjustedMatchIdx = matchIdx > leadIdx ? matchIdx - 1 : matchIdx
+      allRows.splice(adjustedMatchIdx + 1, 0, leadRow)
+    }
+  }
+
   const orderSignature = allRows.map(row => row.key).join('|')
 
   useEffect(() => {
@@ -270,7 +289,24 @@ function PriorInvestorsSection({
                         className="repeater-row-caption-text"
                         title={`Pro-rata ${formatMoney(displayAmount)} modeled in ${investorName} portion (${formatMoney(investorPortion)})`}
                       >
-                        Pro-rata <span key={displayAmount} className="calculated-allocation money-roll">{formatMoney(displayAmount)}</span> modeled in {investorName} portion ({formatMoney(investorPortion)})
+                        Pro-rata{' '}
+                        {!firmLeadsRound && onSetInvestorPortion ? (
+                          <button
+                            type="button"
+                            key={displayAmount}
+                            className="calculated-allocation calculated-allocation--clickable money-roll"
+                            onClick={() => {
+                              if (Math.abs((investorPortion || 0) - displayAmount) < 0.005) return
+                              onSetInvestorPortion(displayAmount)
+                            }}
+                            title={`Click to set ${investorName} portion to ${formatMoney(displayAmount)}`}
+                          >
+                            {formatMoney(displayAmount)}
+                          </button>
+                        ) : (
+                          <span key={displayAmount} className="calculated-allocation money-roll">{formatMoney(displayAmount)}</span>
+                        )}
+                        {' '}modeled in {investorName} portion ({formatMoney(investorPortion)})
                       </span>
                     </div>
                   ) : allocActive ? (
@@ -389,11 +425,11 @@ function PriorInvestorsSection({
                   <span className="repeater-readonly-value">{row.fdoPct.toFixed(2)}%</span>
                 </div>
                 <div className="repeater-col repeater-col--prorata">
-                  <span className="repeater-alloc-placeholder" title="Taking part in the round">—</span>
+                  <span className="repeater-alloc-placeholder" title="Round allocation set above">—</span>
                 </div>
                 <div className="repeater-col repeater-col--actions" aria-hidden="true" />
                 <div className="repeater-row-caption">
-                  <span className="repeater-row-caption-text">Taking part in the round</span>
+                  <span className="repeater-row-caption-text">Round allocation set above</span>
                 </div>
               </div>
             )

@@ -260,10 +260,12 @@ describe('InputForm with Pre-Money Toggle', () => {
     />)
 
     expect(container).toHaveTextContent(/FIRM\s+LSVP/)
-    expect(container).toHaveTextContent('Taking part in the round')
+    expect(container).toHaveTextContent('Round allocation set above')
     expect(container).not.toHaveTextContent(/LEAD\s+LSVP/)
     expect(container).not.toHaveTextContent('Taking the round')
+    expect(container).not.toHaveTextContent('Taking part in the round')
     expect(screen.queryByTitle('Lead is taking the round')).not.toBeInTheDocument()
+    expect(screen.queryByTitle('Taking part in the round')).not.toBeInTheDocument()
   })
 
   it('labels the firm round row as lead participation when firm leads is checked', () => {
@@ -278,8 +280,9 @@ describe('InputForm with Pre-Money Toggle', () => {
     />)
 
     expect(container).toHaveTextContent(/LEAD\s+LSVP/)
-    expect(container).toHaveTextContent('Taking part in the round')
-    expect(screen.getByTitle('Taking part in the round')).toBeInTheDocument()
+    expect(container).toHaveTextContent('Round allocation set above')
+    expect(container).not.toHaveTextContent('Taking part in the round')
+    expect(screen.getByTitle('Round allocation set above')).toBeInTheDocument()
   })
 
   it('clamps firm portion against the lead portion', () => {
@@ -478,5 +481,89 @@ describe('InputForm with Pre-Money Toggle', () => {
     />)
 
     expect(container).toHaveTextContent('Pro-rata $0.30M modeled in LSVP portion ($0.30M)')
+  })
+
+  it('groups the firm round row immediately after the matching prior investor row', () => {
+    const { container } = render(<InputForm
+      company={{
+        ...defaultCompany,
+        investorName: 'LSVP',
+        investorPortion: 0.3,
+        otherPortion: 2.7,
+        showAdvanced: true,
+        priorInvestors: [
+          { id: 1, name: 'Big Fund', ownershipPercent: 30, hasProRataRights: false, proRataOverride: null },
+          { id: 2, name: 'LSVP', ownershipPercent: 10, hasProRataRights: true, proRataOverride: null },
+          { id: 3, name: 'Small Fund', ownershipPercent: 5, hasProRataRights: false, proRataOverride: null }
+        ],
+        founders: []
+      }}
+      onUpdate={mockOnUpdate}
+    />)
+
+    const rows = Array.from(container.querySelectorAll('.repeater-table--investors .repeater-row'))
+    const lsvpPriorIdx = rows.findIndex(r => r.querySelector('input[value="LSVP"]'))
+    const leadIdx = rows.findIndex(r => r.classList.contains('repeater-row--lead'))
+
+    expect(lsvpPriorIdx).toBeGreaterThanOrEqual(0)
+    expect(leadIdx).toBe(lsvpPriorIdx + 1)
+  })
+
+  it('sets the firm portion when clicking the matched pro-rata amount and firm is not lead', () => {
+    render(<InputForm
+      company={{
+        ...defaultCompany,
+        investorName: 'LSVP',
+        firmLeadsRound: false,
+        investorPortion: 0.1,
+        leadPortion: 1,
+        otherPortion: 1.9,
+        showAdvanced: true,
+        priorInvestors: [{
+          id: 1,
+          name: 'LSVP',
+          ownershipPercent: 10,
+          hasProRataRights: true,
+          proRataOverride: null
+        }],
+        founders: []
+      }}
+      onUpdate={mockOnUpdate}
+    />)
+
+    const button = screen.getByTitle('Click to set LSVP portion to $0.30M')
+    expect(button.tagName).toBe('BUTTON')
+
+    fireEvent.click(button)
+
+    expect(mockOnUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        investorPortion: 0.3
+      })
+    )
+  })
+
+  it('renders the matched pro-rata amount as plain text when the firm leads the round', () => {
+    render(<InputForm
+      company={{
+        ...defaultCompany,
+        investorName: 'LSVP',
+        firmLeadsRound: true,
+        investorPortion: 0.3,
+        otherPortion: 2.7,
+        showAdvanced: true,
+        priorInvestors: [{
+          id: 1,
+          name: 'LSVP',
+          ownershipPercent: 10,
+          hasProRataRights: true,
+          proRataOverride: null
+        }],
+        founders: []
+      }}
+      onUpdate={mockOnUpdate}
+    />)
+
+    expect(screen.queryByTitle('Click to set LSVP portion to $0.30M')).not.toBeInTheDocument()
   })
 })
