@@ -8,8 +8,10 @@ const URL_PARAM_MAP = {
   postMoneyVal: 'pmv',
   roundSize: 'rs', 
   investorPortion: 'ip',
+  leadPortion: 'lp',
   otherPortion: 'op',
   investorName: 'in',
+  leadInvestorName: 'ln',
   roundInstrument: 'rt',
   showAdvanced: 'adv',
   proRataPercent: 'pr',
@@ -204,8 +206,12 @@ export function encodeScenarioToURL(scenarioData) {
       }
       
       // Only include non-zero values for optional fields
-      if (['proRataPercent', 'currentEsopPercent', 'grantedEsopPercent', 'targetEsopPercent',
+      if (['leadPortion', 'proRataPercent', 'currentEsopPercent', 'grantedEsopPercent', 'targetEsopPercent',
            'step2PostMoney', 'step2Amount', 'step2InvestorPortion', 'step2OtherPortion'].includes(field) && value === 0) {
+        return
+      }
+
+      if (field === 'leadInvestorName' && String(value).trim() === '') {
         return
       }
       
@@ -257,6 +263,8 @@ export function decodeScenarioFromURL(urlParams) {
     const scenarioData = {
       // Default values
       showAdvanced: false,
+      leadPortion: 0,
+      leadInvestorName: '',
       proRataPercent: 0,
       safes: [], // N SAFEs array
       preRoundFounderOwnership: 0,
@@ -285,7 +293,7 @@ export function decodeScenarioFromURL(urlParams) {
       const value = params.get(param)
       
       if (value !== null) {
-        if (field === 'investorName' || field === 'name') {
+        if (field === 'investorName' || field === 'leadInvestorName' || field === 'name') {
           scenarioData[field] = value
         } else if (field === 'roundInstrument') {
           scenarioData[field] = value === 'safe' ? 'safe' : 'priced'

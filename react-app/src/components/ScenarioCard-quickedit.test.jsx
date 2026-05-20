@@ -96,6 +96,7 @@ describe('ScenarioCard Base quick-edit', () => {
     fireEvent.change(inputs[1], { target: { value: '5' } })
     expect(onUpdateBase).toHaveBeenCalledWith({
       roundSize: 5,
+      leadPortion: 0,
       otherPortion: 2.25, // 5 - investorPortion(2.75)
     })
   })

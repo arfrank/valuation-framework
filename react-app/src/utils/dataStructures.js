@@ -218,6 +218,8 @@ function looksLikeSingleStoredCompany(value) {
     'round',
     'investorPortion',
     'investor',
+    'leadPortion',
+    'leadInvestorName',
     'otherPortion',
     'other',
     'investorName',
@@ -248,8 +250,10 @@ export function createDefaultCompany(companyName = 'New Company') {
     postMoneyVal: 13,
     roundSize: 3,
     investorPortion: 2.75,
+    leadPortion: 0,
     otherPortion: 0.25,
     investorName: 'US',
+    leadInvestorName: '',
     roundInstrument: 'priced',
     showAdvanced: false,
     percentPrecision: 2,
@@ -327,14 +331,22 @@ export function migrateLegacyCompany(legacyCompany, fallbackName = 'New Company'
     0,
     migrated.roundSize
   )
+  migrated.leadPortion = clamp(
+    Math.max(0, getOptionalNumber(legacyCompany.leadPortion) ?? defaults.leadPortion),
+    0,
+    Math.max(0, migrated.roundSize - migrated.investorPortion)
+  )
 
   const explicitOtherPortion = getOptionalNumber(legacyCompany.otherPortion, legacyCompany.other)
   migrated.otherPortion = explicitOtherPortion === undefined
-    ? Math.max(0, migrated.roundSize - migrated.investorPortion)
-    : clamp(Math.max(0, explicitOtherPortion), 0, Math.max(0, migrated.roundSize - migrated.investorPortion))
+    ? Math.max(0, migrated.roundSize - migrated.investorPortion - migrated.leadPortion)
+    : clamp(Math.max(0, explicitOtherPortion), 0, Math.max(0, migrated.roundSize - migrated.investorPortion - migrated.leadPortion))
   migrated.investorName = typeof migrated.investorName === 'string' && migrated.investorName.trim()
     ? migrated.investorName.trim()
     : defaults.investorName
+  migrated.leadInvestorName = typeof migrated.leadInvestorName === 'string' && migrated.leadInvestorName.trim()
+    ? migrated.leadInvestorName.trim()
+    : defaults.leadInvestorName
   migrated.roundInstrument = normalizeRoundInstrument(migrated.roundInstrument)
   migrated.showAdvanced = Boolean(migrated.showAdvanced)
   migrated.esopTiming = migrated.esopTiming === 'post-close' ? 'post-close' : defaults.esopTiming
@@ -513,6 +525,10 @@ export function validateCompanyData(company) {
   
   if (typeof company.roundSize !== 'number' || company.roundSize <= 0) {
     errors.push('Round size must be a positive number')
+  }
+
+  if (company.leadPortion !== undefined && (typeof company.leadPortion !== 'number' || company.leadPortion < 0)) {
+    errors.push('Lead portion must be a non-negative number')
   }
   
   if (company.postMoneyVal <= company.roundSize) {

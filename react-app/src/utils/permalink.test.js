@@ -91,6 +91,24 @@ describe('Permalink Utilities', () => {
       expect(decodeScenarioFromURL(`${encoded.replace('rt=safe', 'rt=note')}`).roundInstrument).toBe('priced')
     })
 
+    it('should preserve optional lead fields in hyperlinks', () => {
+      const encoded = encodeScenarioToURL({
+        ...mockScenario,
+        investorPortion: 0.3,
+        leadPortion: 2.45,
+        leadInvestorName: 'Series A Lead',
+        otherPortion: 0.25
+      })
+
+      const params = new URLSearchParams(encoded)
+      expect(params.get('lp')).toBe('2.45')
+      expect(params.get('ln')).toBe('Series A Lead')
+
+      const decoded = decodeScenarioFromURL(encoded)
+      expect(decoded.leadPortion).toBe(2.45)
+      expect(decoded.leadInvestorName).toBe('Series A Lead')
+    })
+
     it('should preserve SAFE round type and side-letter notes in hyperlinks', () => {
       const encoded = encodeScenarioToURL({
         ...mockScenario,

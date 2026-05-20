@@ -1599,3 +1599,68 @@ describe('Rolled-up investor positions', () => {
   })
 })
 })
+
+describe('Lead round split calculations', () => {
+  const baseInputs = {
+    postMoneyVal: 20,
+    roundSize: 5,
+    investorName: 'LSVP',
+    investorPortion: 1,
+    leadInvestorName: 'Series A Lead',
+    leadPortion: 3,
+    otherPortion: 1,
+    showAdvanced: true,
+    founders: [{ id: 'f1', name: 'Founders', ownershipPercent: 80 }],
+    safes: [],
+    currentEsopPercent: 0,
+    targetEsopPercent: 0
+  }
+
+  it('splits the round across firm, lead, and other ownership', () => {
+    const result = calculateEnhancedScenario({
+      ...baseInputs,
+      priorInvestors: [{ id: 'p1', name: 'Seed', ownershipPercent: 20, hasProRataRights: false }]
+    })
+
+    expect(result.investorAmount).toBe(1)
+    expect(result.leadAmount).toBe(3)
+    expect(result.otherAmount).toBe(1)
+    expect(result.investorPercent + result.leadPercent + result.otherPercent).toBeCloseTo(result.roundPercent, 5)
+  })
+
+  it('does not deduct matched firm pro-rata from other', () => {
+    const result = calculateEnhancedScenario({
+      ...baseInputs,
+      priorInvestors: [{ id: 'p1', name: 'LSVP', ownershipPercent: 10, hasProRataRights: true }]
+    })
+
+    expect(result.totalProRataAmount).toBe(0)
+    expect(result.otherAmount).toBe(1)
+    expect(result.combinedInvestor.totalNewInvestment).toBe(1)
+  })
+
+  it('deducts third-party pro-rata from other while preserving firm and lead checks', () => {
+    const result = calculateEnhancedScenario({
+      ...baseInputs,
+      priorInvestors: [{ id: 'p1', name: 'Seed', ownershipPercent: 10, hasProRataRights: true }]
+    })
+
+    expect(result.totalProRataAmount).toBeCloseTo(0.5, 2)
+    expect(result.investorAmount).toBe(1)
+    expect(result.leadAmount).toBe(3)
+    expect(result.otherAmount).toBeCloseTo(0.5, 2)
+  })
+
+  it('validates third-party pro-rata against other only, not firm or lead portions', () => {
+    const result = calculateEnhancedScenario({
+      ...baseInputs,
+      investorPortion: 2,
+      leadPortion: 2.5,
+      otherPortion: 0.5,
+      priorInvestors: [{ id: 'p1', name: 'Seed', ownershipPercent: 20, hasProRataRights: true }]
+    })
+
+    expect(result.error).toBe(true)
+    expect(result.errorMessage).toContain('exceeds available "Other" portion')
+  })
+})

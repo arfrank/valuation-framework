@@ -201,6 +201,42 @@ describe('InputForm with Pre-Money Toggle', () => {
     )
   })
 
+  it('renders lead fields and auto-balances other when lead portion changes', () => {
+    render(<InputForm company={defaultCompany} onUpdate={mockOnUpdate} />)
+
+    expect(screen.getByLabelText('Lead')).toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText('Lead Portion'), { target: { value: '0.2' } })
+
+    expect(mockOnUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        leadPortion: 0.2,
+        otherPortion: 0.05
+      })
+    )
+  })
+
+  it('clamps firm portion against the lead portion', () => {
+    render(<InputForm
+      company={{
+        ...defaultCompany,
+        investorPortion: 2,
+        leadPortion: 0.5,
+        otherPortion: 0.5
+      }}
+      onUpdate={mockOnUpdate}
+    />)
+
+    fireEvent.change(screen.getByLabelText('US Portion'), { target: { value: '3' } })
+
+    expect(mockOnUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        investorPortion: 2.5,
+        leadPortion: 0.5,
+        otherPortion: 0
+      })
+    )
+  })
+
   it('pulses the auto-balanced other portion when round size changes', () => {
     render(<InputForm company={defaultCompany} onUpdate={mockOnUpdate} />)
 
@@ -352,5 +388,28 @@ describe('InputForm with Pre-Money Toggle', () => {
     expect(screen.getAllByText('Pro-rata suppressed for SAFE round').length).toBeGreaterThanOrEqual(2)
     expect(screen.queryByText('Pro-rata allocation')).not.toBeInTheDocument()
     expect(screen.queryByText('SAFE pro-rata:')).not.toBeInTheDocument()
+  })
+
+  it('shows matched firm pro-rata as modeled in the firm portion', () => {
+    const { container } = render(<InputForm
+      company={{
+        ...defaultCompany,
+        investorName: 'LSVP',
+        investorPortion: 0.3,
+        otherPortion: 2.7,
+        showAdvanced: true,
+        priorInvestors: [{
+          id: 1,
+          name: 'LSVP',
+          ownershipPercent: 10,
+          hasProRataRights: true,
+          proRataOverride: null
+        }],
+        founders: []
+      }}
+      onUpdate={mockOnUpdate}
+    />)
+
+    expect(container).toHaveTextContent('Pro-rata $0.30M modeled in LSVP portion ($0.30M)')
   })
 })

@@ -364,8 +364,10 @@ function calculateTwoStepScenario(inputs) {
     postMoneyVal: V1,
     roundSize: S1,
     investorPortion: s1Investor,
+    leadPortion: s1Lead = 0,
     otherPortion: s1Other,
     investorName = 'US',
+    leadInvestorName = '',
     roundInstrument = 'priced',
     showAdvanced = false,
     step2PostMoney: V2,
@@ -464,6 +466,7 @@ function calculateTwoStepScenario(inputs) {
   // Step 1 investors get S1/V1 of post-step-1 company
   const step1RoundPercent = r2p(S1 / V1)
   const step1InvestorPercent = r2p(s1Investor / V1)
+  const step1LeadPercent = r2p(s1Lead / V1)
   const step1OtherPercent = r2p(s1Other / V1)
   // Existing shareholders after step 1: (V1 - S1) / V1 minus SAFEs
 
@@ -474,6 +477,7 @@ function calculateTwoStepScenario(inputs) {
 
   // Final ownership after both steps
   const step1InvestorFinal = rp(step1InvestorPercent * step2DilutionFactor)
+  const step1LeadFinal = rp(step1LeadPercent * step2DilutionFactor)
   const step1OtherFinal = rp(step1OtherPercent * step2DilutionFactor)
   const step1RoundFinal = rp(step1RoundPercent * step2DilutionFactor)
 
@@ -484,6 +488,7 @@ function calculateTwoStepScenario(inputs) {
   // Combined round ownership (step 1 diluted + step 2)
   const totalRoundPercent = rp(step1RoundFinal + step2RoundPercent)
   const totalInvestorPercent = rp(step1InvestorFinal + step2InvestorPercent)
+  const totalLeadPercent = step1LeadFinal
   const totalOtherPercent = rp(step1OtherFinal + step2OtherPercent)
 
   // SAFEs diluted by both steps: convert at step 1 pre-money, then diluted by step 2
@@ -573,10 +578,12 @@ function calculateTwoStepScenario(inputs) {
   // Apply post-close ESOP to round percentages
   let finalRoundPercent = totalRoundPercent
   let finalInvestorPercent = totalInvestorPercent
+  let finalLeadPercent = totalLeadPercent
   let finalOtherPercent = totalOtherPercent
   if (esopCalc.esopIncreasePostClose > 0) {
     finalRoundPercent = rp(totalRoundPercent * (100 - esopCalc.esopIncreasePostClose) / 100)
     finalInvestorPercent = rp(totalInvestorPercent * (100 - esopCalc.esopIncreasePostClose) / 100)
+    finalLeadPercent = rp(totalLeadPercent * (100 - esopCalc.esopIncreasePostClose) / 100)
     finalOtherPercent = rp(totalOtherPercent * (100 - esopCalc.esopIncreasePostClose) / 100)
   }
 
@@ -685,6 +692,7 @@ function calculateTwoStepScenario(inputs) {
     roundSize: r$(S1 + S2),
     preMoneyVal: preMoneyV1,
     investorName,
+    leadInvestorName,
     roundInstrument,
     proRataSuppressed,
     twoStepEnabled: true,
@@ -693,6 +701,8 @@ function calculateTwoStepScenario(inputs) {
     newMoneyAmount: totalRoundAmount,
     investorAmount: r$(s1Investor + s2Investor),
     investorPercent: finalInvestorPercent,
+    leadAmount: r$(s1Lead),
+    leadPercent: finalLeadPercent,
     otherAmount: r$(s1Other + adjustedS2Other),
     otherPercent: finalOtherPercent,
     otherAmountOriginal: r$(s1Other + s2Other),
@@ -765,6 +775,7 @@ function calculateTwoStepScenario(inputs) {
       preMoney: preMoneyV1,
       amount: S1,
       investorAmount: s1Investor,
+      leadAmount: s1Lead,
       otherAmount: s1Other,
       rawPercent: step1RoundPercent,
       finalPercent: rp(esopCalc.esopIncreasePostClose > 0
@@ -773,6 +784,9 @@ function calculateTwoStepScenario(inputs) {
       investorPercent: rp(esopCalc.esopIncreasePostClose > 0
         ? step1InvestorFinal * (100 - esopCalc.esopIncreasePostClose) / 100
         : step1InvestorFinal),
+      leadPercent: rp(esopCalc.esopIncreasePostClose > 0
+        ? step1LeadFinal * (100 - esopCalc.esopIncreasePostClose) / 100
+        : step1LeadFinal),
       otherPercent: rp(esopCalc.esopIncreasePostClose > 0
         ? step1OtherFinal * (100 - esopCalc.esopIncreasePostClose) / 100
         : step1OtherFinal),
@@ -890,8 +904,10 @@ export function calculateEnhancedScenario(inputs) {
     postMoneyVal, 
     roundSize, 
     investorPortion, 
+    leadPortion = 0,
     otherPortion,
     investorName = 'US',
+    leadInvestorName = '',
     roundInstrument = 'priced',
     showAdvanced = false,
     // New multi-party structures
@@ -986,6 +1002,7 @@ export function calculateEnhancedScenario(inputs) {
       errorMessage: `Total pro-rata amount ($${combinedProRataAmount.toFixed(2)}M) exceeds available "Other" portion ($${otherPortion.toFixed(2)}M). Please reduce pro-rata rights or increase "Other" portion.`,
       proRataAmount: combinedProRataAmount,
       otherPortion,
+      leadPortion,
       roundSize,
       postMoneyVal,
       preMoneyVal,
@@ -997,13 +1014,15 @@ export function calculateEnhancedScenario(inputs) {
   const actualProRataAmount = proRataCalc.totalProRataAmount
   const actualSafeProRataAmount = safeProRataCalc.totalSafeProRataAmount
 
-  // Adjust investor portions - investor stays the same, other is reduced by combined pro-rata
+  // Adjust round portions - investor and lead stay the same, other is reduced by third-party pro-rata
   const adjustedInvestorPortion = investorPortion
+  const adjustedLeadPortion = leadPortion
   const adjustedOtherPortion = r$(otherPortion - actualProRataAmount - actualSafeProRataAmount)
   
   // Calculate ownership percentages on post-money basis
   const roundPercent = r2p(roundSize / postMoneyVal)
   let investorPercent = r2p(adjustedInvestorPortion / postMoneyVal)
+  let leadPercent = r2p(adjustedLeadPortion / postMoneyVal)
   let otherPercent = r2p(adjustedOtherPortion / postMoneyVal)
 
   // Calculate ESOP effects — pass round + SAFEs as the base dilution
@@ -1016,6 +1035,7 @@ export function calculateEnhancedScenario(inputs) {
     finalRoundPercent = rp(roundPercent * (100 - esopCalc.esopIncreasePostClose) / 100)
     // Also adjust investor/other sub-percentages so they sum to finalRoundPercent
     investorPercent = rp(investorPercent * (100 - esopCalc.esopIncreasePostClose) / 100)
+    leadPercent = rp(leadPercent * (100 - esopCalc.esopIncreasePostClose) / 100)
     otherPercent = rp(otherPercent * (100 - esopCalc.esopIncreasePostClose) / 100)
   }
 
@@ -1202,6 +1222,7 @@ export function calculateEnhancedScenario(inputs) {
     roundSize: roundSize || 3,
     preMoneyVal: preMoneyVal || 10,
     investorName: investorName || 'US',
+    leadInvestorName,
     roundInstrument,
     proRataSuppressed,
 
@@ -1209,6 +1230,8 @@ export function calculateEnhancedScenario(inputs) {
     newMoneyAmount: roundSize || 0,
     investorAmount: adjustedInvestorPortion || 0,
     investorPercent: investorPercent || 0,
+    leadAmount: adjustedLeadPortion || 0,
+    leadPercent: leadPercent || 0,
     otherAmount: adjustedOtherPortion || 0,
     otherPercent: otherPercent || 0,
     otherAmountOriginal: otherPortion || 0, // Original other amount before pro-rata adjustment

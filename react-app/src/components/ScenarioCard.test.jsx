@@ -114,6 +114,60 @@ describe('ScenarioCard with Permalink', () => {
     }))
   })
 
+  it('preserves lead fields when building permalink data', async () => {
+    const user = userEvent.setup()
+
+    render(
+      <ScenarioCard
+        scenario={{
+          ...mockScenario,
+          investorAmount: 0.3,
+          leadAmount: 2.45,
+          leadInvestorName: 'Series A Lead',
+          otherAmount: 0.25
+        }}
+        index={0}
+        isBase={true}
+        onCopyPermalink={mockOnCopyPermalink}
+      />
+    )
+
+    await user.click(screen.getByRole('button', { name: /🔗/ }))
+
+    expect(mockOnCopyPermalink).toHaveBeenCalledWith(expect.objectContaining({
+      investorPortion: 0.3,
+      leadPortion: 2.45,
+      leadInvestorName: 'Series A Lead',
+      otherPortion: 0.25
+    }))
+  })
+
+  it('displays firm, lead, and other as distinct new round rows', () => {
+    const { container } = render(
+      <ScenarioCard
+        scenario={{
+          ...mockScenario,
+          investorAmount: 0.3,
+          investorPercent: 2.31,
+          leadAmount: 2.45,
+          leadPercent: 18.85,
+          leadInvestorName: 'Series A Lead',
+          otherAmount: 0.25,
+          otherAmountOriginal: 0.25
+        }}
+        index={0}
+        isBase={true}
+        investorName="LSVP"
+        showAdvanced={true}
+      />
+    )
+
+    expect(container).toHaveTextContent('LSVP')
+    expect(container).toHaveTextContent('Series A Lead')
+    expect(container).toHaveTextContent('Other')
+    expect(container).toHaveTextContent('+$2.45M')
+  })
+
   it('should call onCopyPermalink when mobile copy button is clicked on base scenario', async () => {
     mockOnCopyPermalink.mockResolvedValue({ success: true })
     const user = userEvent.setup()

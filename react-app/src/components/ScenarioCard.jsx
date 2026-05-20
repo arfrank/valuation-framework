@@ -57,8 +57,10 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
       postMoneyVal: isTwoStep ? scenario.step1.postMoney : scenario.postMoneyVal,
       roundSize: useCompanyInputs ? (sourceCompany.roundSize || 0) : (isTwoStep ? scenario.step1.amount : scenario.roundSize),
       investorPortion: useCompanyInputs ? (sourceCompany.investorPortion || 0) : (isTwoStep ? scenario.step1.investorAmount : scenario.investorAmount),
+      leadPortion: useCompanyInputs ? (sourceCompany.leadPortion || 0) : (isTwoStep ? (scenario.step1.leadAmount || 0) : (scenario.leadAmount || 0)),
       otherPortion: useCompanyInputs ? (sourceCompany.otherPortion || 0) : (isTwoStep ? scenario.step1.otherAmount : (scenario.otherAmountOriginal || scenario.otherAmount)),
       investorName: sourceCompany.investorName || investorName,
+      leadInvestorName: sourceCompany.leadInvestorName || scenario.leadInvestorName || '',
       roundInstrument: sourceCompany.roundInstrument || scenario.roundInstrument || 'priced',
       showAdvanced: sourceCompany.showAdvanced ?? showAdvanced,
       proRataPercent: useCompanyInputs ? (sourceCompany.proRataPercent || 0) : (scenario.proRataPercentInput || 0),
@@ -142,6 +144,9 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
     (sum, s) => sum + (s.proRataAmount || 0), 0
   )
 
+  const leadLabel = scenario.leadInvestorName || 'Lead'
+  const showLeadPortion = (scenario.leadAmount || 0) > 0.000001
+
   // Remaining other for truly new investors (after ALL pro-rata, prior + SAFE)
   const remainingOther = scenario.otherAmountOriginal
     ? scenario.otherAmountOriginal - totalProRataAmount - totalSafeProRataAmountForDisplay
@@ -198,10 +203,21 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
     const patch = { [field]: num }
     if (field === 'roundSize') {
       const investor = Number(company.investorPortion) || 0
-      patch.otherPortion = round(Math.max(0, num - investor))
+      const lead = Math.min(Number(company.leadPortion) || 0, Math.max(0, num - investor))
+      patch.leadPortion = round(lead)
+      patch.otherPortion = round(Math.max(0, num - investor - lead))
     } else if (field === 'investorPortion') {
       const roundSize = Number(company.roundSize) || 0
-      patch.otherPortion = round(Math.max(0, roundSize - num))
+      const lead = Number(company.leadPortion) || 0
+      const investor = Math.min(num, Math.max(0, roundSize - lead))
+      patch.investorPortion = round(investor)
+      patch.otherPortion = round(Math.max(0, roundSize - investor - lead))
+    } else if (field === 'leadPortion') {
+      const roundSize = Number(company.roundSize) || 0
+      const investor = Number(company.investorPortion) || 0
+      const lead = Math.min(num, Math.max(0, roundSize - investor))
+      patch.leadPortion = round(lead)
+      patch.otherPortion = round(Math.max(0, roundSize - investor - lead))
     }
     onUpdateBase(patch)
   }
@@ -411,6 +427,24 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
               <span className="base-quick-suffix">M</span>
             </span>
           </label>
+          {((Number(company.leadPortion) || 0) > 0 || company.leadInvestorName) && (
+            <label className="base-quick-field">
+              <span className="base-quick-label">{company.leadInvestorName || 'Lead'}</span>
+              <span className="base-quick-input-wrap">
+                <span className="base-quick-prefix">$</span>
+                <input
+                  type="number"
+                  className="base-quick-input"
+                  value={Number(company.leadPortion) || 0}
+                  onChange={(e) => handleBaseFieldChange('leadPortion', e.target.value)}
+                  step="0.25"
+                  min="0"
+                  max={Math.max(0, (Number(company.roundSize) || 0) - (Number(company.investorPortion) || 0))}
+                />
+                <span className="base-quick-suffix">M</span>
+              </span>
+            </label>
+          )}
         </div>
       )}
 
@@ -460,10 +494,17 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
                   <div className="percent">{formatPercent(scenario.step1.investorPercent)}</div>
                 </div>
                 <div className="table-row sub-sub-row">
-                  <div className="label">    └─ Other</div>
+                  <div className="label">    {showLeadPortion ? '├─' : '└─'} Other</div>
                   <div className="amount amount-positive">+{formatDollar(scenario.step1.otherAmount)}</div>
                   <div className="percent">{formatPercent(scenario.step1.otherPercent)}</div>
                 </div>
+                {showLeadPortion && (
+                  <div className="table-row sub-sub-row">
+                    <div className="label">    └─ {leadLabel}</div>
+                    <div className="amount amount-positive">+{formatDollar(scenario.step1.leadAmount || 0)}</div>
+                    <div className="percent">{formatPercent(scenario.step1.leadPercent || 0)}</div>
+                  </div>
+                )}
 
                 {/* Step 2 sub-header */}
                 <div className="table-row step-sub-header">
@@ -498,6 +539,13 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
                   <div className="amount amount-positive">+{formatDollar(displayInvestorAmount)}</div>
                   <div className="percent">{formatPercent(displayInvestorOwnership)}</div>
                 </div>
+                {showLeadPortion && (
+                  <div className="table-row sub-row">
+                    <div className="label">├─ {leadLabel}</div>
+                    <div className="amount amount-positive">+{formatDollar(scenario.leadAmount || 0)}</div>
+                    <div className="percent">{formatPercent(scenario.leadPercent || 0)}</div>
+                  </div>
+                )}
 
                 {showAdvanced ? (
                   <>
