@@ -8,6 +8,7 @@ import { resolveSafeConversion } from '../utils/multiPartyCalculations'
 const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed, highlightToken = 0 }) => {
   const roundToCents = (value) => Math.round(Math.max(0, value) * 100) / 100
   const focusTimerRef = useRef(null)
+  const rowTimerRefs = useRef(new Set())
   const [values, setValues] = useState({
     postMoneyVal: 13,
     roundSize: 3,
@@ -76,27 +77,38 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed, hi
     return () => clearTimeout(focusTimerRef.current)
   }, [pendingFocusId, values.safes, values.warrants, inputMode])
 
+  const scheduleRowTimer = (callback, delay) => {
+    const id = setTimeout(() => {
+      rowTimerRefs.current.delete(id)
+      callback()
+    }, delay)
+    rowTimerRefs.current.add(id)
+    return id
+  }
+
   useEffect(() => () => {
     if (moneySwapTimerRef.current) clearTimeout(moneySwapTimerRef.current)
+    rowTimerRefs.current.forEach(clearTimeout)
+    rowTimerRefs.current.clear()
   }, [])
 
   const pulseComputedField = (field) => {
     setPulseField(field)
-    setTimeout(() => {
+    scheduleRowTimer(() => {
       setPulseField((current) => (current === field ? null : current))
     }, 650)
   }
 
   const markRecentRow = (key) => {
     setRecentRowKey(key)
-    setTimeout(() => {
+    scheduleRowTimer(() => {
       setRecentRowKey((current) => (current === key ? null : current))
     }, 850)
   }
 
   const markRemovingRow = (key) => {
     setRemovingRows(prev => ({ ...prev, [key]: true }))
-    setTimeout(() => {
+    scheduleRowTimer(() => {
       setRemovingRows(prev => {
         const next = { ...prev }
         delete next[key]
@@ -108,7 +120,7 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed, hi
   const showRowUndo = (label, onUndo) => {
     const notice = { id: Date.now(), label, onUndo }
     setUndoNotice(notice)
-    setTimeout(() => {
+    scheduleRowTimer(() => {
       setUndoNotice((current) => (current?.id === notice.id ? null : current))
     }, 4200)
   }
@@ -302,7 +314,7 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed, hi
     if (!removed) return
     const originalIndex = (values.safes || []).findIndex(safe => safe.id === safeId)
     markRemovingRow(`safe-${safeId}`)
-    setTimeout(() => {
+    scheduleRowTimer(() => {
       setValues(prev => {
         const nextSafes = (prev.safes || []).filter(safe => safe.id !== safeId)
         const nextValues = { ...prev, safes: nextSafes }
@@ -424,7 +436,7 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed, hi
     if (!removed) return
     const originalIndex = (values.warrants || []).findIndex(w => w.id === warrantId)
     markRemovingRow(`warrant-${warrantId}`)
-    setTimeout(() => {
+    scheduleRowTimer(() => {
       setValues(prev => {
         const nextWarrants = (prev.warrants || []).filter(w => w.id !== warrantId)
         const nextValues = { ...prev, warrants: nextWarrants }
@@ -1237,6 +1249,7 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed, hi
             safes={values.safes || []}
             postMoneyVal={values.postMoneyVal}
             investorPortion={values.investorPortion}
+            firmLeadsRound={values.firmLeadsRound !== false}
             roundInstrument={values.roundInstrument || 'priced'}
           />
 
