@@ -260,7 +260,7 @@ describe('InputForm with Pre-Money Toggle', () => {
     />)
 
     expect(container).toHaveTextContent(/FIRM\s+LSVP/)
-    expect(container).toHaveTextContent('Round allocation set above')
+    expect(screen.getByTitle('Round allocation set above')).toBeInTheDocument()
     expect(container).not.toHaveTextContent(/LEAD\s+LSVP/)
     expect(container).not.toHaveTextContent('Taking the round')
     expect(container).not.toHaveTextContent('Taking part in the round')
@@ -280,7 +280,6 @@ describe('InputForm with Pre-Money Toggle', () => {
     />)
 
     expect(container).toHaveTextContent(/LEAD\s+LSVP/)
-    expect(container).toHaveTextContent('Round allocation set above')
     expect(container).not.toHaveTextContent('Taking part in the round')
     expect(screen.getByTitle('Round allocation set above')).toBeInTheDocument()
   })
@@ -351,7 +350,7 @@ describe('InputForm with Pre-Money Toggle', () => {
     expect(screen.getByText(/Converts at fixed 7\.00%/)).toBeInTheDocument()
   })
 
-  it('summarizes large SAFE imports and keeps side-letter notes visible', () => {
+  it('surfaces import warnings and side-letter notes for SAFE imports', () => {
     render(<InputForm
       company={{
         ...defaultCompany,
@@ -381,8 +380,6 @@ describe('InputForm with Pre-Money Toggle', () => {
       onUpdate={mockOnUpdate}
     />)
 
-    expect(screen.getByLabelText('SAFE import summary')).toHaveTextContent('2 SAFEs')
-    expect(screen.getByLabelText('SAFE import summary')).toHaveTextContent('$0.225M total')
     expect(screen.getByText('No cap table was provided')).toBeInTheDocument()
     expect(screen.getByText('Side letter')).toBeInTheDocument()
     expect(screen.getByText(/Pro-rata, info rights, and MFN granted/)).toBeInTheDocument()

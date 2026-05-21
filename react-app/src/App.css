@@ -2090,15 +2090,6 @@ body {
   color: #1e40af;
 }
 
-/* SAFE attribution label */
-.safe-attribution {
-  display: inline-flex;
-  margin-left: 0.35rem;
-  font-size: 0.72rem;
-  color: #64748b;
-  font-weight: 500;
-}
-
 .section-row-meta {
   display: inline-flex;
   margin-left: 0.45rem;
@@ -2778,12 +2769,6 @@ body {
   font-size: 0.85rem;
 }
 
-/* Tree-like structure styling */
-.sub-row .label,
-.sub-sub-row .label {
-  font-family: 'JetBrains Mono', 'Consolas', 'Monaco', monospace;
-}
-
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .scenario-sections {
@@ -3393,31 +3378,6 @@ input.investor-name-input:focus, input.founder-name-input:focus {
   display: grid;
   gap: 8px;
   margin: 0 0 10px;
-}
-
-.safe-summary-strip {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  align-items: center;
-}
-
-.safe-summary-strip span {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  min-height: 26px;
-  padding: 0 8px;
-  border: 1px solid rgba(148, 163, 184, 0.34);
-  border-radius: 6px;
-  background: rgba(248, 250, 252, 0.9);
-  color: var(--color-fg-muted);
-  font-size: 0.75rem;
-}
-
-.safe-summary-strip strong {
-  color: var(--color-fg);
-  font-weight: 700;
 }
 
 .safe-import-warning {
