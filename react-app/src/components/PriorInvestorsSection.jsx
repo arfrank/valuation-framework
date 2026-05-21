@@ -428,9 +428,6 @@ function PriorInvestorsSection({
                   <span className="repeater-alloc-placeholder" title="Round allocation set above">—</span>
                 </div>
                 <div className="repeater-col repeater-col--actions" aria-hidden="true" />
-                <div className="repeater-row-caption">
-                  <span className="repeater-row-caption-text">Round allocation set above</span>
-                </div>
               </div>
             )
           })}

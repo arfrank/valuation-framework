@@ -245,21 +245,7 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed, hi
   const activeLeadPortion = firmLeadsRound ? 0 : (values.leadPortion || 0)
   const safeRows = values.safes || []
   const isSafeRound = values.roundInstrument === 'safe'
-  const safeSummary = safeRows.reduce((summary, safe) => {
-    const amount = Number(safe.amount) || 0
-    summary.totalAmount += amount
-    if (safe.proRata) summary.proRataCount += 1
-    if (safe.conversionType === 'fixed-percent') summary.fixedCount += 1
-    if (safe.conversionType === 'mfn') summary.mfnCount += 1
-    if ((safe.notes || '').trim()) summary.noteCount += 1
-    return summary
-  }, { totalAmount: 0, proRataCount: 0, fixedCount: 0, mfnCount: 0, noteCount: 0 })
   const importWarnings = Array.isArray(values.importWarnings) ? values.importWarnings : []
-
-  const formatSafeAmount = (amount) => {
-    const value = Number(amount) || 0
-    return `$${value.toLocaleString(undefined, { minimumFractionDigits: value < 1 ? 3 : 2, maximumFractionDigits: 3 })}M`
-  }
 
   const getSafeTermLabel = (safe) => {
     const conversionType = safe.conversionType || 'cap-discount'
@@ -642,7 +628,7 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed, hi
             />
 
             <FormInput
-              label={`${values.leadInvestorName || 'Lead'} Portion`}
+              label="Lead Portion"
               type="number"
               value={values.leadPortion || 0}
               onChange={(value) => handleChange('leadPortion', value)}
@@ -988,28 +974,13 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed, hi
               </div>
             </div>
 
-            {(importWarnings.length > 0 || safeRows.length > 0) && (
+            {importWarnings.length > 0 && (
               <div className="safe-import-context">
-                {safeRows.length > 0 && (
-                  <div className="safe-summary-strip" aria-label="SAFE import summary">
-                    <span><strong>{safeRows.length}</strong> SAFEs</span>
-                    <span><strong>{formatSafeAmount(safeSummary.totalAmount)}</strong> total</span>
-                    <span><strong>{safeSummary.proRataCount}</strong> pro-rata</span>
-                    {(safeSummary.fixedCount > 0 || safeSummary.mfnCount > 0) && (
-                      <span><strong>{safeSummary.fixedCount + safeSummary.mfnCount}</strong> non-standard</span>
-                    )}
-                    {safeSummary.noteCount > 0 && (
-                      <span><strong>{safeSummary.noteCount}</strong> notes</span>
-                    )}
-                  </div>
-                )}
-                {importWarnings.length > 0 && (
-                  <div className="safe-import-warning">
-                    {importWarnings.map((warning, index) => (
-                      <p key={index}>{warning}</p>
-                    ))}
-                  </div>
-                )}
+                <div className="safe-import-warning">
+                  {importWarnings.map((warning, index) => (
+                    <p key={index}>{warning}</p>
+                  ))}
+                </div>
               </div>
             )}
 

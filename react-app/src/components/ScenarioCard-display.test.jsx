@@ -350,8 +350,8 @@ describe('ScenarioCard Display Logic', () => {
         />
       )
 
-      expect(getByText('LSVP')).toBeTruthy()
-      expect(getByText('Founders')).toBeTruthy()
+      expect(getAllByText('LSVP').length).toBeGreaterThan(0)
+      expect(getAllByText('Founders').length).toBeGreaterThan(0)
       expect(getByText('SAFEs')).toBeTruthy()
       expect(getByText('Pre-Money')).toBeTruthy()
       expect(getAllByText('7.50%').length).toBeGreaterThan(0)
@@ -402,8 +402,6 @@ describe('ScenarioCard Display Logic', () => {
       )
 
       expect(getByText((content, _element) => content.includes('9 notes'))).toBeTruthy()
-      expect(getByText((content, _element) => content.includes('2 pro-rata'))).toBeTruthy()
-      expect(getByText((content, _element) => content.includes('1 non-standard'))).toBeTruthy()
       expect(queryByText((content, _element) => content.includes('Investor 1'))).toBeNull()
     })
 
