@@ -770,7 +770,16 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
                           : `$${safe.amount}M @ $${safe.conversionPrice}M`}
                       </span>
                     </div>
-                    <div className="percent">{formatPercent(safe.percent)}</div>
+                    {/* totalPercent carries the post-close ESOP dilution that
+                        safe.percent does not; subtract the pro-rata slice,
+                        which has its own row below. */}
+                    <div className="percent">
+                      {formatPercent(
+                        Number.isFinite(safe.totalPercent)
+                          ? safe.totalPercent - (safe.proRataPercent || 0)
+                          : safe.percent
+                      )}
+                    </div>
                   </div>
                   {showProRata && (
                     <div className="table-row sub-sub-row">

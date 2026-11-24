@@ -96,6 +96,25 @@ describe('ScenarioCard rows agree with their section headers', () => {
     expect(firmRow.percent + otherRow.percent).toBeCloseTo(header.percent, 1)
   })
 
+  it('dilutes each SAFE row by a post-close ESOP top-up, matching the SAFE total', () => {
+    // $1M at a $10M cap converts to 10%; a post-close top-up dilutes it further.
+    const { rows, scenario } = renderBaseCard({
+      ...baseCompany,
+      founders: [{ id: 'f1', name: 'Founder', ownershipPercent: 90 }],
+      safes: [{ id: 's1', amount: 1, cap: 10, discount: 0, investorName: 'Angel', conversionType: 'cap-discount' }],
+      currentEsopPercent: 10,
+      targetEsopPercent: 12,
+      esopTiming: 'post-close'
+    })
+
+    expect(scenario.esopIncreasePostClose).toBeGreaterThan(0)
+    const header = rows.find(row => row.label.includes('SAFEs Total'))
+    const safeRow = findRow(rows, 'Angel')
+
+    expect(header.percent).toBeLessThan(10)
+    expect(safeRow.percent).toBeCloseTo(header.percent, 2)
+  })
+
   it('renders the Prior Investors section when the firm is the only prior holder', () => {
     // A 20% prior stake diluted by a 20% round is 16%.
     const { rows } = renderBaseCard({
