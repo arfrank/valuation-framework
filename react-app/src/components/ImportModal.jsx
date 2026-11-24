@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useTimeouts } from '../hooks/useTimeouts'
 import { parseImportJson } from '../utils/importCompany'
 import { IMPORT_PROMPT } from '../utils/importPrompts'
 
@@ -7,6 +8,7 @@ function formatSafeCount(count) {
 }
 
 function ImportModal({ open, activeCompanyName = 'active scenario', onClose, onImport, onShowError, onShowSuccess }) {
+  const schedule = useTimeouts()
   const [jsonText, setJsonText] = useState('')
   const [errors, setErrors] = useState([])
   // pendingPreview holds a validated result so the user can review warnings
@@ -99,7 +101,7 @@ function ImportModal({ open, activeCompanyName = 'active scenario', onClose, onI
     try {
       await navigator.clipboard.writeText(IMPORT_PROMPT)
       setCopiedPrompt(true)
-      setTimeout(() => setCopiedPrompt(false), 1500)
+      schedule(() => setCopiedPrompt(false), 1500)
       onShowSuccess?.('Prompt copied to clipboard', 1500)
     } catch {
       onShowError?.('Could not copy — your browser blocked clipboard access', 2200)

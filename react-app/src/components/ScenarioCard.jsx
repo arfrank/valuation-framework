@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
+import { useTimeouts } from '../hooks/useTimeouts'
 
 const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalink, onSharePermalink, investorName = 'US', showAdvanced = false, percentPrecision = 2, onPercentPrecisionChange, company, onUpdateBase, companyName, compareActive, compareIndex, baseScenario }) => {
+  const schedule = useTimeouts()
   const [copyFeedback, setCopyFeedback] = useState('')
   const [shareFeedback, setShareFeedback] = useState('')
   const [applyFeedback, setApplyFeedback] = useState(false)
@@ -18,7 +20,7 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
 
   const toggleCollapse = (section) => {
     setPressedSection(section)
-    setTimeout(() => {
+    schedule(() => {
       setPressedSection((current) => (current === section ? null : current))
     }, 280)
     setCollapsed(prev => ({
@@ -86,7 +88,7 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
   const handleApplyScenario = () => {
     if (onApplyScenario) {
       setApplyFeedback(true)
-      setTimeout(() => setApplyFeedback(false), 900)
+      schedule(() => setApplyFeedback(false), 900)
       onApplyScenario(buildScenarioData())
     }
   }
@@ -104,10 +106,10 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
       }
       
       // Clear feedback after 3 seconds
-      setTimeout(() => setCopyFeedback(''), 3000)
+      schedule(() => setCopyFeedback(''), 3000)
     } catch {
       setCopyFeedback('Failed to copy')
-      setTimeout(() => setCopyFeedback(''), 3000)
+      schedule(() => setCopyFeedback(''), 3000)
     }
   }
 
@@ -123,10 +125,10 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
         setShareFeedback('Failed to share')
       }
 
-      setTimeout(() => setShareFeedback(''), 3000)
+      schedule(() => setShareFeedback(''), 3000)
     } catch {
       setShareFeedback('Failed to share')
-      setTimeout(() => setShareFeedback(''), 3000)
+      schedule(() => setShareFeedback(''), 3000)
     }
   }
 
@@ -306,7 +308,7 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
     if (!onPercentPrecisionChange) return
     onPercentPrecisionChange(percentPrecision >= 4 ? 2 : percentPrecision + 1)
     setPrecisionHint(true)
-    setTimeout(() => setPrecisionHint(false), 900)
+    schedule(() => setPrecisionHint(false), 900)
   }
 
   return (

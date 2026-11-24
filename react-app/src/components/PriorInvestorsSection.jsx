@@ -1,6 +1,7 @@
 import { createPriorInvestor, calculateTotalOwnership } from '../utils/dataStructures'
 import { calculateSafeConversions } from '../utils/multiPartyCalculations'
 import FormInput from './FormInput'
+import { useTimeouts } from '../hooks/useTimeouts'
 import { useEffect, useRef, useState } from 'react'
 
 function PriorInvestorsSection({
@@ -28,22 +29,8 @@ function PriorInvestorsSection({
   const onUpdateRef = useRef(onUpdate)
   onUpdateRef.current = onUpdate
 
-  const timersRef = useRef(new Set())
-  const schedule = (callback, delay) => {
-    const id = setTimeout(() => {
-      timersRef.current.delete(id)
-      callback()
-    }, delay)
-    timersRef.current.add(id)
-    return id
-  }
-  useEffect(() => {
-    const timers = timersRef.current
-    return () => {
-      timers.forEach(clearTimeout)
-      timers.clear()
-    }
-  }, [])
+  // Cleared on unmount, so a pending removal can't fire against another company.
+  const schedule = useTimeouts()
 
   const markRecentRow = (key) => {
     setRecentRowKey(key)
@@ -342,7 +329,7 @@ function PriorInvestorsSection({
                         <FormInput
                           label="Allocation"
                           type="number"
-                          value={displayAmount}
+                          value={Math.round(displayAmount * 100) / 100}
                           onChange={(value) => updateInvestor(investor.id, 'proRataOverride', value)}
                           prefix="$"
                           suffix="M"

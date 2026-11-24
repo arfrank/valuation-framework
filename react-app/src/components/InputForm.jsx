@@ -167,6 +167,10 @@ const InputForm = ({ company, companyId, onUpdate, collapsed = false, onToggleCo
       if (numValue < 0) numValue = 0
       // Prevent unreasonably large values (> 1 trillion)
       if (numValue > 1000000) numValue = 1000000
+      // Pool sizes are percentages of the company
+      if (['currentEsopPercent', 'grantedEsopPercent', 'targetEsopPercent'].includes(field) && numValue > 100) {
+        numValue = 100
+      }
     }
     
     const newValues = { ...values, [field]: numValue }
@@ -1201,7 +1205,7 @@ const InputForm = ({ company, companyId, onUpdate, collapsed = false, onToggleCo
                               <FormInput
                                 label="Allocation"
                                 type="number"
-                                value={proRataBlock.displayAmount}
+                                value={Math.round(proRataBlock.displayAmount * 100) / 100}
                                 onChange={(value) => updateSafe(safe.id, 'proRataOverride', value)}
                                 prefix="$"
                                 suffix="M"

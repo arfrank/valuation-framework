@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useTimeouts } from '../hooks/useTimeouts'
 import { calculateExitReturnsForValues, resolveDilutions } from '../utils/exitMath'
 import FormInput from './FormInput'
 
@@ -31,6 +32,7 @@ function sanitizeValuations(list) {
 }
 
 const ExitMathModule = ({ baseScenario, investorName = 'US', exitMath, onUpdate, companyName }) => {
+  const schedule = useTimeouts()
   const [showOverrides, setShowOverrides] = useState(false)
   const [duplicatePreset, setDuplicatePreset] = useState(null)
   const [addedValuation, setAddedValuation] = useState(null)
@@ -58,9 +60,12 @@ const ExitMathModule = ({ baseScenario, investorName = 'US', exitMath, onUpdate,
     [numRounds, uniformDilution, perRoundOverrides]
   )
 
+  // Blank or non-positive entries are still being typed; they have no outcome.
+  const validValuations = useMemo(() => sanitizeValuations(exitValuations), [exitValuations])
+
   const { finalOwnership, outcomes, perRound } = useMemo(
-    () => calculateExitReturnsForValues({ initialCheck, currentOwnership, dilutions, exitValuations }),
-    [initialCheck, currentOwnership, dilutions, exitValuations]
+    () => calculateExitReturnsForValues({ initialCheck, currentOwnership, dilutions, exitValuations: validValuations }),
+    [initialCheck, currentOwnership, dilutions, validValuations]
   )
   const outcomesSignature = outcomes.map(o => `${o.exitValuation}:${o.exitProceeds}:${o.moic}`).join('|')
 
@@ -114,24 +119,24 @@ const ExitMathModule = ({ baseScenario, investorName = 'US', exitMath, onUpdate,
     const last = exitValuations[exitValuations.length - 1]
     const seed = Number.isFinite(last) && last > 0 ? last * 2 : 1000
     setAddedValuation(seed)
-    setTimeout(() => setAddedValuation(null), 850)
+    schedule(() => setAddedValuation(null), 850)
     update({ exitValuations: [...exitValuations, seed] })
   }
 
   const handlePresetClick = (value) => {
     if (exitValuations.some((v) => Number(v) === value)) {
       setDuplicatePreset(value)
-      setTimeout(() => setDuplicatePreset((current) => (current === value ? null : current)), 650)
+      schedule(() => setDuplicatePreset((current) => (current === value ? null : current)), 650)
       return
     }
     setAddedValuation(value)
-    setTimeout(() => setAddedValuation((current) => (current === value ? null : current)), 850)
+    schedule(() => setAddedValuation((current) => (current === value ? null : current)), 850)
     const next = [...exitValuations, value].sort((a, b) => Number(a) - Number(b))
     update({ exitValuations: next })
   }
 
   const hasData = baseScenario && initialCheck > 0
-  const sanitizedCount = sanitizeValuations(exitValuations).length
+  const sanitizedCount = validValuations.length
 
   return (
     <div className="exit-math-module">
