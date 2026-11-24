@@ -86,8 +86,9 @@ describe('ownership rows sum to 100% with a fully tracked cap table', () => {
   })
 
   it('post-close ESOP top-up dilutes the SAFE total along with its rows', () => {
-    // $5M SAFE at a $50M cap converts to 10%. A 10% post-close pool dilutes
-    // everyone by 10%: SAFE 9, round 18, founders (100 − 20 − 10) × 0.9 = 63.
+    // $5M SAFE at a $50M cap owns 10% before the round and 8% after the 20%
+    // round; founders keep 100 × 0.9 × 0.8 = 72. A 10% post-close pool then
+    // dilutes everyone by 10%: SAFE 7.2, round 18, founders 64.8.
     const result = calculateEnhancedScenario({
       ...base,
       safes: [{ id: 's', amount: 5, cap: 50, discount: 0 }],
@@ -95,10 +96,10 @@ describe('ownership rows sum to 100% with a fully tracked cap table', () => {
       esopTiming: 'post-close'
     })
 
-    expect(result.safeDetails[0].totalPercent).toBeCloseTo(9, 4)
-    expect(result.totalSafePercent).toBeCloseTo(9, 4)
+    expect(result.safeDetails[0].totalPercent).toBeCloseTo(7.2, 4)
+    expect(result.totalSafePercent).toBeCloseTo(7.2, 4)
     expect(result.roundPercent).toBeCloseTo(18, 4)
-    expect(result.founders[0].postRoundPercent).toBeCloseTo(63, 4)
+    expect(result.founders[0].postRoundPercent).toBeCloseTo(64.8, 4)
     expect(result.finalEsopPercent).toBeCloseTo(10, 4)
     expect(displayedRowTotal(result)).toBeCloseTo(100, 3)
     expect(result.unknownOwnership).toBeCloseTo(0, 3)
@@ -134,6 +135,84 @@ describe('ownership rows sum to 100% with a fully tracked cap table', () => {
       expect(displayedRowTotal(result)).toBeCloseTo(100, 3)
     }
   )
+})
+
+describe('converted SAFEs are diluted by a priced round', () => {
+  // Base: $20M at $100M post (20%), founders 100%.
+  it('gives a SAFE converting at the round price the same ownership as new money', () => {
+    // $5M of new money buys 5/100 = 5%. A $5M SAFE converting at the round
+    // price pays the same price per share, so it must end up with the same 5%.
+    const result = calculateEnhancedScenario({
+      ...base,
+      safes: [{ id: 's', amount: 5, conversionType: 'round-price' }]
+    })
+
+    expect(result.otherPercent).toBeCloseTo(5, 4) // $5M of new money
+    expect(result.safeDetails[0].totalPercent).toBeCloseTo(5, 4)
+    expect(result.founders[0].postRoundPercent).toBeCloseTo(75, 4)
+    expect(displayedRowTotal(result)).toBeCloseTo(100, 3)
+  })
+
+  it('dilutes a capped SAFE: amount / cap before the round, times (1 − round%) after', () => {
+    // $5M at a $50M cap is 10% pre-round and 8% after the 20% round.
+    const result = calculateEnhancedScenario({
+      ...base,
+      safes: [{ id: 's', amount: 5, cap: 50, discount: 0 }]
+    })
+
+    expect(result.safeDetails[0].preRoundPercent).toBeCloseTo(10, 4)
+    expect(result.safeDetails[0].percent).toBeCloseTo(8, 4)
+    expect(result.totalSafePercent).toBeCloseTo(8, 4)
+    expect(result.founders[0].postRoundPercent).toBeCloseTo(72, 4)
+    expect(displayedRowTotal(result)).toBeCloseTo(100, 3)
+  })
+
+  it('dilutes a fixed-percent (YC-style) SAFE the same way', () => {
+    // 7% of the pre-round company is 5.6% after a 20% round.
+    const result = calculateEnhancedScenario({
+      ...base,
+      safes: [{ id: 's', amount: 0.125, conversionType: 'fixed-percent', fixedOwnershipPercent: 7 }]
+    })
+
+    expect(result.totalSafePercent).toBeCloseTo(5.6, 4)
+    expect(result.founders[0].postRoundPercent).toBeCloseTo(74.4, 4)
+  })
+
+  it('keeps SAFE pro-rata on the pre-round percentage', () => {
+    // 10% pre-round entitles the holder to 10% of the $20M round = $2M.
+    const result = calculateEnhancedScenario({
+      ...base,
+      safes: [{ id: 's', amount: 5, cap: 50, discount: 0, proRata: true }]
+    })
+
+    expect(result.totalSafeProRataAmount).toBeCloseTo(2, 4)
+    expect(result.safeDetails[0].totalPercent).toBeCloseTo(10, 4) // 8% converted + 2% bought
+  })
+
+  it('dilutes through both steps of a two-step round', () => {
+    // $1M at a $10M cap is 10% pre-round. Step 1 is 25%, step 2 is 25%:
+    // 10 × 0.75 × 0.75 = 5.625. Founders: 100 × 0.9 × 0.75 × 0.75 = 50.625.
+    const result = calculateEnhancedScenario({
+      ...base,
+      ...twoStep,
+      safes: [{ id: 's', amount: 1, cap: 10, discount: 0 }]
+    })
+
+    expect(result.totalSafePercent).toBeCloseTo(5.625, 4)
+    expect(result.founders[0].postRoundPercent).toBeCloseTo(50.625, 4)
+    expect(displayedRowTotal(result)).toBeCloseTo(100, 3)
+  })
+
+  it('leaves earlier SAFEs undiluted when the round itself is a SAFE', () => {
+    const result = calculateEnhancedScenario({
+      ...base,
+      roundInstrument: 'safe',
+      safes: [{ id: 's', amount: 5, cap: 50, discount: 0 }]
+    })
+
+    expect(result.totalSafePercent).toBeCloseTo(10, 4)
+    expect(result.founders[0].postRoundPercent).toBeCloseTo(70, 4)
+  })
 })
 
 describe('firm name matching ignores surrounding whitespace', () => {

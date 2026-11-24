@@ -51,7 +51,8 @@ const newRoundHeader = (rows) => rows.find(row => row.label.includes('New Round 
 describe('ScenarioCard rows agree with their section headers', () => {
   it('shows the firm\'s round slice, not its total, under New Round Total', () => {
     // $3M of a $4M round at $20M post is 15%. The firm also holds a $1M SAFE
-    // at an $8M cap (12.5%), which belongs in the SAFE section.
+    // at an $8M cap (12.5% before the round, 10% after it), which belongs in
+    // the SAFE section.
     const { rows } = renderBaseCard({
       ...baseCompany,
       safes: [{ id: 's1', amount: 1, cap: 8, discount: 0, investorName: 'US', conversionType: 'cap-discount' }]
@@ -65,7 +66,7 @@ describe('ScenarioCard rows agree with their section headers', () => {
 
     const totalRow = findRow(rows, 'US (total)')
     expect(totalRow.isTotalRow).toBe(true)
-    expect(totalRow.percent).toBeCloseTo(27.5, 2)
+    expect(totalRow.percent).toBeCloseTo(25, 2)
 
     expect(firmRow.percent + findRow(rows, 'Other').percent).toBeCloseTo(header.percent, 2)
   })

@@ -533,7 +533,13 @@ function calculateTwoStepScenario(inputs) {
   const totalOtherPercent = rp(step1OtherFinal + step2OtherPercent)
 
   // SAFEs diluted by both steps: convert at step 1 pre-money, then diluted by step 2
-  const safeFinalPercent = rp(safeCalc.totalSafePercent * step2DilutionFactor)
+  // In a priced round, converted SAFEs own their percentage of the company
+  // *before* the new money and are then diluted by it like every other
+  // pre-round holder: first by step 1, then by step 2. (When the round itself
+  // is a SAFE, it doesn't dilute the earlier SAFEs.)
+  const step1SafeFactor = isSafeRound ? 1 : (100 - step1RoundPercent) / 100
+  const step1SafePercent = rp(safeCalc.totalSafePercent * step1SafeFactor)
+  const safeFinalPercent = rp(step1SafePercent * step2DilutionFactor)
 
   // --- ESOP ---
   const baseDilutionPercent = totalRoundPercent + safeFinalPercent
@@ -544,7 +550,7 @@ function calculateTwoStepScenario(inputs) {
   // (baseDilutionPercent above), so it comes off in full here; scaling it by
   // the step-2 factor would leave the table summing to more than 100%.
   const dilutePreRoundHolder = (preRoundPercent) => rp(
-    preRoundPercent * (100 - step1RoundPercent - safeCalc.totalSafePercent) / 100 * step2DilutionFactor
+    preRoundPercent * (100 - step1RoundPercent - step1SafePercent) / 100 * step2DilutionFactor
     - preRoundPercent * esopCalc.esopIncreasePreClose / 100
   )
 
@@ -661,10 +667,11 @@ function calculateTwoStepScenario(inputs) {
     const pr = safeProRataCalc.safeProRataResults.find(r => r.id === d.id)
     const scaledProRataAmount = pr ? r$(pr.proRataAmount * clampRatio) : 0
     const proRataPercent = rp(r2p(scaledProRataAmount / V2) * esopPostCloseFactor2)
-    const dilutedPercent = rp(d.percent * step2DilutionFactor * esopPostCloseFactor2)
+    const dilutedPercent = rp(d.percent * step1SafeFactor * step2DilutionFactor * esopPostCloseFactor2)
     return {
       ...d,
-      percent: rp(d.percent * step2DilutionFactor),
+      preRoundPercent: d.percent,
+      percent: rp(d.percent * step1SafeFactor * step2DilutionFactor),
       proRataAmount: scaledProRataAmount,
       proRataPercent,
       totalPercent: rp(dilutedPercent + proRataPercent)
@@ -1076,7 +1083,23 @@ export function calculateEnhancedScenario(inputs) {
   let otherPercent = r2p(adjustedOtherPortion / postMoneyVal)
 
   // Calculate ESOP effects — pass round + SAFEs as the base dilution
-  const baseDilutionPercent = roundPercent + safeCalc.totalSafePercent
+  // In a priced round, converted SAFEs own their percentage of the company
+  // *before* the new money and are then diluted by the round like every other
+  // pre-round holder, so $1 of SAFE converting at the round price ends up with
+  // the same ownership as $1 of new money. (When the round itself is a SAFE,
+  // it doesn't dilute the earlier SAFEs.) SAFE pro-rata, computed above, stays
+  // on the pre-round percentage.
+  const safeRoundDilutionFactor = isSafeRound ? 1 : (100 - roundPercent) / 100
+  const postRoundSafes = {
+    totalSafePercent: rp(safeCalc.totalSafePercent * safeRoundDilutionFactor),
+    safeDetails: (safeCalc.safeDetails || []).map(detail => ({
+      ...detail,
+      preRoundPercent: detail.percent,
+      percent: rp(detail.percent * safeRoundDilutionFactor)
+    }))
+  }
+
+  const baseDilutionPercent = roundPercent + postRoundSafes.totalSafePercent
   const esopCalc = calculateEsopEffects(effectiveCurrentEsopPercent, effectiveGrantedEsopPercent, effectiveTargetEsopPercent, esopTiming, baseDilutionPercent)
 
   // Adjust round percentage for post-close ESOP dilution
@@ -1092,7 +1115,7 @@ export function calculateEnhancedScenario(inputs) {
   // Calculate post-round ownership for each stakeholder group
   // Always use original roundPercent: for pre-close, esopIncreasePreClose is added;
   // for post-close, esopIncreasePreClose is 0 and ESOP is applied separately below
-  const totalNewOwnership = roundPercent + safeCalc.totalSafePercent + esopCalc.esopIncreasePreClose
+  const totalNewOwnership = roundPercent + postRoundSafes.totalSafePercent + esopCalc.esopIncreasePreClose
   
   // Calculate post-round ownership for prior investors (with pro-rata)
   const postRoundPriorInvestors = scaledPriorInvestors.map(investor => {
@@ -1177,8 +1200,8 @@ export function calculateEnhancedScenario(inputs) {
   // A post-close top-up dilutes converted SAFEs like everyone else; the total
   // has to agree with the per-SAFE rows.
   const finalSafePercent = esopCalc.esopIncreasePostClose > 0
-    ? rp(safeCalc.totalSafePercent * (100 - esopCalc.esopIncreasePostClose) / 100)
-    : safeCalc.totalSafePercent
+    ? rp(postRoundSafes.totalSafePercent * (100 - esopCalc.esopIncreasePostClose) / 100)
+    : postRoundSafes.totalSafePercent
   const totalAccountedOwnership = finalRoundPercent + finalSafePercent
     + totalPriorInvestorOwnership + totalFounderOwnership + esopCalc.finalEsopPercent
     + finalWarrantsPercent
@@ -1219,8 +1242,8 @@ export function calculateEnhancedScenario(inputs) {
 
   // Calculate SAFE ownership attributed to the lead investor
   let investorSafePercent = 0
-  if (safeCalc.safeDetails && safeCalc.safeDetails.length > 0) {
-    safeCalc.safeDetails.forEach(safe => {
+  if (postRoundSafes.safeDetails.length > 0) {
+    postRoundSafes.safeDetails.forEach(safe => {
       if (isSameInvestor(safe.investorName, investorName)) {
         let safeOwnership = safe.percent
         if (esopCalc.esopIncreasePostClose > 0) {
@@ -1257,7 +1280,7 @@ export function calculateEnhancedScenario(inputs) {
   const esopPostCloseFactor = esopCalc.esopIncreasePostClose > 0
     ? (100 - esopCalc.esopIncreasePostClose) / 100
     : 1
-  const enrichedSafeDetails = (safeCalc.safeDetails || []).map(safe => {
+  const enrichedSafeDetails = postRoundSafes.safeDetails.map(safe => {
     const pr = safeProRataCalc.safeProRataResults.find(r => r.id === safe.id)
     const proRataAmount = pr ? pr.proRataAmount : 0
     const proRataPercentRaw = r2p(proRataAmount / postMoneyVal)
