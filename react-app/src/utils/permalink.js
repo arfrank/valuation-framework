@@ -63,7 +63,7 @@ export function isValidScenarioData(scenarioData) {
         return false
       }
     } else {
-      if (typeof value !== 'number' || isNaN(value) || value < 0) {
+      if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
         return false
       }
       // roundSize must be positive
@@ -297,6 +297,11 @@ export function decodeScenarioFromURL(urlParams) {
       step2OtherPortion: 0
     }
 
+    // Row lists that were present in the link but could not be parsed (a link
+    // truncated by a chat or mail client is the usual cause). The scenario
+    // still loads, but the recipient must be told its numbers are incomplete.
+    const unreadableLists = []
+
     // Decode parameters
     for (const [param, field] of Object.entries(REVERSE_PARAM_MAP)) {
       const value = params.get(param)
@@ -338,6 +343,7 @@ export function decodeScenarioFromURL(urlParams) {
           } catch (error) {
             console.warn('Failed to decode SAFEs array from URL:', error)
             scenarioData[field] = []
+            unreadableLists.push('SAFEs')
           }
         } else if (field === 'warrants') {
           try {
@@ -353,6 +359,7 @@ export function decodeScenarioFromURL(urlParams) {
           } catch (error) {
             console.warn('Failed to decode warrants array from URL:', error)
             scenarioData[field] = []
+            unreadableLists.push('warrants')
           }
         } else if (field === 'priorInvestors') {
           // Decode prior investors array from JSON
@@ -375,6 +382,7 @@ export function decodeScenarioFromURL(urlParams) {
           } catch (error) {
             console.warn('Failed to decode prior investors array from URL:', error)
             scenarioData[field] = []
+            unreadableLists.push('prior investors')
           }
         } else if (field === 'founders') {
           // Decode founders array from JSON
@@ -393,6 +401,7 @@ export function decodeScenarioFromURL(urlParams) {
           } catch (error) {
             console.warn('Failed to decode founders array from URL:', error)
             scenarioData[field] = []
+            unreadableLists.push('founders')
           }
         } else {
           const numValue = parseFloat(value)
@@ -406,6 +415,12 @@ export function decodeScenarioFromURL(urlParams) {
 
     if (!params.has('fl') && (scenarioData.leadPortion > 0 || scenarioData.leadInvestorName)) {
       scenarioData.firmLeadsRound = false
+    }
+
+    if (unreadableLists.length > 0) {
+      scenarioData.importWarnings = [
+        `This shared link was incomplete: ${unreadableLists.join(', ')} could not be read and were left out.`
+      ]
     }
 
     // Set showAdvanced to true if any advanced features are present (but don't override explicit setting)
@@ -543,7 +558,12 @@ export async function sharePermalink(scenarioData) {
           success: true,
           url: permalink
         }
-      } catch {
+      } catch (error) {
+        // The user closed the share sheet. That's a choice, not a failure, and
+        // it shouldn't silently copy the link instead.
+        if (error && error.name === 'AbortError') {
+          return { success: false, cancelled: true, url: permalink }
+        }
         const fallback = await copyPermalinkToClipboard(scenarioData)
         return fallback.success
           ? { ...fallback, fallback: true }

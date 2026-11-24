@@ -361,4 +361,45 @@ describe('parseImportJson', () => {
     expect(r.company.priorInvestors[0].name).toBe('Sequoia')
     expect(r.company.safes[0].investorName).toBe('Sequoia')
   })
+
+  it('leaves prior investors empty when a cap table only lists founders', () => {
+    const r = parseImportJson(JSON.stringify({
+      founders: [
+        { name: 'CEO', ownershipPercent: 55 },
+        { name: 'CTO', ownershipPercent: 35 }
+      ],
+      currentEsopPercent: 10
+    }))
+    expect(r.ok).toBe(true)
+    expect(r.company.founders.map(f => f.name)).toEqual(['CEO', 'CTO'])
+    expect(r.company.priorInvestors).toEqual([])
+  })
+
+  it('leaves founders empty when a cap table only lists prior investors', () => {
+    const r = parseImportJson(JSON.stringify({
+      priorInvestors: [{ name: 'Seed', ownershipPercent: 20 }]
+    }))
+    expect(r.ok).toBe(true)
+    expect(r.company.priorInvestors.map(p => p.name)).toEqual(['Seed'])
+    expect(r.company.founders).toEqual([])
+  })
+
+  it('reads the string "false" as false for pro-rata rights', () => {
+    const r = parseImportJson(JSON.stringify({
+      founders: [{ name: 'CEO', ownershipPercent: 80 }],
+      priorInvestors: [{ name: 'Seed', ownershipPercent: 20, hasProRataRights: 'false' }],
+      safes: [{ investorName: 'Angel', amount: 1, cap: 10, proRata: 'false' }]
+    }))
+    expect(r.ok).toBe(true)
+    expect(r.company.priorInvestors[0].hasProRataRights).toBe(false)
+    expect(r.company.safes[0].proRata).toBe(false)
+  })
+
+  it('imports a SAFE whose investor name is not a string', () => {
+    const r = parseImportJson(JSON.stringify({
+      safes: [{ investorName: 42, amount: 1, cap: 10 }]
+    }))
+    expect(r.ok).toBe(true)
+    expect(r.safes[0].investorName).toBe('42')
+  })
 })

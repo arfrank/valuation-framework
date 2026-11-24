@@ -118,6 +118,7 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
 
     try {
       const result = await onSharePermalink(buildScenarioData())
+      if (result?.cancelled) return
 
       if (result.success) {
         setShareFeedback(result.fallback ? 'Copied!' : 'Shared!')
