@@ -52,8 +52,14 @@ const ExitMathModule = ({ baseScenario, investorName = 'US', exitMath, onUpdate,
     [state.perRoundOverrides]
   )
 
-  const initialCheck = baseScenario?.combinedInvestor?.totalNewInvestment ?? baseScenario?.investorAmount ?? 0
-  const currentOwnership = baseScenario?.combinedInvestor?.totalOwnership ?? baseScenario?.investorPercent ?? 0
+  // MOIC compares what a check returns with what it cost. The cost here is
+  // this round's check, so the ownership has to be what that check buys. The
+  // firm's total position can also include prior equity and converted SAFEs,
+  // whose cost isn't in the denominator; counting them inflated the multiple.
+  const combined = baseScenario?.combinedInvestor
+  const initialCheck = combined?.totalNewInvestment ?? baseScenario?.investorAmount ?? 0
+  const currentOwnership = combined?.investorRoundPercent ?? baseScenario?.investorPercent ?? 0
+  const otherPositionsPercent = Math.max(0, (combined?.totalOwnership ?? currentOwnership) - currentOwnership)
 
   const dilutions = useMemo(
     () => resolveDilutions(numRounds, uniformDilution, perRoundOverrides),
@@ -274,9 +280,15 @@ const ExitMathModule = ({ baseScenario, investorName = 'US', exitMath, onUpdate,
               <span className="analytics-value">{formatMoney(initialCheck)}</span>
             </div>
             <div className="analytics-row">
-              <span className="analytics-label">Starting ownership</span>
+              <span className="analytics-label">Ownership from this check</span>
               <span className="analytics-value">{currentOwnership.toFixed(2)}%</span>
             </div>
+            {otherPositionsPercent > 0.01 && (
+              <div className="analytics-row">
+                <span className="analytics-label">Not included: prior equity and SAFEs</span>
+                <span className="analytics-value">{otherPositionsPercent.toFixed(2)}%</span>
+              </div>
+            )}
             <div className="analytics-row">
               <span className="analytics-label">Final ownership</span>
               <span className="analytics-value">{finalOwnership.toFixed(2)}%</span>
