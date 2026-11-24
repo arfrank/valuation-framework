@@ -207,6 +207,36 @@ export function calculateSafeConversions(safes, preMoneyVal) {
 }
 
 /**
+ * Whether two investor names refer to the same party. Names are stored as
+ * typed, so surrounding whitespace is ignored; an empty name never matches.
+ */
+/**
+ * Stored names are kept exactly as typed so the form doesn't eat spaces while
+ * the user is typing. The engine works on trimmed firm, lead, prior-investor,
+ * founder and warrant names, as it did when those were trimmed on save.
+ */
+function withTrimmedPartyNames(company) {
+  const trim = (value) => (typeof value === 'string' ? value.trim() : value)
+  const trimRows = (rows) => (
+    Array.isArray(rows) ? rows.map(row => ({ ...row, name: trim(row.name) })) : rows
+  )
+  return {
+    ...company,
+    investorName: trim(company.investorName),
+    leadInvestorName: trim(company.leadInvestorName),
+    priorInvestors: trimRows(company.priorInvestors),
+    founders: trimRows(company.founders),
+    warrants: trimRows(company.warrants)
+  }
+}
+
+function isSameInvestor(a, b) {
+  const left = typeof a === 'string' ? a.trim() : ''
+  const right = typeof b === 'string' ? b.trim() : ''
+  return left !== '' && left === right
+}
+
+/**
  * Calculate pro-rata allocation for SAFEs flagged with proRata rights.
  * Mirrors calculateProRataAllocations for prior investors.
  * @param {Array} safeDetails - Output from calculateSafeConversions (already carries percent, proRata, proRataOverride, investorName)
@@ -222,15 +252,12 @@ function calculateSafeProRataAllocations(safeDetails, roundSize, investorName) {
     return { safeProRataResults: [], totalSafeProRataAmount: 0 }
   }
 
-  const leadName = (investorName || '').trim()
-
   safeDetails.forEach(safe => {
     if (!safe.proRata || !safe.percent || safe.percent <= 0 || !roundSize) {
       return
     }
     // Lead-attributed SAFEs: pro-rata absorbed by lead's investor portion
-    const safeInvestor = (safe.investorName || '').trim()
-    if (safeInvestor && safeInvestor === leadName) {
+    if (isSameInvestor(safe.investorName, investorName)) {
       return
     }
     const calculatedAmount = r$((safe.percent / 100) * roundSize)
@@ -358,7 +385,7 @@ function calculateEsopEffects(currentEsopPercent, grantedEsopPercent, targetEsop
  * @returns {Object} Calculation results with step breakdowns
  */
 function calculateTwoStepScenario(inputs) {
-  const migratedInputs = migrateLegacyCompany(inputs)
+  const migratedInputs = withTrimmedPartyNames(migrateLegacyCompany(inputs))
 
   const {
     postMoneyVal: V1,
@@ -436,7 +463,7 @@ function calculateTwoStepScenario(inputs) {
 
   // --- Pro-rata from step 2's other portion ---
   const priorInvestorsForProRata = scaledPriorInvestors.map(inv =>
-    inv.name === investorName || isSafeRound ? { ...inv, hasProRataRights: false } : inv
+    isSameInvestor(inv.name, investorName) || isSafeRound ? { ...inv, hasProRataRights: false } : inv
   )
   const proRataCalc = isSafeRound
     ? calculateSuppressedProRataAllocations(scaledPriorInvestors)
@@ -589,7 +616,7 @@ function calculateTwoStepScenario(inputs) {
   }
 
   // --- Combined investor detection ---
-  const matchedPriorInvestor = postRoundPriorInvestors.find(inv => inv.name === investorName)
+  const matchedPriorInvestor = postRoundPriorInvestors.find(inv => isSameInvestor(inv.name, investorName))
   let combinedInvestor = null
   if (matchedPriorInvestor) {
     combinedInvestor = {
@@ -627,7 +654,7 @@ function calculateTwoStepScenario(inputs) {
   // Calculate SAFE ownership attributed to the lead investor
   let investorSafePercent = 0
   dilutedSafeDetails.forEach(safe => {
-    if (safe.investorName && safe.investorName === investorName) {
+    if (isSameInvestor(safe.investorName, investorName)) {
       let safeOwnership = safe.percent
       if (esopCalc.esopIncreasePostClose > 0) {
         safeOwnership = rp(safeOwnership * (100 - esopCalc.esopIncreasePostClose) / 100)
@@ -825,12 +852,12 @@ function calculateTwoStepScenario(inputs) {
  * already rolls them up in the "New Round Total" section.
  */
 function buildRolledUpInvestors({ priorInvestors, safeDetails, warrantDetails, leadInvestorName }) {
-  const leadKey = (leadInvestorName || '').toLowerCase()
+  const leadKey = String(leadInvestorName || '').toLowerCase()
   const groups = new Map()
 
   const ensure = (rawName) => {
     if (!rawName) return null
-    const key = rawName.toLowerCase()
+    const key = String(rawName).toLowerCase()
     if (key === leadKey) return null
     if (!groups.has(key)) {
       groups.set(key, {
@@ -893,7 +920,7 @@ export function calculateEnhancedScenario(inputs) {
   }
 
   // First migrate any legacy data
-  const migratedInputs = migrateLegacyCompany(inputs)
+  const migratedInputs = withTrimmedPartyNames(migrateLegacyCompany(inputs))
   
   // Validate the company data - but don't fail hard on validation errors for now
   const validation = validateCompanyData(migratedInputs)
@@ -983,7 +1010,7 @@ export function calculateEnhancedScenario(inputs) {
   // If a prior investor matches the lead investor name, skip their pro-rata —
   // their participation in the round already covers their pro-rata rights
   const priorInvestorsForProRata = scaledPriorInvestors.map(inv =>
-    inv.name === investorName || isSafeRound ? { ...inv, hasProRataRights: false } : inv
+    isSameInvestor(inv.name, investorName) || isSafeRound ? { ...inv, hasProRataRights: false } : inv
   )
   const proRataCalc = isSafeRound
     ? calculateSuppressedProRataAllocations(scaledPriorInvestors)
@@ -1143,7 +1170,7 @@ export function calculateEnhancedScenario(inputs) {
   const preRoundUnknownPercent = Math.max(0, rp(100 - preRoundTrackedOwnership))
 
   // Detect if investorName matches a prior investor - combine them in results
-  const matchedPriorInvestor = postRoundPriorInvestors.find(inv => inv.name === investorName)
+  const matchedPriorInvestor = postRoundPriorInvestors.find(inv => isSameInvestor(inv.name, investorName))
   let combinedInvestor = null
 
   if (matchedPriorInvestor) {
@@ -1169,7 +1196,7 @@ export function calculateEnhancedScenario(inputs) {
   let investorSafePercent = 0
   if (safeCalc.safeDetails && safeCalc.safeDetails.length > 0) {
     safeCalc.safeDetails.forEach(safe => {
-      if (safe.investorName && safe.investorName === investorName) {
+      if (isSameInvestor(safe.investorName, investorName)) {
         let safeOwnership = safe.percent
         if (esopCalc.esopIncreasePostClose > 0) {
           safeOwnership = rp(safeOwnership * (100 - esopCalc.esopIncreasePostClose) / 100)

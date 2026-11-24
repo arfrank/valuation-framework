@@ -352,4 +352,44 @@ describe('useLocalStorage', () => {
       expect(JSON.parse(localStorage.getItem('unicode-key'))).toEqual(unicodeData)
     })
   })
+
+  describe('Functional updates', () => {
+    it('composes two functional updates made in the same tick', () => {
+      const { result } = renderHook(() => useLocalStorage('counter', 0))
+
+      act(() => {
+        result.current[1](prev => prev + 1)
+        result.current[1](prev => prev + 1)
+      })
+
+      expect(result.current[0]).toBe(2)
+      expect(JSON.parse(localStorage.getItem('counter'))).toBe(2)
+    })
+
+    it('applies a functional update from a stale setter to the latest value', () => {
+      const { result } = renderHook(() => useLocalStorage('list', []))
+      const staleSetter = result.current[1]
+
+      act(() => {
+        result.current[1](['a'])
+      })
+      act(() => {
+        staleSetter(prev => [...prev, 'b'])
+      })
+
+      expect(result.current[0]).toEqual(['a', 'b'])
+    })
+
+    it('keeps the same setter identity across renders', () => {
+      const { result, rerender } = renderHook(() => useLocalStorage('stable', 1))
+      const firstSetter = result.current[1]
+
+      act(() => {
+        result.current[1](2)
+      })
+      rerender()
+
+      expect(result.current[1]).toBe(firstSetter)
+    })
+  })
 })

@@ -91,8 +91,14 @@ function App() {
   const companies = useMemo(() => normalizeStoredCompanies(storedCompanies), [storedCompanies])
   const [activeCompany, setActiveCompany] = useState(() => getFirstCompanyId(companies))
   const [nextCompanyId, setNextCompanyId] = useState(() => getNextCompanyNumber(companies))
-  const [selectedCompanyIds, setSelectedCompanyIds] = useLocalStorage('valuationFrameworkSelected', [])
+  const [storedSelectedCompanyIds, setSelectedCompanyIds] = useLocalStorage('valuationFrameworkSelected', [])
+  // A corrupt stored value (null, object, string) must not take the app down.
+  const selectedCompanyIds = useMemo(
+    () => (Array.isArray(storedSelectedCompanyIds) ? storedSelectedCompanyIds : []),
+    [storedSelectedCompanyIds]
+  )
   const [hasLoadedFromURL, setHasLoadedFromURL] = useState(false)
+  const arrivedWithQueryRef = useRef(typeof window !== 'undefined' && Boolean(window.location.search))
 
   const [scenarios, setScenarios] = useState([])
   const [baseScenariosById, setBaseScenariosById] = useState({})
@@ -295,7 +301,7 @@ function App() {
     delete newCompanies[companyId]
     setStoredCompanies(newCompanies)
 
-    setSelectedCompanyIds(prev => prev.filter(id => id !== companyId))
+    setSelectedCompanyIds(prev => (Array.isArray(prev) ? prev : []).filter(id => id !== companyId))
 
     if (activeCompany === companyId) {
       setActiveCompany(Object.keys(newCompanies)[0])
@@ -303,11 +309,12 @@ function App() {
   }
 
   const toggleCompareSelection = (companyId) => {
-    setSelectedCompanyIds(prev => (
-      prev.includes(companyId)
-        ? prev.filter(id => id !== companyId)
-        : [...prev, companyId]
-    ))
+    setSelectedCompanyIds(prev => {
+      const current = Array.isArray(prev) ? prev : []
+      return current.includes(companyId)
+        ? current.filter(id => id !== companyId)
+        : [...current, companyId]
+    })
   }
 
   useEffect(() => {
@@ -315,7 +322,9 @@ function App() {
     const normalized = JSON.stringify(companies)
 
     if (raw !== normalized) {
-      setStoredCompanies(companies)
+      // Normalize whatever is stored *now*: another effect in this commit may
+      // already have added a company that this render's snapshot doesn't have.
+      setStoredCompanies(prev => normalizeStoredCompanies(prev))
     }
   }, [storedCompanies, companies, setStoredCompanies])
 
@@ -372,8 +381,9 @@ function App() {
   // Auto-launch the tour on first visit
   useEffect(() => {
     // Skip onboarding when arriving via a permalink — the URL scenario
-    // is what the user came to see.
-    if (typeof window !== 'undefined' && window.location.search) {
+    // is what the user came to see. The query string is captured on first
+    // render because the permalink loader clears it before this effect runs.
+    if (arrivedWithQueryRef.current) {
       return
     }
     try {
@@ -513,6 +523,7 @@ function App() {
 
         <div className={`top-row${showExitMath ? ' with-exit-math' : ''}${isCompareMode ? ' compare-mode' : ''}${advancedOpen ? ' advanced-open' : ''}${companies[activeCompany]?.inputsCollapsed ? ' inputs-collapsed' : ''}`}>
           <InputForm
+            companyId={activeCompany}
             company={companies[activeCompany]}
             onUpdate={(data) => updateCompanyFromInputs(activeCompany, data)}
             collapsed={inputFormCollapsed}
