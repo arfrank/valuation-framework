@@ -10,35 +10,44 @@ Recent additions:
 - Multi-party prior investors and founders (each with their own ownership row).
 - SAFE conversion math with per-SAFE investor attribution.
 - 2-step rounds (round closes in two tranches at different valuations).
-- **Exit Math module** (3rd column, toggled from the footer): projects base-case LSVP check forward through N rounds of dilution to an exit valuation and shows MOIC.
+- **Exit Math module** (3rd column, toggled from the header): projects base-case LSVP check forward through N rounds of dilution to an exit valuation and shows MOIC.
 
 ## Layout
 
 ```
-phoenix/
+valuation-framework/
 ├── react-app/                 # The actual app — do most work here
 │   ├── src/
 │   │   ├── App.jsx                          # Top-level layout + company state
 │   │   ├── App.css                          # Single stylesheet for the whole app
 │   │   ├── components/
 │   │   │   ├── InputForm.jsx                # Left column: all inputs
+│   │   │   ├── FormInput.jsx                # Shared labelled input
 │   │   │   ├── ScenarioCard.jsx             # Base case + scenario tiles
+│   │   │   ├── ScenarioControls.jsx         # Scenario range presets
 │   │   │   ├── PriorInvestorsSection.jsx
 │   │   │   ├── FoundersSection.jsx
 │   │   │   ├── ExitMathModule.jsx           # 3rd column (toggled from header)
+│   │   │   ├── ImportModal.jsx              # Cap table / SAFE import
+│   │   │   ├── Walkthrough.jsx              # Guided tour
+│   │   │   ├── Notification.jsx, NotificationContainer.jsx, Logo.jsx
 │   │   │   └── CompanyTabs.jsx
 │   │   ├── utils/
-│   │   │   ├── multiPartyCalculations.js    # ★ Primary calc engine
-│   │   │   ├── calculations.js              # Legacy engine (tests only)
+│   │   │   ├── multiPartyCalculations.js    # ★ The calc engine
 │   │   │   ├── exitMath.js                  # Pure exit/MOIC math
 │   │   │   ├── dataStructures.js            # createDefaultCompany, migrations
-│   │   │   └── permalink.js                 # URL encode/decode (whitelisted fields)
+│   │   │   ├── permalink.js                 # URL encode/decode (whitelisted fields)
+│   │   │   ├── importCompany.js, importPrompts.js
+│   │   │   ├── scenarioOffsets.js
+│   │   │   ├── exampleScenario.js, walkthroughSteps.js
+│   │   │   └── socialSharing.js
 │   │   └── hooks/
 │   │       ├── useLocalStorage.js
-│   │       └── useNotifications.js
+│   │       ├── useNotifications.js
+│   │       └── useTimeouts.js               # setTimeout cancelled on unmount
 ├── .conductor/                # Conductor workspace scripts
 │   ├── run.sh                 # Starts vite on $CONDUCTOR_PORT
-│   └── setup.sh               # `npm install`
+│   └── setup.sh               # `npm ci`
 ├── CLAUDE.md                  # Claude-specific notes (progress log)
 ├── AGENTS.md                  # You are here
 └── readme.md                  # End-user / README
@@ -50,7 +59,7 @@ phoenix/
 cd react-app
 npm install
 npm run dev               # http://localhost:5173
-npx vitest run            # full test suite (370+ tests)
+npx vitest run            # full test suite (500+ tests)
 npm run lint              # eslint
 npm run build             # production build
 ```
@@ -80,19 +89,19 @@ Rules of thumb:
 ## Code conventions (follow these, they're load-bearing)
 
 - **Single stylesheet** — `App.css` holds everything. No CSS modules, no styled-components. Match existing class naming (`.advanced-section`, `.analytics-row`, `.investor-summary`, `.scenario-card`).
-- **Calc engine is `multiPartyCalculations.js`.** `calculations.js` is legacy; only the tests import it. New features plug into the multi-party engine.
+- **Calc engine is `multiPartyCalculations.js`.** New features plug into it. (The legacy `calculations.js` engine has been deleted.)
 - **Scenarios are derived, never stored.** `App.jsx` re-runs `calculateEnhancedScenarios(company)` on every state change. Don't cache scenario results into company state.
 - **Company state shape is the source of truth.** Defaults live in `createDefaultCompany()` in `dataStructures.js`. If you add a field, also add it to `migrateLegacyCompany()` so existing localStorage blobs don't break.
 - **Permalinks are whitelisted.** `permalink.js` encodes only the fields in `URL_PARAM_MAP`. Anything not in that map will *not* travel through share links — use this on purpose for local-only UI state (e.g. `showExitMath`, `exitMath`) rather than adding a suppression flag.
 - **Money is in $M, exit math is in $M.** Percentages are numbers like `21.15` (not `0.2115`). If you need decimals, convert at the boundary.
-- **No new frameworks.** React 18 (via 19 peer), Vite, vanilla CSS, Vitest. That's it.
+- **No new frameworks.** React 19, Vite, vanilla CSS, Vitest. That's it.
 
 ## Testing
 
 - Vitest + @testing-library/react. Tests live next to the source (`foo.js` + `foo.test.js`).
-- Calc utilities should have pure-function unit tests with concrete numbers (see `exitMath.test.js`, `calculations.test.js`).
+- Calc utilities should have pure-function unit tests with concrete numbers (see `exitMath.test.js`, `engine-consistency.test.js`).
 - UI components are tested via render + query + assertion; see `ScenarioCard.test.jsx` for the pattern.
-- Run the full suite before committing. The suite is fast (~30s).
+- Run the full suite before committing. The suite is fast (under 10s).
 
 ## UI changes — verify in a browser
 

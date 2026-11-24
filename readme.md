@@ -1,111 +1,111 @@
 # ValuFrame - Valuation Framework
 
-A lightweight frontend application for valuation analysis, ownership tracking, and dilution calculations when offering term sheets. Built with React and featuring a modern glassmorphism design with optional sci-fi visual effects.
+A lightweight, client-side web app for modelling a term sheet: enter a post-money valuation and round size, and see ownership and dilution for the new investor, founders and prior investors, with a base case and alternative scenarios side by side. Everything runs in the browser; nothing is sent to a server.
 
 ## Features
 
-### Core Functionality
-- **Multi-company support** - Manage multiple companies with tabbed interface
-- **Real-time calculations** - Live updating valuation scenarios as you type
-- **Local data persistence** - All data stored locally in browser
-- **Advanced features** - Pro-rata rights, SAFE calculations, founder impact analysis
-- **Post-money valuation input** - User-friendly input with automatic pre-money calculation
+### Core
+- **Multiple scenarios in tabs** - Add, rename, duplicate and delete scenarios; data persists in the browser's local storage
+- **Live calculations** - Results update as you type
+- **Post-money or pre-money input** - Enter either; the other is derived
+- **Alternative scenarios** - Cards at adjustable valuation offsets around the base case, each of which can be applied back to the inputs
+- **Compare mode** - Select two or more tabs to see their base cases next to each other
+- **Shareable permalinks** - A scenario's inputs are encoded in the URL; opening the link loads it as a new tab
 
-### Valuation Scenarios
-- **Base scenario** - Your primary investment structure
-- **Alternative scenarios** - Multiple what-if analyses with different valuations and round sizes
-- **Detailed breakdowns** - Ownership percentages, dilution impact, and founder equity
-- **Color-coded tables** - Easy-to-read visual formatting with role-based highlighting
+### Advanced inputs
+- **Founders and prior investors** - Any number of rows, each with its own ownership
+- **Pro-rata rights** - Calculated per prior investor, with an optional custom allocation
+- **SAFEs** - Cap, discount, MFN, fixed-percent (YC-style) and round-price conversion, with per-SAFE investor attribution and pro-rata
+- **SAFE rounds** - Model the new round itself as a SAFE
+- **Option pool** - Current, granted and target pool, with the top-up taken before or after the close
+- **Warrants** - "$X of warrants at a $Y valuation"
+- **Two-step rounds** - A round that closes in two tranches at different valuations
+- **A separate lead** - Split the round between your firm, a named lead and other investors
 
-### User Experience
-- **Modern UI** - Clean glassmorphism design with smooth animations
-- **Responsive design** - Works on desktop, tablet, and mobile
-- **Keyboard shortcuts** - Hidden easter egg: Press **Shift + Space** for Dyson sphere background
-- **Intuitive controls** - Easy company management, renaming, and scenario application
-
-### Advanced Features
-- **Pro-rata participation** - Calculate follow-on investment rights
-- **SAFE conversions** - Simple Agreement for Future Equity calculations
-- **Founder impact tracking** - Visual warnings for significant dilution
-- **Customizable investor names** - Personalize scenarios for different investment sources
+### Other tools
+- **Exit math** - Project the firm's check through further rounds of dilution to a set of exit valuations and see proceeds and MOIC
+- **Cap table import** - Copy a prompt into an LLM along with a cap table or SAFE notes, then paste the JSON it returns
+- **Guided walkthrough** - A short tour with an example scenario
 
 ## Tech Stack
 
-- **React 18** - Modern component-based architecture
-- **Vite** - Fast build tool and development server
-- **Vanilla CSS** - Custom styling with CSS Grid, Flexbox, and animations
-- **Local Storage API** - Client-side data persistence
-- **Canvas API** - Optional 3D Dyson sphere background animation
+- **React 19** with function components and hooks
+- **Vite** for the dev server and build
+- **Plain CSS** in a single stylesheet (`src/App.css`)
+- **Vitest** and Testing Library for tests
+- **Local Storage API** for persistence
 
 ## Getting Started
 
 ### Prerequisites
-- Node.js (v16 or higher)
-- npm or yarn
+- Node.js 20.19+ or 22.12+ (required by Vite 7)
+- npm
 
 ### Installation
 ```bash
-# Clone the repository
-git clone <repository-url>
-
-# Navigate to the React app directory
+git clone https://github.com/arfrank/valuation-framework.git
 cd valuation-framework/react-app
 
-# Install dependencies
 npm install
-
-# Start the development server
 npm run dev
 ```
 
-The application will be available at `http://localhost:5173`
+The app is served at `http://localhost:5173`.
 
-### Building for Production
+### Other commands
 ```bash
-# Create production build
-npm run build
-
-# Preview production build
-npm run preview
+npm run build      # production build into dist/
+npm run preview    # serve the production build
+npm run lint       # eslint
+npx vitest run     # run the test suite once
 ```
 
 ## Usage
 
-1. **Add companies** - Click the "+" button to create new company tabs
-2. **Enter valuation data** - Input post-money valuation, round size, and investor portions
-3. **Review scenarios** - Automatically generated alternative scenarios appear below
-4. **Apply scenarios** - Click "Apply" on any scenario to use those values
-5. **Advanced features** - Toggle advanced mode for pro-rata and SAFE calculations
-6. **Easter egg** - Press **Shift + Space** for a sci-fi Dyson sphere background
+1. **Enter the round** - Post-money valuation, round size and your firm's portion
+2. **Read the base case** - Ownership and dilution appear in the card next to the form
+3. **Open Advanced** - Add founders, prior investors, SAFEs, the option pool, warrants or a second step
+4. **Explore alternatives** - Adjust the scenario range, and click Apply on any card to adopt it
+5. **Share** - Use the link button on the base case to copy a permalink
 
 ## Project Structure
 
 ```
 react-app/
 ├── src/
-│   ├── components/          # React components
-│   │   ├── CompanyTabs.jsx     # Multi-company tab management
-│   │   ├── InputForm.jsx       # Valuation input form
-│   │   ├── ScenarioCard.jsx    # Individual scenario display
-│   │   ├── GeometricBackground.jsx  # 3D background animation
-│   │   └── Logo.jsx            # Application logo
-│   ├── hooks/               # Custom React hooks
-│   │   └── useLocalStorage.js  # Local storage persistence
-│   ├── utils/               # Utility functions
-│   │   └── calculations.js     # Valuation mathematics
-│   └── App.jsx              # Main application component
-├── public/                  # Static assets
-└── package.json            # Dependencies and scripts
+│   ├── App.jsx                     # Layout and scenario (company) state
+│   ├── App.css                     # The app's single stylesheet
+│   ├── components/
+│   │   ├── CompanyTabs.jsx           # Scenario tabs, compare selection
+│   │   ├── InputForm.jsx             # All inputs
+│   │   ├── PriorInvestorsSection.jsx # Prior investors, SAFEs and pro-rata table
+│   │   ├── FoundersSection.jsx
+│   │   ├── FormInput.jsx             # Shared labelled input
+│   │   ├── ScenarioCard.jsx          # Base case and alternative scenario cards
+│   │   ├── ScenarioControls.jsx      # Scenario range presets
+│   │   ├── ExitMathModule.jsx        # Exit proceeds and MOIC
+│   │   ├── ImportModal.jsx           # Cap table / SAFE import
+│   │   ├── Walkthrough.jsx           # Guided tour
+│   │   ├── Notification.jsx, NotificationContainer.jsx
+│   │   └── Logo.jsx
+│   ├── hooks/
+│   │   ├── useLocalStorage.js
+│   │   ├── useNotifications.js
+│   │   └── useTimeouts.js
+│   └── utils/
+│       ├── multiPartyCalculations.js # The calculation engine
+│       ├── exitMath.js               # Exit and MOIC math
+│       ├── dataStructures.js         # Defaults, migration and validation
+│       ├── permalink.js              # URL encoding and decoding
+│       ├── importCompany.js, importPrompts.js
+│       ├── scenarioOffsets.js
+│       ├── exampleScenario.js, walkthroughSteps.js
+│       └── socialSharing.js
+├── public/                         # Static assets
+└── package.json
 ```
 
-## Development
-
-The project follows modern React patterns with:
-- **Functional components** with hooks
-- **Local state management** with useState and useEffect
-- **Custom hooks** for reusable logic
-- **Modular CSS** with component-specific stylesheets
-- **Performance optimization** with efficient rendering patterns
+Tests live next to the code they cover (`*.test.js` / `*.test.jsx`). See `AGENTS.md` for conventions when changing the code.
 
 ## License
 
