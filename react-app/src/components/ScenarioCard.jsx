@@ -153,13 +153,24 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
     ? scenario.otherAmountOriginal - totalProRataAmount - totalSafeProRataAmountForDisplay
     : scenario.otherAmount
 
-  // Display values when investor is combined with a prior investor
-  const displayInvestorAmount = combinedInvestor
-    ? combinedInvestor.totalNewInvestment
-    : scenario.investorAmount
-  const displayInvestorOwnership = combinedInvestor
-    ? combinedInvestor.totalOwnership
-    : scenario.investorPercent
+  // The firm's row under "New Round Total" is its slice of this round, so the
+  // section's rows add up to the section header. Prior equity and converted
+  // SAFEs are shown in their own sections and rolled into a separate
+  // "(total)" row.
+  const displayInvestorAmount = scenario.investorAmount
+  const displayInvestorOwnership = scenario.investorPercent
+  const firmHasOtherPositions = Boolean(combinedInvestor) && (
+    (combinedInvestor.priorDilutedPercent || 0) > 0.01 ||
+    (combinedInvestor.safePercent || 0) > 0.01
+  )
+
+  // A post-close ESOP top-up dilutes the round too. Rows computed here from
+  // dollar amounts need the same factor the engine applies to its own
+  // percentages, or they won't add up to the section header.
+  const postCloseEsopFactor = (100 - (scenario.esopIncreasePostClose || 0)) / 100
+  const percentOfPostMoney = (amount) => (
+    scenario.postMoneyVal > 0 ? (amount / scenario.postMoneyVal) * 100 * postCloseEsopFactor : 0
+  )
 
   // "Other" amount for display - when combined, exclude matched investor's pro-rata
   const displayOtherAmount = combinedInvestor
@@ -523,7 +534,7 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
                 </div>
 
                 {/* Combined investor total if applicable */}
-                {combinedInvestor && combinedInvestor.priorDilutedPercent > 0.01 && (
+                {firmHasOtherPositions && (
                   <div className="table-row sub-row combined-total-row">
                     <div className="label">{investorName} (total)</div>
                     <div className="amount amount-positive">+{formatDollar(combinedInvestor.totalNewInvestment)}</div>
@@ -534,7 +545,7 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
             ) : (
               <>
                 <div className="table-row sub-row">
-                  <div className="label">{investorName}{combinedInvestor && combinedInvestor.priorDilutedPercent > 0.01 ? ' (total)' : ''}</div>
+                  <div className="label">{investorName}</div>
                   <div className="amount amount-positive">+{formatDollar(displayInvestorAmount)}</div>
                   <div className="percent">{formatPercent(displayInvestorOwnership)}</div>
                 </div>
@@ -551,7 +562,7 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
                     <div className="table-row sub-row">
                       <div className="label">Other</div>
                       <div className="amount amount-positive">+{formatDollar(displayOtherAmount)}</div>
-                      <div className="percent">{formatPercent((displayOtherAmount / scenario.postMoneyVal) * 100)}</div>
+                      <div className="percent">{formatPercent(percentOfPostMoney(displayOtherAmount))}</div>
                     </div>
 
                     {/* Pro-rata breakdown in advanced mode (exclude combined investor) */}
@@ -561,7 +572,7 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
                           <div key={investor.id || idx} className="table-row sub-sub-row">
                             <div className="label">{investor.name} (pro-rata)</div>
                             <div className="amount amount-positive">+{formatDollar(investor.proRataAmount)}</div>
-                            <div className="percent">{formatPercent((investor.proRataAmount / scenario.postMoneyVal) * 100)}</div>
+                            <div className="percent">{formatPercent(percentOfPostMoney(investor.proRataAmount))}</div>
                           </div>
                         ))}
                         {safeProRataRowsForDisplay.map((safe, idx) => {
@@ -572,7 +583,7 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
                             <div key={`safe-pr-${safe.id || idx}`} className="table-row sub-sub-row">
                               <div className="label">{label}</div>
                               <div className="amount amount-positive">+{formatDollar(safe.proRataAmount)}</div>
-                              <div className="percent">{formatPercent((safe.proRataAmount / scenario.postMoneyVal) * 100)}</div>
+                              <div className="percent">{formatPercent(percentOfPostMoney(safe.proRataAmount))}</div>
                             </div>
                           )
                         })}
@@ -580,7 +591,7 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
                           <div className="table-row sub-sub-row">
                             <div className="label">New investors</div>
                             <div className="amount amount-positive">+{formatDollar(remainingOther)}</div>
-                            <div className="percent">{formatPercent((remainingOther / scenario.postMoneyVal) * 100)}</div>
+                            <div className="percent">{formatPercent(percentOfPostMoney(remainingOther))}</div>
                           </div>
                         )}
                       </>
@@ -590,7 +601,16 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
                   <div className="table-row sub-row">
                     <div className="label">Other</div>
                     <div className="amount amount-positive">+{formatDollar(scenario.otherAmountOriginal || scenario.otherAmount)}</div>
-                    <div className="percent">{formatPercent(((scenario.otherAmountOriginal || scenario.otherAmount) / scenario.postMoneyVal) * 100)}</div>
+                    <div className="percent">{formatPercent(percentOfPostMoney(scenario.otherAmountOriginal || scenario.otherAmount))}</div>
+                  </div>
+                )}
+
+                {/* Firm's total position when it also holds prior equity or SAFEs */}
+                {firmHasOtherPositions && (
+                  <div className="table-row sub-row combined-total-row">
+                    <div className="label">{investorName} (total)</div>
+                    <div className="amount amount-positive">+{formatDollar(combinedInvestor.totalNewInvestment)}</div>
+                    <div className="percent">{formatPercent(combinedInvestor.totalOwnership)}</div>
                   </div>
                 )}
               </>
@@ -639,7 +659,11 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
         )}
         
         {/* Prior Investors & Unknown section (exclude combined investor) */}
-        {showAdvanced && (displayPriorInvestors.length > 0 || scenario.unknownOwnership > 0.01) && (
+        {showAdvanced && (
+          displayPriorInvestors.length > 0 ||
+          scenario.unknownOwnership > 0.01 ||
+          (combinedInvestor?.priorDilutedPercent || 0) > 0.01
+        ) && (
           <>
             {/* Prior Investors header row */}
             <div
@@ -692,7 +716,15 @@ const ScenarioCard = ({ scenario, index, isBase, onApplyScenario, onCopyPermalin
                 {scenario.unknownOwnership > 0.01 && (
                   <div className="table-row sub-row">
                     <div className="label">Unknown/Other</div>
-                    <div className="amount amount-negative">-{unknownOwnershipLost.toFixed(1)}%</div>
+                    <div className="amount">
+                      {Math.abs(unknownOwnershipLost) < 0.05 ? (
+                        <span className="amount-neutral">—</span>
+                      ) : (
+                        <span className={unknownOwnershipLost > 0 ? 'amount-negative' : 'amount-positive'}>
+                          {unknownOwnershipLost > 0 ? '-' : '+'}{Math.abs(unknownOwnershipLost).toFixed(1)}%
+                        </span>
+                      )}
+                    </div>
                     <div className="percent">{formatPercent(scenario.unknownOwnership)}</div>
                   </div>
                 )}
