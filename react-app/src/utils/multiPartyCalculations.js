@@ -350,9 +350,18 @@ function calculateEsopEffects(currentEsopPercent, grantedEsopPercent, targetEsop
 
       // Cap at maximum feasible (can't dilute more than available space)
       const maxIncrease = Math.max(0, 100 - baseDilutionPercent)
+      const uncappedIncrease = esopIncrease
       esopIncrease = Math.min(esopIncrease, maxIncrease)
       esopIncreasePreClose = Math.min(esopIncreasePreClose, maxIncrease)
       esopIncreasePostClose = Math.min(esopIncreasePostClose, maxIncrease)
+
+      // If the cap bit, the target is unreachable: report the pool the capped
+      // top-up actually produces so the table still sums to 100%.
+      if (esopIncrease < uncappedIncrease) {
+        finalEsopAvailablePercent = esopTiming === 'pre-close'
+          ? rp(availablePercent * (100 - baseDilutionPercent - esopIncreasePreClose) / 100 + esopIncreasePreClose)
+          : rp(naturalDilutedAvailable * (100 - esopIncreasePostClose) / 100 + esopIncreasePostClose)
+      }
 
       // Granted portion dilutes like a pre-round shareholder
       if (esopTiming === 'pre-close') {
@@ -360,8 +369,12 @@ function calculateEsopEffects(currentEsopPercent, grantedEsopPercent, targetEsop
       } else {
         finalEsopGrantedPercent = rp(naturalDilutedGranted * (100 - esopIncreasePostClose) / 100)
       }
+    } else {
+      // The diluted pool already meets or exceeds the target. Unissued options
+      // don't disappear without a cancellation, so the pool stays at its
+      // naturally diluted size rather than shrinking to the target.
+      finalEsopAvailablePercent = naturalDilutedAvailable
     }
-    // else: natural dilution already reaches/exceeds target — treat final available as target
   } else {
     // No target specified: available pool just dilutes naturally
     finalEsopAvailablePercent = naturalDilutedAvailable
@@ -526,11 +539,19 @@ function calculateTwoStepScenario(inputs) {
   const baseDilutionPercent = totalRoundPercent + safeFinalPercent
   const esopCalc = calculateEsopEffects(effectiveCurrentEsopPercent, effectiveGrantedEsopPercent, effectiveTargetEsopPercent, esopTiming, baseDilutionPercent)
 
+  // Existing holders are diluted by step 1 (round + SAFEs) and then step 2.
+  // The pre-close ESOP top-up is solved against the *final* table
+  // (baseDilutionPercent above), so it comes off in full here; scaling it by
+  // the step-2 factor would leave the table summing to more than 100%.
+  const dilutePreRoundHolder = (preRoundPercent) => rp(
+    preRoundPercent * (100 - step1RoundPercent - safeCalc.totalSafePercent) / 100 * step2DilutionFactor
+    - preRoundPercent * esopCalc.esopIncreasePreClose / 100
+  )
+
   // --- Prior investors ---
   const postRoundPriorInvestors = scaledPriorInvestors.map(investor => {
     const preRoundPercent = investor.ownershipPercent
-    // Existing shareholders diluted by step 1 then step 2
-    let postRoundPercent = rp(preRoundPercent * (100 - step1RoundPercent - safeCalc.totalSafePercent - esopCalc.esopIncreasePreClose) / 100 * step2DilutionFactor)
+    let postRoundPercent = dilutePreRoundHolder(preRoundPercent)
 
     // Add pro-rata participation from step 2 (scaled by clamp ratio when combined pro-rata exceeds s2Other)
     const proRataEntry = proRataCalc.proRataResults.find(pr => pr.id === investor.id)
@@ -558,7 +579,7 @@ function calculateTwoStepScenario(inputs) {
   // --- Founders ---
   const postRoundFounders = scaledFounders.map(founder => {
     const preRoundPercent = founder.ownershipPercent
-    let postRoundPercent = rp(preRoundPercent * (100 - step1RoundPercent - safeCalc.totalSafePercent - esopCalc.esopIncreasePreClose) / 100 * step2DilutionFactor)
+    let postRoundPercent = dilutePreRoundHolder(preRoundPercent)
 
     if (esopCalc.esopIncreasePostClose > 0) {
       postRoundPercent = rp(postRoundPercent * (100 - esopCalc.esopIncreasePostClose) / 100)
@@ -574,9 +595,7 @@ function calculateTwoStepScenario(inputs) {
   // --- Warrants ---
   // Dilute identically to founders: step 1 pre-round dilution then step 2 dilution factor,
   // plus post-close ESOP top-up if present.
-  let finalWarrantsPercent = rp(
-    effectivePreRoundWarrantsPercent * (100 - step1RoundPercent - safeCalc.totalSafePercent - esopCalc.esopIncreasePreClose) / 100 * step2DilutionFactor
-  )
+  let finalWarrantsPercent = dilutePreRoundHolder(effectivePreRoundWarrantsPercent)
   if (esopCalc.esopIncreasePostClose > 0) {
     finalWarrantsPercent = rp(finalWarrantsPercent * (100 - esopCalc.esopIncreasePostClose) / 100)
   }
@@ -587,9 +606,7 @@ function calculateTwoStepScenario(inputs) {
     const preRoundPercent = (amount > 0 && valuation > 0)
       ? rp((amount / valuation) * 100)
       : 0
-    let postRoundPercent = rp(
-      preRoundPercent * (100 - step1RoundPercent - safeCalc.totalSafePercent - esopCalc.esopIncreasePreClose) / 100 * step2DilutionFactor
-    )
+    let postRoundPercent = dilutePreRoundHolder(preRoundPercent)
     if (esopCalc.esopIncreasePostClose > 0) {
       postRoundPercent = rp(postRoundPercent * (100 - esopCalc.esopIncreasePostClose) / 100)
     }
@@ -637,6 +654,9 @@ function calculateTwoStepScenario(inputs) {
   const esopPostCloseFactor2 = esopCalc.esopIncreasePostClose > 0
     ? (100 - esopCalc.esopIncreasePostClose) / 100
     : 1
+  // A post-close top-up dilutes converted SAFEs like everyone else; the total
+  // has to agree with the per-SAFE rows below.
+  const finalSafePercent = rp(safeFinalPercent * esopPostCloseFactor2)
   const dilutedSafeDetails = safeCalc.safeDetails.map(d => {
     const pr = safeProRataCalc.safeProRataResults.find(r => r.id === d.id)
     const scaledProRataAmount = pr ? r$(pr.proRataAmount * clampRatio) : 0
@@ -694,7 +714,7 @@ function calculateTwoStepScenario(inputs) {
     proRataOwnershipInRound = rp(proRataOwnershipInRound * (100 - esopCalc.esopIncreasePostClose) / 100)
   }
 
-  const totalAccountedOwnership = finalRoundPercent + safeFinalPercent
+  const totalAccountedOwnership = finalRoundPercent + finalSafePercent
     + totalPriorInvestorOwnership + totalFounderOwnership + esopCalc.finalEsopPercent
     + finalWarrantsPercent
     - proRataOwnershipInRound
@@ -755,7 +775,7 @@ function calculateTwoStepScenario(inputs) {
 
     // SAFE details
     totalSafeAmount: safeCalc.totalSafeAmount,
-    totalSafePercent: safeFinalPercent,
+    totalSafePercent: finalSafePercent,
     safeDetails: dilutedSafeDetails,
     safes: effectiveSafes,
 
@@ -1154,7 +1174,12 @@ export function calculateEnhancedScenario(inputs) {
     proRataOwnershipInRound = rp(proRataOwnershipInRound * (100 - esopCalc.esopIncreasePostClose) / 100)
   }
 
-  const totalAccountedOwnership = finalRoundPercent + safeCalc.totalSafePercent
+  // A post-close top-up dilutes converted SAFEs like everyone else; the total
+  // has to agree with the per-SAFE rows.
+  const finalSafePercent = esopCalc.esopIncreasePostClose > 0
+    ? rp(safeCalc.totalSafePercent * (100 - esopCalc.esopIncreasePostClose) / 100)
+    : safeCalc.totalSafePercent
+  const totalAccountedOwnership = finalRoundPercent + finalSafePercent
     + totalPriorInvestorOwnership + totalFounderOwnership + esopCalc.finalEsopPercent
     + finalWarrantsPercent
     - proRataOwnershipInRound
@@ -1286,7 +1311,7 @@ export function calculateEnhancedScenario(inputs) {
 
     // SAFE details
     totalSafeAmount: safeCalc.totalSafeAmount || 0,
-    totalSafePercent: safeCalc.totalSafePercent || 0,
+    totalSafePercent: finalSafePercent || 0,
     safeDetails: enrichedSafeDetails,
     safes: effectiveSafes || [],
     
