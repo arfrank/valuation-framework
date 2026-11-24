@@ -1,27 +1,35 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 const Notification = ({ message, type = 'success', duration = 3000, onClose }) => {
   const [isVisible, setIsVisible] = useState(true)
   const [isAnimating, setIsAnimating] = useState(false)
 
+  // The parent passes a new onClose on every render. Reading it through a ref
+  // keeps it out of the effect's dependencies, so an unrelated re-render no
+  // longer restarts the auto-dismiss timer.
+  const onCloseRef = useRef(onClose)
+  onCloseRef.current = onClose
+
   useEffect(() => {
     // Start animation after mount
     const animationTimeout = setTimeout(() => setIsAnimating(true), 10)
-    
+    let exitTimeout = null
+
     // Auto dismiss after duration
     const dismissTimeout = setTimeout(() => {
       setIsAnimating(false)
-      setTimeout(() => {
+      exitTimeout = setTimeout(() => {
         setIsVisible(false)
-        onClose?.()
+        onCloseRef.current?.()
       }, 300) // Wait for exit animation
     }, duration)
 
     return () => {
       clearTimeout(animationTimeout)
       clearTimeout(dismissTimeout)
+      if (exitTimeout) clearTimeout(exitTimeout)
     }
-  }, [duration, onClose])
+  }, [duration])
 
   if (!isVisible) return null
 
@@ -65,22 +73,21 @@ const Notification = ({ message, type = 'success', duration = 3000, onClose }) =
   return (
     <div 
       className={`notification ${isAnimating ? 'notification-enter' : 'notification-exit'}`}
+      role={type === 'error' ? 'alert' : 'status'}
+      aria-live={type === 'error' ? 'assertive' : 'polite'}
       style={{
-        position: 'fixed',
-        top: '20px',
-        right: '20px',
         background: bg,
         color: 'white',
         padding: '0.75rem 1rem',
         borderRadius: '8px',
         border: `1px solid ${border}`,
         boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-        zIndex: 1000,
         display: 'flex',
         alignItems: 'center',
         gap: '0.5rem',
         minWidth: '200px',
-        maxWidth: '400px',
+        maxWidth: 'min(400px, calc(100vw - 40px))',
+        pointerEvents: 'auto',
         transform: isAnimating ? 'translateX(0)' : 'translateX(100%)',
         opacity: isAnimating ? 1 : 0,
         transition: 'all 0.3s ease-in-out',
@@ -88,7 +95,7 @@ const Notification = ({ message, type = 'success', duration = 3000, onClose }) =
         fontWeight: '500'
       }}
     >
-      <span style={{ fontSize: '1rem' }}>{icon}</span>
+      <span style={{ fontSize: '1rem' }} aria-hidden="true">{icon}</span>
       <span>{message}</span>
     </div>
   )

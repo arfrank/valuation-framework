@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useTimeouts } from '../hooks/useTimeouts'
 
 const CompanyTabs = ({
   companies,
@@ -14,6 +15,7 @@ const CompanyTabs = ({
   onToggleCompareSelection,
   tabActivity,
 }) => {
+  const schedule = useTimeouts()
   const [editingTab, setEditingTab] = useState(null)
   const [editName, setEditName] = useState('')
   const [confirmedTab, setConfirmedTab] = useState(null)
@@ -104,10 +106,10 @@ const CompanyTabs = ({
     if (trimmedName) {
       onUpdateCompany(companyId, { name: trimmedName })
       setConfirmedTab(companyId)
-      setTimeout(() => setConfirmedTab((id) => (id === companyId ? null : id)), 900)
+      schedule(() => setConfirmedTab((id) => (id === companyId ? null : id)), 900)
     } else {
       setRejectedTab(companyId)
-      setTimeout(() => setRejectedTab((id) => (id === companyId ? null : id)), 900)
+      schedule(() => setRejectedTab((id) => (id === companyId ? null : id)), 900)
     }
     // If trimmed name is empty, editing simply cancels (no change to original name)
     setEditingTab(null)

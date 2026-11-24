@@ -5,7 +5,7 @@ import FormInput from './FormInput'
 import { migrateLegacyCompany } from '../utils/dataStructures'
 import { resolveSafeConversion } from '../utils/multiPartyCalculations'
 
-const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed, highlightToken = 0 }) => {
+const InputForm = ({ company, companyId, onUpdate, collapsed = false, onToggleCollapsed, highlightToken = 0 }) => {
   const roundToCents = (value) => Math.round(Math.max(0, value) * 100) / 100
   const focusTimerRef = useRef(null)
   const rowTimerRefs = useRef(new Set())
@@ -41,6 +41,19 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed, hi
   const [recentRowKey, setRecentRowKey] = useState(null)
   const [removingRows, setRemovingRows] = useState({})
   const [undoNotice, setUndoNotice] = useState(null)
+
+  // Deferred callbacks (row-removal timers, Undo) must act on what the form
+  // shows *now*, not on the values and handler captured when they were created.
+  const valuesRef = useRef(values)
+  valuesRef.current = values
+  const onUpdateRef = useRef(onUpdate)
+  onUpdateRef.current = onUpdate
+
+  const commitValues = (nextValues) => {
+    valuesRef.current = nextValues
+    setValues(nextValues)
+    onUpdateRef.current(nextValues)
+  }
 
   useEffect(() => {
     if (company) {
@@ -92,6 +105,21 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed, hi
     rowTimerRefs.current.clear()
   }, [])
 
+  // Pending row removals and Undo toasts belong to the company they were
+  // created on. Drop them when the form switches to a different company so
+  // they can never be applied to the wrong one.
+  const previousCompanyIdRef = useRef(companyId)
+  useEffect(() => {
+    if (previousCompanyIdRef.current === companyId) return
+    previousCompanyIdRef.current = companyId
+    rowTimerRefs.current.forEach(clearTimeout)
+    rowTimerRefs.current.clear()
+    setUndoNotice(null)
+    setRemovingRows({})
+    setRecentRowKey(null)
+    setPulseField(null)
+  }, [companyId])
+
   const pulseComputedField = (field) => {
     setPulseField(field)
     scheduleRowTimer(() => {
@@ -139,6 +167,10 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed, hi
       if (numValue < 0) numValue = 0
       // Prevent unreasonably large values (> 1 trillion)
       if (numValue > 1000000) numValue = 1000000
+      // Pool sizes are percentages of the company
+      if (['currentEsopPercent', 'grantedEsopPercent', 'targetEsopPercent'].includes(field) && numValue > 100) {
+        numValue = 100
+      }
     }
     
     const newValues = { ...values, [field]: numValue }
@@ -301,22 +333,18 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed, hi
     const originalIndex = (values.safes || []).findIndex(safe => safe.id === safeId)
     markRemovingRow(`safe-${safeId}`)
     scheduleRowTimer(() => {
-      setValues(prev => {
-        const nextSafes = (prev.safes || []).filter(safe => safe.id !== safeId)
-        const nextValues = { ...prev, safes: nextSafes }
-        onUpdate(nextValues)
-        return nextValues
+      const current = valuesRef.current
+      commitValues({
+        ...current,
+        safes: (current.safes || []).filter(safe => safe.id !== safeId)
       })
       showRowUndo('SAFE removed', () => {
-        setValues(prev => {
-          if ((prev.safes || []).some(safe => safe.id === safeId)) return prev
-          const nextSafes = [...(prev.safes || [])]
-          nextSafes.splice(Math.max(0, originalIndex), 0, removed)
-          const nextValues = { ...prev, safes: nextSafes }
-          onUpdate(nextValues)
-          markRecentRow(`safe-${safeId}`)
-          return nextValues
-        })
+        const latest = valuesRef.current
+        if ((latest.safes || []).some(safe => safe.id === safeId)) return
+        const nextSafes = [...(latest.safes || [])]
+        nextSafes.splice(Math.min(Math.max(0, originalIndex), nextSafes.length), 0, removed)
+        commitValues({ ...latest, safes: nextSafes })
+        markRecentRow(`safe-${safeId}`)
       })
     }, 180)
   }
@@ -423,22 +451,18 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed, hi
     const originalIndex = (values.warrants || []).findIndex(w => w.id === warrantId)
     markRemovingRow(`warrant-${warrantId}`)
     scheduleRowTimer(() => {
-      setValues(prev => {
-        const nextWarrants = (prev.warrants || []).filter(w => w.id !== warrantId)
-        const nextValues = { ...prev, warrants: nextWarrants }
-        onUpdate(nextValues)
-        return nextValues
+      const current = valuesRef.current
+      commitValues({
+        ...current,
+        warrants: (current.warrants || []).filter(w => w.id !== warrantId)
       })
       showRowUndo('Warrant removed', () => {
-        setValues(prev => {
-          if ((prev.warrants || []).some(w => w.id === warrantId)) return prev
-          const nextWarrants = [...(prev.warrants || [])]
-          nextWarrants.splice(Math.max(0, originalIndex), 0, removed)
-          const nextValues = { ...prev, warrants: nextWarrants }
-          onUpdate(nextValues)
-          markRecentRow(`warrant-${warrantId}`)
-          return nextValues
-        })
+        const latest = valuesRef.current
+        if ((latest.warrants || []).some(w => w.id === warrantId)) return
+        const nextWarrants = [...(latest.warrants || [])]
+        nextWarrants.splice(Math.min(Math.max(0, originalIndex), nextWarrants.length), 0, removed)
+        commitValues({ ...latest, warrants: nextWarrants })
+        markRecentRow(`warrant-${warrantId}`)
       })
     }, 180)
   }
@@ -473,22 +497,20 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed, hi
   }
 
   // Multi-party handlers
+  // These are also called from the sections' deferred removal/Undo callbacks,
+  // so they merge into the latest values rather than this render's snapshot.
   const handlePriorInvestorsUpdate = (updatedPriorInvestors) => {
-    const newValues = {
-      ...values,
+    commitValues({
+      ...valuesRef.current,
       priorInvestors: updatedPriorInvestors
-    }
-    setValues(newValues)
-    onUpdate(newValues)
+    })
   }
 
   const handleFoundersUpdate = (updatedFounders) => {
-    const newValues = {
-      ...values,
+    commitValues({
+      ...valuesRef.current,
       founders: updatedFounders
-    }
-    setValues(newValues)
-    onUpdate(newValues)
+    })
   }
 
   if (collapsed) {
@@ -1028,7 +1050,7 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed, hi
                       const calculatedProRata = (safeOwnership / 100) * values.roundSize
                       const hasOverride = safe.proRataOverride != null
                       const displayAmount = hasOverride ? safe.proRataOverride : calculatedProRata
-                      const matchesLead = (safe.investorName || '').trim() === (values.investorName || 'US').trim()
+                      const matchesLead = (safe.investorName || '').trim().toLowerCase() === (values.investorName || 'US').trim().toLowerCase()
                       proRataBlock = { calculatedProRata, hasOverride, displayAmount, matchesLead: matchesLead && !!safe.investorName, suppressed: isSafeRound }
                     }
                   }
@@ -1183,7 +1205,7 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed, hi
                               <FormInput
                                 label="Allocation"
                                 type="number"
-                                value={proRataBlock.displayAmount}
+                                value={Math.round(proRataBlock.displayAmount * 100) / 100}
                                 onChange={(value) => updateSafe(safe.id, 'proRataOverride', value)}
                                 prefix="$"
                                 suffix="M"
@@ -1213,6 +1235,7 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed, hi
           </div>
 
           <PriorInvestorsSection
+            key={`prior-investors-${companyId}`}
             priorInvestors={values.priorInvestors || []}
             onUpdate={handlePriorInvestorsUpdate}
             roundSize={values.roundSize}
@@ -1226,6 +1249,7 @@ const InputForm = ({ company, onUpdate, collapsed = false, onToggleCollapsed, hi
           />
 
           <FoundersSection
+            key={`founders-${companyId}`}
             founders={values.founders || []}
             onUpdate={handleFoundersUpdate}
           />

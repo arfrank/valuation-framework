@@ -120,6 +120,21 @@ function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value))
 }
 
+// Imported JSON and hand-edited links can carry "false"/"true" strings;
+// Boolean("false") is true, so coerce explicitly.
+function toBoolean(value) {
+  return value === true || value === 'true' || value === 1 || value === '1'
+}
+
+// Names are kept exactly as typed. This runs on every render and its output is
+// fed back into the form, so trimming here would delete the space a user just
+// typed between two words. Comparisons trim at the point of use instead.
+function toNameString(value) {
+  if (typeof value === 'string') return value
+  if (value === null || value === undefined) return ''
+  return typeof value === 'number' || typeof value === 'boolean' ? String(value) : ''
+}
+
 function normalizePriorInvestor(investor = {}) {
   const {
     proRataAmount: _legacyProRataAmount,
@@ -128,16 +143,16 @@ function normalizePriorInvestor(investor = {}) {
   const base = createPriorInvestor(
     typeof restInvestor.name === 'string' ? restInvestor.name : '',
     clamp(getOptionalNumber(restInvestor.ownershipPercent) ?? 0, 0, 100),
-    Boolean(restInvestor.hasProRataRights)
+    toBoolean(restInvestor.hasProRataRights)
   )
   const proRataOverride = getOptionalNumber(restInvestor.proRataOverride, investor.proRataAmount)
 
   return {
     ...base,
     ...restInvestor,
-    name: typeof restInvestor.name === 'string' ? restInvestor.name.trim() : '',
+    name: typeof restInvestor.name === 'string' ? restInvestor.name : '',
     ownershipPercent: clamp(getOptionalNumber(restInvestor.ownershipPercent) ?? 0, 0, 100),
-    hasProRataRights: Boolean(restInvestor.hasProRataRights),
+    hasProRataRights: toBoolean(restInvestor.hasProRataRights),
     proRataOverride: proRataOverride === undefined ? null : Math.max(0, proRataOverride)
   }
 }
@@ -151,7 +166,7 @@ function normalizeFounder(founder = {}) {
   return {
     ...base,
     ...founder,
-    name: typeof founder.name === 'string' ? founder.name.trim() : '',
+    name: typeof founder.name === 'string' ? founder.name : '',
     ownershipPercent: clamp(getOptionalNumber(founder.ownershipPercent) ?? 0, 0, 100)
   }
 }
@@ -165,7 +180,7 @@ function normalizeWarrant(warrant = {}) {
   return {
     ...base,
     ...warrant,
-    name: typeof warrant.name === 'string' ? warrant.name.trim() : '',
+    name: typeof warrant.name === 'string' ? warrant.name : '',
     amount: Math.max(0, getOptionalNumber(warrant.amount) ?? 0),
     valuation: Math.max(0, getOptionalNumber(warrant.valuation) ?? 0)
   }
@@ -191,9 +206,15 @@ function normalizeSafe(safe = {}) {
     ...base,
     ...restSafe,
     conversionType,
+    // Links and imports can deliver these as strings (or worse); the engine
+    // adds amounts and calls string methods on the name, so coerce here.
+    amount: Math.max(0, getOptionalNumber(restSafe.amount) ?? 0),
+    cap: Math.max(0, getOptionalNumber(restSafe.cap) ?? 0),
+    discount: clamp(getOptionalNumber(restSafe.discount) ?? 0, 0, 100),
+    investorName: toNameString(restSafe.investorName),
     fixedOwnershipPercent: clamp(getOptionalNumber(restSafe.fixedOwnershipPercent) ?? 0, 0, 100),
     notes: typeof restSafe.notes === 'string' ? restSafe.notes.trim() : '',
-    proRata: Boolean(restSafe.proRata),
+    proRata: toBoolean(restSafe.proRata),
     proRataOverride: proRataOverride === undefined ? null : Math.max(0, proRataOverride)
   }
 }
@@ -344,10 +365,10 @@ export function migrateLegacyCompany(legacyCompany, fallbackName = 'New Company'
     ? Math.max(0, migrated.roundSize - migrated.investorPortion - migrated.leadPortion)
     : clamp(Math.max(0, explicitOtherPortion), 0, Math.max(0, migrated.roundSize - migrated.investorPortion - migrated.leadPortion))
   migrated.investorName = typeof migrated.investorName === 'string' && migrated.investorName.trim()
-    ? migrated.investorName.trim()
+    ? migrated.investorName
     : defaults.investorName
   migrated.leadInvestorName = typeof migrated.leadInvestorName === 'string' && migrated.leadInvestorName.trim()
-    ? migrated.leadInvestorName.trim()
+    ? migrated.leadInvestorName
     : defaults.leadInvestorName
   migrated.firmLeadsRound = typeof legacyCompany.firmLeadsRound === 'boolean'
     ? legacyCompany.firmLeadsRound
@@ -358,7 +379,7 @@ export function migrateLegacyCompany(legacyCompany, fallbackName = 'New Company'
     migrated.otherPortion = Math.max(0, migrated.roundSize - migrated.investorPortion)
   }
   migrated.roundInstrument = normalizeRoundInstrument(migrated.roundInstrument)
-  migrated.showAdvanced = Boolean(migrated.showAdvanced)
+  migrated.showAdvanced = toBoolean(migrated.showAdvanced)
   migrated.esopTiming = migrated.esopTiming === 'post-close' ? 'post-close' : defaults.esopTiming
   delete migrated.postMoney
   delete migrated.round
@@ -409,7 +430,7 @@ export function migrateLegacyCompany(legacyCompany, fallbackName = 'New Company'
     : []
 
   // Ensure 2-step round fields exist
-  migrated.twoStepEnabled = Boolean(migrated.twoStepEnabled)
+  migrated.twoStepEnabled = toBoolean(migrated.twoStepEnabled)
   migrated.step2PostMoney = Math.max(0, getOptionalNumber(migrated.step2PostMoney) ?? 0)
   migrated.step2Amount = Math.max(0, getOptionalNumber(migrated.step2Amount) ?? 0)
   migrated.step2InvestorPortion = clamp(
@@ -439,7 +460,7 @@ export function migrateLegacyCompany(legacyCompany, fallbackName = 'New Company'
   migrated.scenarioOffsets = normalizeScenarioOffsets(migrated.scenarioOffsets)
 
   // Ensure Exit Math fields exist
-  migrated.showExitMath = Boolean(migrated.showExitMath)
+  migrated.showExitMath = toBoolean(migrated.showExitMath)
   if (migrated.exitMath && typeof migrated.exitMath === 'object' && !Array.isArray(migrated.exitMath)) {
     const existingValuations = Array.isArray(migrated.exitMath.exitValuations)
       ? migrated.exitMath.exitValuations.map((v) => Number(v)).filter((v) => Number.isFinite(v) && v > 0)
@@ -457,6 +478,18 @@ export function migrateLegacyCompany(legacyCompany, fallbackName = 'New Company'
       ...defaults.exitMath,
       ...migrated.exitMath,
       exitValuations,
+      // The module renders one input per round, so an unbounded value from an
+      // import would hang the page.
+      numRounds: clamp(
+        Math.floor(getOptionalNumber(migrated.exitMath.numRounds) ?? defaults.exitMath.numRounds),
+        0,
+        10
+      ),
+      uniformDilution: clamp(
+        getOptionalNumber(migrated.exitMath.uniformDilution) ?? defaults.exitMath.uniformDilution,
+        0,
+        100
+      ),
       perRoundOverrides: Array.isArray(migrated.exitMath.perRoundOverrides)
         ? migrated.exitMath.perRoundOverrides
         : defaults.exitMath.perRoundOverrides
@@ -483,7 +516,10 @@ export function normalizeStoredCompanies(storedCompanies, fallbackName = 'Scenar
     return fallback
   }
 
-  const entries = Object.entries(storedCompanies).filter(([, company]) => (
+  // "__proto__" as a key would set the accumulator's prototype instead of
+  // adding a company.
+  const entries = Object.entries(storedCompanies).filter(([companyId, company]) => (
+    companyId !== '__proto__' &&
     company &&
     typeof company === 'object' &&
     !Array.isArray(company)

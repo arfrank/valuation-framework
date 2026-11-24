@@ -44,7 +44,9 @@ describe('ScenarioCard Display Logic', () => {
         />
       )
 
-      expect(container.querySelector('.founder-row')).toBeNull()
+      // `.founder-row` was never rendered by the component, so the old
+      // assertion passed no matter what. Check the table's content instead.
+      expect(container.querySelector('.scenario-table').textContent).not.toContain('Founders')
     })
 
     it('should show individual founder rows when founders array has data', () => {
@@ -117,7 +119,11 @@ describe('ScenarioCard Display Logic', () => {
         />
       )
 
-      expect(container.querySelector('.founder-row')).toBeNull()
+      // `.founder-row` was never rendered by the component, so the old
+      // assertion passed no matter what. Individual founders must not be listed.
+      const tableText = container.querySelector('.scenario-table').textContent
+      expect(tableText).not.toContain('John Founder')
+      expect(tableText).not.toContain('Founders Total')
     })
   })
 
@@ -559,7 +565,9 @@ describe('ScenarioCard Display Logic', () => {
       )
 
       expect(getByText((content, _element) => content.includes('SAFE #1'))).toBeTruthy()
-      expect(container.querySelector('.founder-row')).toBeNull()
+      // `.founder-row` was never rendered by the component, so the old
+      // assertion passed no matter what. Check the table's content instead.
+      expect(container.querySelector('.scenario-table').textContent).not.toContain('Founders')
     })
   })
 })

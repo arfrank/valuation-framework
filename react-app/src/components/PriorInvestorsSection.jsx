@@ -1,6 +1,7 @@
 import { createPriorInvestor, calculateTotalOwnership } from '../utils/dataStructures'
 import { calculateSafeConversions } from '../utils/multiPartyCalculations'
 import FormInput from './FormInput'
+import { useTimeouts } from '../hooks/useTimeouts'
 import { useEffect, useRef, useState } from 'react'
 
 function PriorInvestorsSection({
@@ -21,16 +22,26 @@ function PriorInvestorsSection({
   const [reorderTick, setReorderTick] = useState(0)
   const orderSignatureRef = useRef('')
 
+  // Deferred callbacks (removal timer, Undo) read the latest list and handler
+  // so they never write back a stale snapshot over newer edits.
+  const listRef = useRef(priorInvestors)
+  listRef.current = priorInvestors
+  const onUpdateRef = useRef(onUpdate)
+  onUpdateRef.current = onUpdate
+
+  // Cleared on unmount, so a pending removal can't fire against another company.
+  const schedule = useTimeouts()
+
   const markRecentRow = (key) => {
     setRecentRowKey(key)
-    setTimeout(() => {
+    schedule(() => {
       setRecentRowKey((current) => (current === key ? null : current))
     }, 850)
   }
 
   const markRemovingRow = (key) => {
     setRemovingRows(prev => ({ ...prev, [key]: true }))
-    setTimeout(() => {
+    schedule(() => {
       setRemovingRows(prev => {
         const next = { ...prev }
         delete next[key]
@@ -42,11 +53,13 @@ function PriorInvestorsSection({
   const showRowUndo = (label, onUndo) => {
     const notice = { id: Date.now(), label, onUndo }
     setUndoNotice(notice)
-    setTimeout(() => {
+    schedule(() => {
       setUndoNotice((current) => (current?.id === notice.id ? null : current))
     }, 4200)
   }
 
+  // Focus the new row's name once. This must not re-run as the list changes,
+  // or it re-selects the field on every keystroke and typed characters are lost.
   useEffect(() => {
     if (!recentRowKey) return
     const rowId = recentRowKey.replace('prior-', 'prior-name-')
@@ -58,7 +71,7 @@ function PriorInvestorsSection({
       }
     }, 60)
     return () => clearTimeout(id)
-  }, [recentRowKey, priorInvestors])
+  }, [recentRowKey])
 
   const addPriorInvestor = () => {
     const newInvestor = createPriorInvestor('New Investor', 0, false)
@@ -98,12 +111,12 @@ function PriorInvestorsSection({
     if (!removed) return
     const originalIndex = priorInvestors.findIndex(investor => investor.id === investorId)
     markRemovingRow(`prior-${investorId}`)
-    setTimeout(() => {
-      onUpdate(priorInvestors.filter(investor => investor.id !== investorId))
+    schedule(() => {
+      onUpdateRef.current(listRef.current.filter(investor => investor.id !== investorId))
       showRowUndo('Investor removed', () => {
-        const restored = priorInvestors.filter(investor => investor.id !== investorId)
-        restored.splice(Math.max(0, originalIndex), 0, removed)
-        onUpdate(restored)
+        const restored = listRef.current.filter(investor => investor.id !== investorId)
+        restored.splice(Math.min(Math.max(0, originalIndex), restored.length), 0, removed)
+        onUpdateRef.current(restored)
         markRecentRow(`prior-${investorId}`)
       })
     }, 180)
@@ -316,7 +329,7 @@ function PriorInvestorsSection({
                         <FormInput
                           label="Allocation"
                           type="number"
-                          value={displayAmount}
+                          value={Math.round(displayAmount * 100) / 100}
                           onChange={(value) => updateInvestor(investor.id, 'proRataOverride', value)}
                           prefix="$"
                           suffix="M"

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import ScenarioCard from './ScenarioCard'
 
@@ -280,11 +280,42 @@ describe('ScenarioCard with Permalink', () => {
     })
   })
 
-  it.skip('should reset feedback message after a few seconds', async () => {
-    // This test is complex to implement reliably with userEvent and fake timers
-    // The functionality works in practice but testing setTimeout with userEvent 
-    // requires careful timer management that's prone to race conditions
-    // The core feedback display functionality is already tested above
+  it('should reset feedback message after a few seconds', async () => {
+    mockOnCopyPermalink.mockResolvedValue({ success: true })
+    vi.useFakeTimers()
+    try {
+      render(
+        <ScenarioCard
+          scenario={mockScenario}
+          index={0}
+          isBase={true}
+          onApplyScenario={mockOnApplyScenario}
+          onCopyPermalink={mockOnCopyPermalink}
+        />
+      )
+
+      // fireEvent rather than userEvent: userEvent schedules its own timers,
+      // which don't advance under fake timers.
+      const permalinkButton = screen.getByRole('button', { name: /🔗/ })
+      await act(async () => {
+        fireEvent.click(permalinkButton)
+      })
+      expect(permalinkButton).toHaveTextContent('Copied!')
+      expect(permalinkButton).toBeDisabled()
+
+      act(() => {
+        vi.advanceTimersByTime(2999)
+      })
+      expect(permalinkButton).toHaveTextContent('Copied!')
+
+      act(() => {
+        vi.advanceTimersByTime(1)
+      })
+      expect(permalinkButton).toHaveTextContent('🔗')
+      expect(permalinkButton).toBeEnabled()
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('should handle permalink button on base scenario (no apply button)', async () => {

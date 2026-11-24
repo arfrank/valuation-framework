@@ -90,6 +90,13 @@
   100% { box-shadow: 0 0 0 0 rgba(49, 130, 206, 0); }
 }
 
+/* Same animation under a second name, used to replay it (see soft-flash-alt usage) */
+@keyframes soft-flash-alt {
+  0%   { box-shadow: 0 0 0 0 rgba(49, 130, 206, 0); }
+  35%  { box-shadow: 0 0 0 4px rgba(49, 130, 206, 0.14); }
+  100% { box-shadow: 0 0 0 0 rgba(49, 130, 206, 0); }
+}
+
 @keyframes amber-attention {
   0%, 100% { box-shadow: none; }
   35%      { box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.18); }
@@ -116,6 +123,12 @@
 }
 
 @keyframes row-settle {
+  from { opacity: 0.75; transform: translateY(7px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Same animation under a second name, used to replay it (see row-settle-alt usage) */
+@keyframes row-settle-alt {
   from { opacity: 0.75; transform: translateY(7px); }
   to   { opacity: 1; transform: translateY(0); }
 }
@@ -327,7 +340,8 @@ body {
   flex-shrink: 0;
 }
 
-.tab:hover .tab-actions {
+.tab:hover .tab-actions,
+.tab:focus-within .tab-actions {
   opacity: 1;
   pointer-events: auto;
 }
@@ -381,6 +395,8 @@ body {
   color: white;
   border: none;
   border-radius: 2px;
+  /* Without this the global button padding makes the 18px box ~30px wide */
+  padding: 0;
   width: 18px;
   height: 18px;
   display: flex;
@@ -428,6 +444,10 @@ body {
   outline: none;
   min-width: 0;
   width: 100%;
+}
+
+.tab-edit-input:focus {
+  box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.35);
 }
 
 .tab-indicator {
@@ -1336,145 +1356,12 @@ body {
   border-top: 0;
 }
 
-/* SAFE Conversion Info */
-.safe-conversion-info {
-  margin-top: var(--space-4);
-  padding: var(--space-3);
-  background: var(--color-bg-subtle);
-  border-radius: var(--radius-sm);
-  border-left: 3px solid var(--color-accent);
-}
-
-.conversion-display {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  font-size: 0.85rem;
-}
-
-.conversion-label {
-  font-weight: 600;
-  color: #4a5568;
-}
-
-.conversion-value {
-  font-weight: 700;
-  color: #3182ce;
-  font-size: 0.95rem;
-  font-family: 'JetBrains Mono', 'Consolas', 'Monaco', monospace;
-}
-
-.conversion-note {
-  font-size: 0.75rem;
-  color: #718096;
-  font-style: italic;
-}
 
 .input-grid {
   display: grid;
   gap: 0.85rem;
 }
 
-.input-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-}
-
-.input-group label {
-  font-weight: 600;
-  color: #4a5568;
-  font-size: 0.8rem;
-}
-
-.input-wrapper {
-  position: relative;
-  display: flex;
-  align-items: center;
-  background: #ffffff;
-  border: 1px solid #cbd5e0;
-  border-radius: 4px;
-  padding: 0.45rem 0.65rem;
-  transition: border-color 0.2s ease;
-  min-width: 0;
-  overflow: hidden;
-}
-
-.input-wrapper-with-clear {
-  padding-left: 2rem;
-}
-
-.input-wrapper-with-clear .currency {
-  margin-left: 1.5rem;
-}
-
-.clear-input-btn {
-  position: absolute;
-  left: 0.25rem;
-  background: #e2e8f0;
-  border: none;
-  border-radius: 50%;
-  width: 18px;
-  height: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  font-size: 0.7rem;
-  color: #718096;
-  transition: all 0.2s ease;
-  z-index: 2;
-}
-
-.clear-input-btn:hover {
-  background: #cbd5e0;
-  color: #4a5568;
-}
-
-.input-wrapper:focus-within {
-  border-color: #3182ce;
-  outline: 0;
-  box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
-}
-
-.currency, .unit {
-  color: #718096;
-  font-weight: 500;
-  font-size: 0.9rem;
-  font-family: 'JetBrains Mono', 'Consolas', 'Monaco', monospace;
-}
-
-.currency {
-  margin-right: 0.5rem;
-}
-
-.unit {
-  margin-left: 0.5rem;
-}
-
-.input-wrapper input {
-  flex: 1;
-  border: none;
-  background: transparent;
-  font-size: 1rem;
-  font-weight: 600;
-  color: #2d3748;
-  outline: none;
-  text-align: right;
-  font-family: 'JetBrains Mono', 'Consolas', 'Monaco', monospace;
-  min-width: 0;
-  padding-right: 0.25rem;
-}
-
-.input-wrapper input::-webkit-outer-spin-button,
-.input-wrapper input::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-
-.input-wrapper input[type=number] {
-  -moz-appearance: textfield;
-}
 
 .validation-info {
   margin-top: 1rem;
@@ -1525,6 +1412,12 @@ body {
 
 .form-input-wrapper.commit-pulse {
   animation: soft-flash 0.45s ease;
+}
+
+/* The component alternates commit-pulse-0 / -1 to replay the pulse. A class
+   swap only restarts an animation when its name changes. */
+.form-input-wrapper.commit-pulse-1 {
+  animation-name: soft-flash-alt;
 }
 
 .form-input-group.is-auto-balanced .form-input-wrapper {
@@ -1594,7 +1487,7 @@ body {
 }
 
 .form-input-control[type="text"] {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: inherit;
   font-weight: 500;
 }
 
@@ -1667,82 +1560,6 @@ body {
   margin-right: 36px;
 }
 
-/* Checkbox Input Styles */
-.form-checkbox-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  transition: all 0.2s ease;
-  cursor: pointer;
-  min-height: 40px;
-}
-
-.form-checkbox-wrapper:hover {
-  border-color: #cbd5e0;
-}
-
-.form-checkbox-wrapper.focused {
-  border-color: #3182ce;
-  box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
-}
-
-.form-checkbox-input {
-  margin: 0;
-  cursor: pointer;
-}
-
-.form-checkbox-label {
-  font-size: 0.85rem;
-  font-weight: 500;
-  color: #4a5568;
-  cursor: pointer;
-  flex: 1;
-}
-
-/* Primary action button (blue) */
-.form-action-btn {
-  background: var(--color-accent);
-  color: #ffffff;
-  border: none;
-  border-radius: var(--radius-sm);
-  padding: var(--space-2) var(--space-4);
-  font-size: var(--text-sm);
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color var(--transition-base), box-shadow var(--transition-base);
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  min-height: 40px;
-  letter-spacing: 0.01em;
-}
-
-.form-action-btn:hover {
-  background: var(--color-accent-hover);
-  box-shadow: var(--shadow-sm);
-}
-
-.form-action-btn.secondary {
-  background: var(--color-border);
-  color: var(--color-fg-muted);
-}
-
-.form-action-btn.secondary:hover {
-  background: var(--color-border-strong);
-}
-
-.form-action-btn.danger {
-  background: var(--color-danger);
-  color: #ffffff;
-}
-
-.form-action-btn.danger:hover {
-  background: var(--color-danger-hover);
-}
 
 /* Optimize for ultrawide screens */
 @media (min-width: 1800px) {
@@ -2367,17 +2184,6 @@ body {
   animation: fade-slide-in 0.36s var(--ease-out-soft) both;
 }
 
-.investor-row {
-  background-color: transparent;
-}
-
-.founder-row {
-  background-color: transparent;
-}
-
-.esop-row {
-  background-color: transparent;
-}
 
 /* Advanced Features Styling */
 .advanced-section .input-grid {
@@ -2393,24 +2199,6 @@ body {
   border-top: 1px solid #e2e8f0;
 }
 
-.safes-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-.safes-header h5 {
-  font-size: 0.9rem;
-  color: #4a5568;
-  font-weight: 600;
-  margin: 0;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
 
 .no-safes-message {
   text-align: center;
@@ -2423,36 +2211,6 @@ body {
   border-radius: 4px;
 }
 
-.safe-row {
-  background: var(--color-bg);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: var(--space-4);
-  margin-bottom: var(--space-4);
-  transition: box-shadow var(--transition-base), border-color var(--transition-base);
-}
-
-.safe-row:hover {
-  box-shadow: var(--shadow-sm);
-  border-color: var(--color-border-strong);
-}
-
-.safe-row-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.75rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid #f7fafc;
-}
-
-.safe-label {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #4a5568;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
 
 .remove-safe-btn {
   background: #e2e8f0;
@@ -2476,20 +2234,6 @@ body {
   transform: scale(1.1);
 }
 
-.safe-inputs {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 0.75rem;
-  margin-bottom: 0.75rem;
-}
-
-.safe-conversion-info {
-  margin-top: var(--space-3);
-  padding: var(--space-3);
-  background: var(--color-bg-subtle);
-  border-radius: var(--radius-sm);
-  border-left: 3px solid var(--color-accent);
-}
 
 /* Prior Investors Section Styles */
 .prior-investors-section {
@@ -2504,7 +2248,6 @@ body {
   flex-direction: column;
   gap: 0.75rem;
 }
-
 
 
 /* Ensure section headers are properly displayed */
@@ -2526,38 +2269,6 @@ body {
 }
 
 
-.ownership-summary {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: var(--space-2) var(--space-3);
-  background: var(--color-bg-subtle);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  font-size: var(--text-sm);
-  margin-bottom: var(--space-2);
-  flex-wrap: wrap;
-  min-height: 40px;
-}
-
-.summary-label {
-  color: #4a5568;
-  font-weight: 500;
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.summary-value {
-  color: #3182ce;
-  font-weight: 700;
-  font-family: 'JetBrains Mono', 'Consolas', 'Monaco', monospace;
-  flex-shrink: 0;
-  margin-left: 0.5rem;
-}
-
 .no-investors-message, .no-founders-message {
   text-align: center;
   color: #718096;
@@ -2569,61 +2280,6 @@ body {
   border-radius: 4px;
 }
 
-.investors-list, .founders-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.investor-row, .founder-row {
-  background: var(--color-bg);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: var(--space-4);
-  margin-bottom: var(--space-4);
-  transition: box-shadow var(--transition-base), border-color var(--transition-base);
-}
-
-.investor-row:hover, .founder-row:hover {
-  box-shadow: var(--shadow-sm);
-  border-color: var(--color-border-strong);
-}
-
-.investor-row-header, .founder-row-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.75rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid #f1f5f9;
-}
-
-/* Make sure founder rows match SAFE row styling exactly */
-.founder-row-header {
-  border-bottom: 1px solid #e2e8f0;
-}
-
-.investor-label, .founder-label {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #4a5568;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.investor-inputs, .founder-inputs {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 0.75rem;
-  margin-bottom: 0.75rem;
-}
-
-
-.investor-pro-rata {
-  margin-top: 0.5rem;
-  padding-top: 0.5rem;
-  border-top: 1px solid #f1f5f9;
-}
 
 .remove-investor-btn, .remove-founder-btn {
   background: #e2e8f0;
@@ -2651,19 +2307,6 @@ body {
   padding-left: 155px;
 }
 
-.safe-inputs .form-input-field,
-.investor-inputs .form-input-field,
-.founder-inputs .form-input-field {
-  padding-left: 80px;
-}
-
-.pro-rata-allocation .form-input-label {
-  max-width: 75px;
-}
-
-.pro-rata-allocation .form-input-field {
-  padding-left: 90px;
-}
 
 /* Responsive adjustments for form inputs */
 @media (max-width: 768px) {
@@ -2690,68 +2333,8 @@ body {
     padding-left: 80px;
   }
 
-  .investor-inputs, .founder-inputs {
-    grid-template-columns: 1fr;
-  }
 }
 
-/* Enhanced Scenario Card Structure */
-.scenario-sections {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.scenario-section {
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  overflow: hidden;
-}
-
-.section-header {
-  background: #f8fafc;
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid #e2e8f0;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.section-header h4 {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: #2d3748;
-  margin: 0;
-}
-
-.section-total {
-  font-size: 0.9rem;
-  font-weight: 700;
-  color: #2d3748;
-  font-family: 'JetBrains Mono', 'Consolas', 'Monaco', monospace;
-}
-
-.section-rows {
-  padding: 0;
-}
-
-/* Row Types */
-.table-row.primary-row {
-  background: #e6fffa;
-  border-left: 3px solid #38b2ac;
-}
-
-.table-row.secondary-row {
-  background: #fff5f5;
-  border-left: 3px solid #fc8181;
-}
-
-.table-row.group-header {
-  background: #f7fafc;
-  border-left: 3px solid #4299e1;
-  font-weight: 600;
-  color: #2d3748;
-}
 
 .table-row.sub-row {
   background: #fefefe;
@@ -2771,21 +2354,6 @@ body {
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
-  .scenario-sections {
-    gap: 0.75rem;
-  }
-  
-  .section-header {
-    padding: 0.5rem 0.75rem;
-  }
-  
-  .section-header h4 {
-    font-size: 0.8rem;
-  }
-  
-  .section-total {
-    font-size: 0.8rem;
-  }
   
   .table-row.sub-row {
     padding-left: 1rem;
@@ -2889,55 +2457,6 @@ input.investor-name-input:focus, input.founder-name-input:focus {
   transform: scale(1.1);
 }
 
-.pro-rata-info {
-  margin-top: var(--space-3);
-  padding: var(--space-3);
-  background: var(--color-accent-soft);
-  border-radius: var(--radius-sm);
-  border-left: 3px solid var(--color-accent);
-}
-
-.pro-rata-display {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 0.85rem;
-}
-
-.pro-rata-label {
-  color: var(--color-accent-hover);
-  font-weight: 500;
-}
-
-.pro-rata-value {
-  color: var(--color-accent-hover);
-  font-weight: 700;
-  font-family: 'JetBrains Mono', 'Consolas', 'Monaco', monospace;
-}
-
-.pro-rata-allocation {
-  margin-top: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  background: var(--color-bg-subtle);
-  border-radius: var(--radius-sm);
-}
-
-.pro-rata-allocation-row {
-  max-width: 250px;
-}
-
-.pro-rata-hint {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: 0.35rem;
-  font-size: 0.78rem;
-  color: #5a7a9a;
-}
-
-.pro-rata-hint .hint-text {
-  font-style: italic;
-}
 
 .reset-pro-rata-btn {
   background: none;
@@ -3287,6 +2806,10 @@ input.investor-name-input:focus, input.founder-name-input:focus {
   animation-delay: calc(var(--row-index, 0) * 0.025s);
 }
 
+.repeater-row--settle-1 {
+  animation-name: row-settle-alt;
+}
+
 /* Column track templates — each table tunes its own columns */
 .repeater-table--investors .repeater-header,
 .repeater-table--investors .repeater-row {
@@ -3355,14 +2878,14 @@ input.investor-name-input:focus, input.founder-name-input:focus {
   border: 1px solid rgba(148, 163, 184, 0.42);
   border-radius: 6px;
   background: rgba(255, 255, 255, 0.94);
-  color: var(--text-primary);
+  color: var(--color-fg);
   font-size: 0.76rem;
   padding: 0 0.35rem;
 }
 
 .repeater-select:focus {
   outline: none;
-  border-color: var(--primary);
+  border-color: var(--color-accent);
   box-shadow: 0 0 0 3px rgba(99, 91, 255, 0.12);
 }
 
@@ -3370,7 +2893,7 @@ input.investor-name-input:focus, input.founder-name-input:focus {
   display: inline-flex;
   align-items: center;
   min-height: 32px;
-  color: var(--text-muted);
+  color: var(--color-fg-subtle);
   font-size: 0.76rem;
 }
 
@@ -3555,29 +3078,11 @@ input.investor-name-input:focus, input.founder-name-input:focus {
 .calculated-allocation--clickable:focus-visible {
   color: var(--color-accent);
   border-bottom-color: var(--color-accent);
-  outline: none;
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
 }
 
 /* Greyed pro-rata readout for prior investors whose pro-rata is disabled */
-.repeater-prorata-readonly {
-  display: block;
-  text-align: right;
-  font-size: 0.78rem;
-  font-weight: 500;
-  color: var(--color-fg-faint);
-  font-style: italic;
-  padding: 4px 6px;
-  cursor: help;
-}
-
-.repeater-prorata-active {
-  display: block;
-  text-align: right;
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: var(--color-fg);
-  padding: 4px 6px;
-}
 
 /* ---- Compact FormInput variant (used inside repeater tables) ---- */
 .form-input-wrapper.compact {
@@ -3645,6 +3150,8 @@ input.investor-name-input:focus, input.founder-name-input:focus {
 .repeater-col--actions .remove-investor-btn,
 .repeater-col--actions .remove-founder-btn,
 .repeater-col--actions .remove-safe-btn {
+  /* Without this the global button padding stretches the circle into an oval */
+  padding: 0;
   width: 22px;
   height: 22px;
   font-size: 0.85rem;
@@ -3713,16 +3220,6 @@ input.investor-name-input:focus, input.founder-name-input:focus {
    stretch comfortably. */
 .top-row.advanced-open .esop-section .input-grid.esop-input-grid {
   gap: var(--space-3);
-}
-
-/* Pro-rata row styling within scenario tables */
-.pro-rata-row {
-  background-color: var(--color-bg-subtle);
-  border-radius: var(--radius-sm);
-  font-style: italic;
-  color: var(--color-fg-muted);
-  border-left: 3px solid var(--color-accent);
-  padding-left: 8px;
 }
 
 
@@ -3958,9 +3455,6 @@ input.investor-name-input:focus, input.founder-name-input:focus {
     padding: 0.65rem;
   }
 
-  .safe-inputs {
-    grid-template-columns: 1fr;
-  }
 }
 
 @media (max-width: 480px) {
@@ -4094,14 +3588,6 @@ input.investor-name-input:focus, input.founder-name-input:focus {
     font-size: 0.85rem;
   }
 
-  /* Prior investor / founder cards tighter */
-  .investor-row, .founder-row {
-    padding: 0.65rem;
-  }
-
-  .safe-row {
-    padding: 0.65rem;
-  }
 
   /* ESOP section tighter */
   .esop-section .input-grid {
@@ -4114,11 +3600,6 @@ input.investor-name-input:focus, input.founder-name-input:focus {
     padding: 0.5rem;
   }
 
-  /* Ownership summary */
-  .ownership-summary {
-    font-size: 0.78rem;
-    padding: 0.4rem 0.6rem;
-  }
 
   /* Section headers */
   .section-title-row {
@@ -4175,18 +3656,6 @@ input.investor-name-input:focus, input.founder-name-input:focus {
   padding: var(--space-4);
 }
 
-.exit-math-input-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-}
-
-.exit-math-hint {
-  font-size: 0.72rem;
-  color: #94a3b8;
-  font-style: italic;
-  padding-left: 12px;
-}
 
 .exit-math-overrides {
   border-top: 1px dashed #e2e8f0;
@@ -4319,6 +3788,11 @@ input.investor-name-input:focus, input.founder-name-input:focus {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm, 6px);
   padding: 0.25rem 0.4rem;
+}
+
+.exit-math-scenario-row:focus-within {
+  border-color: var(--color-accent);
+  box-shadow: var(--shadow-focus);
 }
 
 .exit-math-scenario-row.is-new {
@@ -4843,6 +4317,17 @@ input.investor-name-input:focus, input.founder-name-input:focus {
     display: none;
   }
 
+  /* Hover never happens on touch. Keep rename, duplicate and delete reachable
+     on the active tab instead of hiding them outright. */
+  .tab.active .tab-actions {
+    display: flex;
+    position: static;
+    transform: none;
+    opacity: 1;
+    pointer-events: auto;
+    margin-left: 0.5rem;
+  }
+
   .tabs-actions {
     flex: 0 0 auto;
     flex-direction: row;
@@ -4940,7 +4425,9 @@ input.investor-name-input:focus, input.founder-name-input:focus {
   }
 
   .scenario-table {
-    overflow-x: hidden;
+    /* `hidden` on one axis forces the other to `auto`, which clipped the
+       decimal-precision popover above the header. `clip` doesn't. */
+    overflow-x: clip;
   }
 
   .table-header,
@@ -5504,6 +4991,8 @@ input.investor-name-input:focus, input.founder-name-input:focus {
   .import-modal {
     width: 100%;
     max-height: 100vh;
+    /* iOS Safari's 100vh is taller than the visible area; keep the footer on screen */
+    max-height: 100dvh;
     border-radius: 0;
   }
   .import-prompt-description {

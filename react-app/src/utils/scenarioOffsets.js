@@ -14,7 +14,12 @@ export function buildScenarioOffsets(maxOffset) {
   const quarter = roundScenarioOffset(max / 4)
   const half = roundScenarioOffset(max / 2)
 
-  return [-max, -half, -quarter, quarter, half, max]
+  // A very small max rounds the quarter or half step to 0 or to the same
+  // value as its neighbour, which would produce extra "base case" cards and
+  // duplicate keys. Keep each distinct, non-zero step once.
+  const steps = [...new Set([quarter, half, max])].filter((step) => step > 0)
+
+  return [...steps.map((step) => -step).reverse(), ...steps]
 }
 
 export function normalizeScenarioOffsets(offsets, defaultMax = 30) {

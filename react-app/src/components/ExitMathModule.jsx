@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useTimeouts } from '../hooks/useTimeouts'
 import { calculateExitReturnsForValues, resolveDilutions } from '../utils/exitMath'
 import FormInput from './FormInput'
 
@@ -31,6 +32,7 @@ function sanitizeValuations(list) {
 }
 
 const ExitMathModule = ({ baseScenario, investorName = 'US', exitMath, onUpdate, companyName }) => {
+  const schedule = useTimeouts()
   const [showOverrides, setShowOverrides] = useState(false)
   const [duplicatePreset, setDuplicatePreset] = useState(null)
   const [addedValuation, setAddedValuation] = useState(null)
@@ -50,17 +52,26 @@ const ExitMathModule = ({ baseScenario, investorName = 'US', exitMath, onUpdate,
     [state.perRoundOverrides]
   )
 
-  const initialCheck = baseScenario?.combinedInvestor?.totalNewInvestment ?? baseScenario?.investorAmount ?? 0
-  const currentOwnership = baseScenario?.combinedInvestor?.totalOwnership ?? baseScenario?.investorPercent ?? 0
+  // MOIC compares what a check returns with what it cost. The cost here is
+  // this round's check, so the ownership has to be what that check buys. The
+  // firm's total position can also include prior equity and converted SAFEs,
+  // whose cost isn't in the denominator; counting them inflated the multiple.
+  const combined = baseScenario?.combinedInvestor
+  const initialCheck = combined?.totalNewInvestment ?? baseScenario?.investorAmount ?? 0
+  const currentOwnership = combined?.investorRoundPercent ?? baseScenario?.investorPercent ?? 0
+  const otherPositionsPercent = Math.max(0, (combined?.totalOwnership ?? currentOwnership) - currentOwnership)
 
   const dilutions = useMemo(
     () => resolveDilutions(numRounds, uniformDilution, perRoundOverrides),
     [numRounds, uniformDilution, perRoundOverrides]
   )
 
+  // Blank or non-positive entries are still being typed; they have no outcome.
+  const validValuations = useMemo(() => sanitizeValuations(exitValuations), [exitValuations])
+
   const { finalOwnership, outcomes, perRound } = useMemo(
-    () => calculateExitReturnsForValues({ initialCheck, currentOwnership, dilutions, exitValuations }),
-    [initialCheck, currentOwnership, dilutions, exitValuations]
+    () => calculateExitReturnsForValues({ initialCheck, currentOwnership, dilutions, exitValuations: validValuations }),
+    [initialCheck, currentOwnership, dilutions, validValuations]
   )
   const outcomesSignature = outcomes.map(o => `${o.exitValuation}:${o.exitProceeds}:${o.moic}`).join('|')
 
@@ -114,24 +125,24 @@ const ExitMathModule = ({ baseScenario, investorName = 'US', exitMath, onUpdate,
     const last = exitValuations[exitValuations.length - 1]
     const seed = Number.isFinite(last) && last > 0 ? last * 2 : 1000
     setAddedValuation(seed)
-    setTimeout(() => setAddedValuation(null), 850)
+    schedule(() => setAddedValuation(null), 850)
     update({ exitValuations: [...exitValuations, seed] })
   }
 
   const handlePresetClick = (value) => {
     if (exitValuations.some((v) => Number(v) === value)) {
       setDuplicatePreset(value)
-      setTimeout(() => setDuplicatePreset((current) => (current === value ? null : current)), 650)
+      schedule(() => setDuplicatePreset((current) => (current === value ? null : current)), 650)
       return
     }
     setAddedValuation(value)
-    setTimeout(() => setAddedValuation((current) => (current === value ? null : current)), 850)
+    schedule(() => setAddedValuation((current) => (current === value ? null : current)), 850)
     const next = [...exitValuations, value].sort((a, b) => Number(a) - Number(b))
     update({ exitValuations: next })
   }
 
   const hasData = baseScenario && initialCheck > 0
-  const sanitizedCount = sanitizeValuations(exitValuations).length
+  const sanitizedCount = validValuations.length
 
   return (
     <div className="exit-math-module">
@@ -269,9 +280,15 @@ const ExitMathModule = ({ baseScenario, investorName = 'US', exitMath, onUpdate,
               <span className="analytics-value">{formatMoney(initialCheck)}</span>
             </div>
             <div className="analytics-row">
-              <span className="analytics-label">Starting ownership</span>
+              <span className="analytics-label">Ownership from this check</span>
               <span className="analytics-value">{currentOwnership.toFixed(2)}%</span>
             </div>
+            {otherPositionsPercent > 0.01 && (
+              <div className="analytics-row">
+                <span className="analytics-label">Not included: prior equity and SAFEs</span>
+                <span className="analytics-value">{otherPositionsPercent.toFixed(2)}%</span>
+              </div>
+            )}
             <div className="analytics-row">
               <span className="analytics-label">Final ownership</span>
               <span className="analytics-value">{finalOwnership.toFixed(2)}%</span>

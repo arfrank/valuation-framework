@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest'
-import { encodeScenarioToURL, decodeScenarioFromURL, isValidScenarioData } from './permalink'
+import { describe, it, expect, vi, afterEach } from 'vitest'
+import { encodeScenarioToURL, decodeScenarioFromURL, isValidScenarioData, sharePermalink } from './permalink'
 
 describe('Permalink Edge Cases', () => {
   describe('Encoding/Decoding Robustness', () => {
@@ -204,6 +204,73 @@ describe('Permalink Edge Cases', () => {
       expect(encoded).toContain('te=15')
       expect(encoded).toContain('et=post-close')
       expect(encoded).toContain('safes=')
+    })
+  })
+
+  describe('Incomplete and invalid links', () => {
+    const required = 'pmv=20&rs=5&ip=4&op=1&in=US'
+
+    it('warns when a row list in the link cannot be parsed', () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      // A prior-investor list cut off mid-JSON, as a chat client might do.
+      const decoded = decodeScenarioFromURL(`${required}&pi=${encodeURIComponent('[{"n":"Seed","o":2')}`)
+      warn.mockRestore()
+
+      expect(decoded).not.toBeNull()
+      expect(decoded.priorInvestors).toEqual([])
+      expect(decoded.importWarnings).toHaveLength(1)
+      expect(decoded.importWarnings[0]).toContain('prior investors')
+    })
+
+    it('adds no warning to a link that decodes cleanly', () => {
+      const decoded = decodeScenarioFromURL(required)
+      expect(decoded).not.toBeNull()
+      expect(decoded.importWarnings).toBeUndefined()
+    })
+
+    it('rejects a non-finite number', () => {
+      expect(isValidScenarioData({
+        postMoneyVal: Infinity,
+        roundSize: 5,
+        investorPortion: 4,
+        otherPortion: 1,
+        investorName: 'US'
+      })).toBe(false)
+      expect(decodeScenarioFromURL('pmv=1e400&rs=5&ip=4&op=1&in=US')).toBeNull()
+    })
+  })
+
+  describe('Native share', () => {
+    const scenario = { postMoneyVal: 20, roundSize: 5, investorPortion: 4, otherPortion: 1, investorName: 'US' }
+    const originalShare = navigator.share
+
+    afterEach(() => {
+      if (originalShare === undefined) {
+        delete navigator.share
+      } else {
+        navigator.share = originalShare
+      }
+      navigator.clipboard.writeText.mockClear()
+    })
+
+    it('reports a dismissed share sheet as cancelled without copying the link', async () => {
+      navigator.share = vi.fn(() => Promise.reject(Object.assign(new Error('dismissed'), { name: 'AbortError' })))
+
+      const result = await sharePermalink(scenario)
+
+      expect(result.success).toBe(false)
+      expect(result.cancelled).toBe(true)
+      expect(navigator.clipboard.writeText).not.toHaveBeenCalled()
+    })
+
+    it('falls back to copying when sharing fails for another reason', async () => {
+      navigator.share = vi.fn(() => Promise.reject(new Error('not allowed')))
+
+      const result = await sharePermalink(scenario)
+
+      expect(result.success).toBe(true)
+      expect(result.fallback).toBe(true)
+      expect(navigator.clipboard.writeText).toHaveBeenCalledTimes(1)
     })
   })
 })

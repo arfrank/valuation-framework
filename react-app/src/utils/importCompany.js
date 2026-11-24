@@ -247,7 +247,8 @@ function extractMetadata(raw) {
   if (Array.isArray(cleaned.safes)) {
     cleaned.safes = cleaned.safes.map((s, i) => {
       if (!isPlainObject(s)) return s
-      const label = (s.investorName || `SAFE #${i + 1}`).trim() || `SAFE #${i + 1}`
+      // investorName comes from pasted JSON and may not be a string.
+      const label = (typeof s.investorName === 'string' ? s.investorName.trim() : '') || `SAFE #${i + 1}`
       if (typeof s._notes === 'string' && s._notes.trim()) {
         warnings.push(`${label}: ${s._notes.trim()}`)
       }
@@ -320,6 +321,17 @@ export function parseImportJson(text) {
   const { cleaned, warnings: metaWarnings } = extractMetadata(raw)
   const importKind = getImportKind(cleaned)
   const roundConstructEntered = hasExplicitRoundConstruct(cleaned)
+
+  // The prompt tells the model to omit what it can't determine. If a cap table
+  // came with founders but no prior investors (or the reverse), the missing
+  // list is empty — not the placeholder row a brand-new scenario starts with,
+  // which would be added on top of the imported ownership.
+  if (importKind === 'company') {
+    const hasFounders = Array.isArray(cleaned.founders)
+    const hasPriorInvestors = Array.isArray(cleaned.priorInvestors)
+    if (hasFounders && !hasPriorInvestors) cleaned.priorInvestors = []
+    if (hasPriorInvestors && !hasFounders) cleaned.founders = []
+  }
 
   // Run through the same migration path as localStorage loading. This handles
   // legacy field names (postMoney/round/investor/other/proRataAmount) and

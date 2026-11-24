@@ -68,7 +68,11 @@ function Walkthrough({ open, steps, onClose, onComplete }) {
   const [targetRect, setTargetRect] = useState(null)
   const [viewport, setViewport] = useState({ width: window.innerWidth, height: window.innerHeight })
   const enteredStepRef = useRef(-1)
-  const measureTimeoutRef = useRef(null)
+  const measureTimeoutsRef = useRef([])
+  const clearMeasureTimeouts = useCallback(() => {
+    measureTimeoutsRef.current.forEach(clearTimeout)
+    measureTimeoutsRef.current = []
+  }, [])
 
   const currentStep = steps[stepIndex]
   const total = steps.length
@@ -101,8 +105,15 @@ function Walkthrough({ open, steps, onClose, onComplete }) {
       setTargetRect(null)
       return
     }
-    // Scroll target into view if it's fully off-screen
     const rect = el.getBoundingClientRect()
+    // A target hidden by CSS (e.g. a desktop-only button on a phone) still
+    // exists in the DOM but measures 0×0. Treat it as missing so the step
+    // falls back to a centered card instead of spotlighting the page corner.
+    if (rect.width === 0 && rect.height === 0) {
+      setTargetRect(null)
+      return
+    }
+    // Scroll target into view if it's fully off-screen
     if (rect.bottom < 0 || rect.top > window.innerHeight) {
       el.scrollIntoView({ behavior: 'smooth', block: 'center' })
     }
@@ -118,12 +129,18 @@ function Walkthrough({ open, steps, onClose, onComplete }) {
 
   // Run onEnter side effects (e.g. open Advanced / Exit Math) once per step, then measure
   useLayoutEffect(() => {
-    if (!open || !currentStep) return
+    if (!open || !currentStep) {
+      clearMeasureTimeouts()
+      return
+    }
     if (enteredStepRef.current === stepIndex) {
       measureTarget()
       return
     }
     enteredStepRef.current = stepIndex
+    // Retries left over from the previous step would re-measure with that
+    // step's target and put the spotlight on the wrong element.
+    clearMeasureTimeouts()
     if (typeof currentStep.onEnter === 'function') {
       currentStep.onEnter()
     }
@@ -132,13 +149,14 @@ function Walkthrough({ open, steps, onClose, onComplete }) {
       // Retry measurement a few times so the just-toggled panel has time to render
       const attempts = [0, 60, 160, 320]
       attempts.forEach((delay) => {
-        const id = setTimeout(measureTarget, delay)
-        measureTimeoutRef.current = id
+        measureTimeoutsRef.current.push(setTimeout(measureTarget, delay))
       })
     } else {
       measureTarget()
     }
-  }, [open, stepIndex, currentStep, measureTarget])
+  }, [open, stepIndex, currentStep, measureTarget, clearMeasureTimeouts])
+
+  useEffect(() => clearMeasureTimeouts, [clearMeasureTimeouts])
 
   // Re-measure on resize / scroll
   useEffect(() => {

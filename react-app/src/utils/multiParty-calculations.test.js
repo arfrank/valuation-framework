@@ -937,12 +937,14 @@ describe('Hand-computed scenario verification', () => {
   describe('Scenario 8: SAFE conversion with founders', () => {
     // $100M post, $20M round, SAFE: $5M at $80M cap
     // preMoneyVal = 80, conversionPrice = min(80,80) = 80
-    // safePercent = 5/80*100 = 6.25%
-    // totalNewOwnership = 20+6.25 = 26.25%
-    // Alice: 60*73.75/100 = 44.25, Bob: 30*73.75/100 = 22.13
-    // preRoundUnknown = 100-60-30 = 10%
-    // totalAccounted = 20+6.25+44.25+22.13 = 92.63
-    // unknownOwnership = 7.37
+    // The SAFE owns 5/80 = 6.25% of the company before the new money, and is
+    // then diluted by the 20% round like every pre-round holder: 6.25*0.8 = 5%.
+    // (The cap equals the round's pre-money, so the SAFE pays the round price
+    // and gets what $5M of new money gets: 5/100 = 5%.)
+    // Pre-round holders keep (1 - 0.0625) * 0.8 = 75%:
+    // Alice: 60*0.75 = 45, Bob: 30*0.75 = 22.5
+    // preRoundUnknown = 100-60-30 = 10% -> 7.5%
+    // totalAccounted = 20+5+45+22.5 = 92.5
     const inputs = {
       postMoneyVal: 100, roundSize: 20,
       investorPortion: 15, otherPortion: 5,
@@ -960,7 +962,9 @@ describe('Hand-computed scenario verification', () => {
 
     it('should convert SAFE at cap valuation', () => {
       const r = calculateEnhancedScenario(inputs)
-      expect(r.totalSafePercent).toBe(6.25)
+      expect(r.totalSafePercent).toBe(5)
+      expect(r.safeDetails[0].preRoundPercent).toBe(6.25)
+      expect(r.safeDetails[0].percent).toBe(5)
       expect(r.safeDetails[0].conversionPrice).toBe(80)
     })
 
@@ -968,15 +972,16 @@ describe('Hand-computed scenario verification', () => {
       const r = calculateEnhancedScenario(inputs)
       const alice = r.founders.find(f => f.name === 'Alice')
       const bob = r.founders.find(f => f.name === 'Bob')
-      // 60*73.75/100=44.25, 30*73.75/100=22.125→22.13
-      expect(alice.postRoundPercent).toBe(44.25)
-      expect(bob.postRoundPercent).toBeCloseTo(22.13, 1)
+      // 60*0.9375*0.8 = 45, 30*0.9375*0.8 = 22.5
+      expect(alice.postRoundPercent).toBe(45)
+      expect(bob.postRoundPercent).toBe(22.5)
     })
 
     it('should correctly compute unknown ownership', () => {
       const r = calculateEnhancedScenario(inputs)
       expect(r.preRoundUnknownPercent).toBe(10) // 100-60-30
-      expect(r.totalOwnership + r.unknownOwnership).toBeCloseTo(100, 1)
+      expect(r.unknownOwnership).toBeCloseTo(7.5, 4) // 10 * 0.9375 * 0.8
+      expect(r.totalOwnership).toBeCloseTo(92.5, 4)
     })
   })
 

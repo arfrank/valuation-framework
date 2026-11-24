@@ -1,22 +1,31 @@
 import Notification from './Notification'
 
 const NotificationContainer = ({ notifications, onRemove }) => {
+  // The container owns the position and stacking: toasts flow in a column so
+  // they never sit on top of each other, and sit above the import modal
+  // (10500) and the walkthrough (10000) so their messages stay readable.
   return (
-    <div style={{ position: 'fixed', top: 0, right: 0, zIndex: 1000 }}>
-      {notifications.map((notification, index) => (
-        <div 
+    <div
+      style={{
+        position: 'fixed',
+        top: '20px',
+        right: '20px',
+        zIndex: 11000,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'flex-end',
+        gap: '8px',
+        pointerEvents: 'none'
+      }}
+    >
+      {notifications.map((notification) => (
+        <Notification
           key={notification.id}
-          style={{
-            marginTop: index * 60 + 'px' // Stack notifications vertically
-          }}
-        >
-          <Notification
-            message={notification.message}
-            type={notification.type}
-            duration={notification.duration}
-            onClose={() => onRemove(notification.id)}
-          />
-        </div>
+          message={notification.message}
+          type={notification.type}
+          duration={notification.duration}
+          onClose={() => onRemove(notification.id)}
+        />
       ))}
     </div>
   )

@@ -238,9 +238,12 @@ describe('Two-Step Round Calculations', () => {
       })
 
       expect(result.totalSafeAmount).toBe(30)
-      // SAFE converts at $300M cap: 30/300 = 10%
-      // Then diluted by step 2: 10% * 0.8 = 8%
-      expect(result.totalSafePercent).toBeCloseTo(8, 1)
+      // SAFE converts at $300M cap: 30/300 = 10% of the company before the round.
+      // Diluted by step 1 (100 at 400 post = 25%): 10% * 0.75 = 7.5%
+      // Then by step 2 (200 at 1000 post = 20%): 7.5% * 0.8 = 6%
+      expect(result.totalSafePercent).toBeCloseTo(6, 4)
+      // Founders: 100 * (1 - 0.10) * 0.75 * 0.8 = 54
+      expect(result.founders[0].postRoundPercent).toBeCloseTo(54, 4)
     })
   })
 

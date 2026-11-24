@@ -91,8 +91,15 @@ function App() {
   const companies = useMemo(() => normalizeStoredCompanies(storedCompanies), [storedCompanies])
   const [activeCompany, setActiveCompany] = useState(() => getFirstCompanyId(companies))
   const [nextCompanyId, setNextCompanyId] = useState(() => getNextCompanyNumber(companies))
-  const [selectedCompanyIds, setSelectedCompanyIds] = useLocalStorage('valuationFrameworkSelected', [])
+  const [storedSelectedCompanyIds, setSelectedCompanyIds] = useLocalStorage('valuationFrameworkSelected', [])
+  // A corrupt stored value (null, object, string) must not take the app down.
+  const selectedCompanyIds = useMemo(
+    () => (Array.isArray(storedSelectedCompanyIds) ? storedSelectedCompanyIds : []),
+    [storedSelectedCompanyIds]
+  )
   const [hasLoadedFromURL, setHasLoadedFromURL] = useState(false)
+  const initialSearchRef = useRef(typeof window !== 'undefined' ? window.location.search : '')
+  const arrivedWithQueryRef = useRef(Boolean(initialSearchRef.current))
 
   const [scenarios, setScenarios] = useState([])
   const [baseScenariosById, setBaseScenariosById] = useState({})
@@ -138,6 +145,7 @@ function App() {
 
   const handleSharePermalink = async (scenarioData) => {
     const result = await sharePermalink(scenarioData)
+    if (result.cancelled) return result
     if (result.success) {
       const label = scenarioData?.name ? ` for ${scenarioData.name}` : ''
       showSuccess(`${result.fallback ? 'Permalink copied' : 'Scenario shared'}${label}`, 1800)
@@ -295,7 +303,7 @@ function App() {
     delete newCompanies[companyId]
     setStoredCompanies(newCompanies)
 
-    setSelectedCompanyIds(prev => prev.filter(id => id !== companyId))
+    setSelectedCompanyIds(prev => (Array.isArray(prev) ? prev : []).filter(id => id !== companyId))
 
     if (activeCompany === companyId) {
       setActiveCompany(Object.keys(newCompanies)[0])
@@ -303,11 +311,12 @@ function App() {
   }
 
   const toggleCompareSelection = (companyId) => {
-    setSelectedCompanyIds(prev => (
-      prev.includes(companyId)
-        ? prev.filter(id => id !== companyId)
-        : [...prev, companyId]
-    ))
+    setSelectedCompanyIds(prev => {
+      const current = Array.isArray(prev) ? prev : []
+      return current.includes(companyId)
+        ? current.filter(id => id !== companyId)
+        : [...current, companyId]
+    })
   }
 
   useEffect(() => {
@@ -315,7 +324,9 @@ function App() {
     const normalized = JSON.stringify(companies)
 
     if (raw !== normalized) {
-      setStoredCompanies(companies)
+      // Normalize whatever is stored *now*: another effect in this commit may
+      // already have added a company that this render's snapshot doesn't have.
+      setStoredCompanies(prev => normalizeStoredCompanies(prev))
     }
   }, [storedCompanies, companies, setStoredCompanies])
 
@@ -357,13 +368,20 @@ function App() {
         }))
         setNextCompanyId(prev => prev + 1)
         setActiveCompany(newCompanyId)
-        showSuccess(decodedName
-          ? `Loaded "${decodedName}" from shared link`
-          : 'Loaded scenario from shared link')
+        if (Array.isArray(urlScenario.importWarnings) && urlScenario.importWarnings.length > 0) {
+          showError(urlScenario.importWarnings[0], 8000)
+        } else {
+          showSuccess(decodedName
+            ? `Loaded "${decodedName}" from shared link`
+            : 'Loaded scenario from shared link')
+        }
+      } else if (initialSearchRef.current && new URLSearchParams(initialSearchRef.current).has('pmv')) {
+        // The visitor followed a scenario link that could not be decoded.
+        showError("Couldn't read that shared link — it may be incomplete. Ask for it to be sent again.", 8000)
       }
       setHasLoadedFromURL(true)
     }
-  }, [hasLoadedFromURL, nextCompanyId, setStoredCompanies, showSuccess])
+  }, [hasLoadedFromURL, nextCompanyId, setStoredCompanies, showSuccess, showError])
 
   // Stable refs so the auto-launch effect runs once without re-firing when companies change
   const ensureExampleRef = useRef(ensureExample)
@@ -372,8 +390,9 @@ function App() {
   // Auto-launch the tour on first visit
   useEffect(() => {
     // Skip onboarding when arriving via a permalink — the URL scenario
-    // is what the user came to see.
-    if (typeof window !== 'undefined' && window.location.search) {
+    // is what the user came to see. The query string is captured on first
+    // render because the permalink loader clears it before this effect runs.
+    if (arrivedWithQueryRef.current) {
       return
     }
     try {
@@ -408,6 +427,16 @@ function App() {
   }), [activeCompany, updateCompany, ensureCompareDemo])
 
 
+  // This effect re-runs on every edit. While a company stays invalid, show its
+  // error once rather than stacking a new toast for each keystroke.
+  const lastCalculationErrorRef = useRef(null)
+  const showCalculationError = useCallback((message) => {
+    const key = `${activeCompany}:${message}`
+    if (lastCalculationErrorRef.current === key) return
+    lastCalculationErrorRef.current = key
+    showError(message)
+  }, [activeCompany, showError])
+
   useEffect(() => {
     const currentCompany = companies[activeCompany]
     if (currentCompany) {
@@ -418,7 +447,7 @@ function App() {
       // Check if the result is an error object
       if (newScenarios && newScenarios.error) {
         if (!currentCompany.roundConstructPending) {
-          showError(newScenarios.errorMessage)
+          showCalculationError(newScenarios.errorMessage)
         }
         setScenarios([]) // Clear scenarios
       } else if (!newScenarios || newScenarios.length === 0) {
@@ -428,10 +457,11 @@ function App() {
         const totalOwnership = totalPriorOwnership + totalFounderOwnership
 
         if (totalOwnership > 100) {
-          showError(`Cannot calculate scenarios: Total pre-round ownership is ${totalOwnership.toFixed(1)}% (exceeds 100%). Please adjust prior investor and founder ownership percentages.`)
+          showCalculationError(`Cannot calculate scenarios: Total pre-round ownership is ${totalOwnership.toFixed(1)}% (exceeds 100%). Please adjust prior investor and founder ownership percentages.`)
         }
         setScenarios([]) // Clear scenarios
       } else {
+        lastCalculationErrorRef.current = null
         setScenarios(newScenarios)
       }
 
@@ -440,7 +470,7 @@ function App() {
     } else {
       setScenarios([]) // Clear scenarios if no valid company
     }
-  }, [companies, activeCompany, showError])
+  }, [companies, activeCompany, showCalculationError])
 
   useEffect(() => {
     const validSelected = selectedCompanyIds.filter(id => companies[id])
@@ -513,6 +543,7 @@ function App() {
 
         <div className={`top-row${showExitMath ? ' with-exit-math' : ''}${isCompareMode ? ' compare-mode' : ''}${advancedOpen ? ' advanced-open' : ''}${companies[activeCompany]?.inputsCollapsed ? ' inputs-collapsed' : ''}`}>
           <InputForm
+            companyId={activeCompany}
             company={companies[activeCompany]}
             onUpdate={(data) => updateCompanyFromInputs(activeCompany, data)}
             collapsed={inputFormCollapsed}

@@ -3,11 +3,11 @@ name: Run Tests
 on:
   # Trigger on pushes to main branch
   push:
-    branches: [ main, master ]
+    branches: [ main ]
   
   # Trigger on pull requests targeting main branch
   pull_request:
-    branches: [ main, master ]
+    branches: [ main ]
   
   # Allow manual triggering
   workflow_dispatch:

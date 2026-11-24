@@ -15,10 +15,9 @@ export default defineConfig([
       reactRefresh.configs.vite,
     ],
     languageOptions: {
-      ecmaVersion: 2020,
+      ecmaVersion: 'latest',
       globals: {
         ...globals.browser,
-        ...globals.node, // For test files
       },
       parserOptions: {
         ecmaVersion: 'latest',
@@ -31,6 +30,15 @@ export default defineConfig([
     },
   },
   {
+    // Build and tool config runs in Node, not the browser.
+    files: ['*.config.js'],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+      },
+    },
+  },
+  {
     files: ['**/*.test.{js,jsx}', '**/test/**/*.{js,jsx}', '**/__tests__/**/*.{js,jsx}'],
     languageOptions: {
       globals: {
@@ -39,6 +47,7 @@ export default defineConfig([
         vi: 'readonly',
         describe: 'readonly',
         it: 'readonly',
+        test: 'readonly',
         expect: 'readonly',
         beforeEach: 'readonly',
         afterEach: 'readonly',

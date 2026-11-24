@@ -1,22 +1,33 @@
 import { createFounder, calculateTotalOwnership } from '../utils/dataStructures'
 import FormInput from './FormInput'
-import { useEffect, useState } from 'react'
+import { useTimeouts } from '../hooks/useTimeouts'
+import { useEffect, useRef, useState } from 'react'
 
 function FoundersSection({ founders = [], onUpdate }) {
   const [recentRowKey, setRecentRowKey] = useState(null)
   const [removingRows, setRemovingRows] = useState({})
   const [undoNotice, setUndoNotice] = useState(null)
 
+  // Deferred callbacks (removal timer, Undo) read the latest list and handler
+  // so they never write back a stale snapshot over newer edits.
+  const listRef = useRef(founders)
+  listRef.current = founders
+  const onUpdateRef = useRef(onUpdate)
+  onUpdateRef.current = onUpdate
+
+  // Cleared on unmount, so a pending removal can't fire against another company.
+  const schedule = useTimeouts()
+
   const markRecentRow = (key) => {
     setRecentRowKey(key)
-    setTimeout(() => {
+    schedule(() => {
       setRecentRowKey((current) => (current === key ? null : current))
     }, 850)
   }
 
   const markRemovingRow = (key) => {
     setRemovingRows(prev => ({ ...prev, [key]: true }))
-    setTimeout(() => {
+    schedule(() => {
       setRemovingRows(prev => {
         const next = { ...prev }
         delete next[key]
@@ -28,11 +39,13 @@ function FoundersSection({ founders = [], onUpdate }) {
   const showRowUndo = (label, onUndo) => {
     const notice = { id: Date.now(), label, onUndo }
     setUndoNotice(notice)
-    setTimeout(() => {
+    schedule(() => {
       setUndoNotice((current) => (current?.id === notice.id ? null : current))
     }, 4200)
   }
 
+  // Focus the new row's name once. This must not re-run as the list changes,
+  // or it re-selects the field on every keystroke and typed characters are lost.
   useEffect(() => {
     if (!recentRowKey) return
     const rowId = recentRowKey.replace('founder-', 'founder-name-')
@@ -44,7 +57,7 @@ function FoundersSection({ founders = [], onUpdate }) {
       }
     }, 60)
     return () => clearTimeout(id)
-  }, [recentRowKey, founders])
+  }, [recentRowKey])
 
   const addFounder = () => {
     const newFounder = createFounder('New Founder', 0)
@@ -70,12 +83,12 @@ function FoundersSection({ founders = [], onUpdate }) {
     if (!removed) return
     const originalIndex = founders.findIndex(founder => founder.id === founderId)
     markRemovingRow(`founder-${founderId}`)
-    setTimeout(() => {
-      onUpdate(founders.filter(founder => founder.id !== founderId))
+    schedule(() => {
+      onUpdateRef.current(listRef.current.filter(founder => founder.id !== founderId))
       showRowUndo('Founder removed', () => {
-        const restored = founders.filter(founder => founder.id !== founderId)
-        restored.splice(Math.max(0, originalIndex), 0, removed)
-        onUpdate(restored)
+        const restored = listRef.current.filter(founder => founder.id !== founderId)
+        restored.splice(Math.min(Math.max(0, originalIndex), restored.length), 0, removed)
+        onUpdateRef.current(restored)
         markRecentRow(`founder-${founderId}`)
       })
     }, 180)

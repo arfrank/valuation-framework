@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTimeouts } from '../hooks/useTimeouts'
 import { buildScenarioOffsets, formatScenarioOffsetValue, normalizeScenarioOffsets } from '../utils/scenarioOffsets'
 
 const PRESETS = [
@@ -16,6 +17,7 @@ const formatOffset = (n) => {
 const isSameBand = (a, b) => JSON.stringify(a) === JSON.stringify(b)
 
 const ScenarioControls = ({ offsets = [], onChange }) => {
+  const schedule = useTimeouts()
   const [adding, setAdding] = useState(false)
   const [draft, setDraft] = useState('')
   const [customCommitted, setCustomCommitted] = useState(false)
@@ -35,7 +37,7 @@ const ScenarioControls = ({ offsets = [], onChange }) => {
       if (max > 0 && max < 100) {
         onChange(buildScenarioOffsets(max))
         setCustomCommitted(true)
-        setTimeout(() => setCustomCommitted(false), 700)
+        schedule(() => setCustomCommitted(false), 700)
       }
     }
     setDraft('')

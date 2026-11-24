@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 
 const FormInput = ({
   label,
@@ -25,7 +25,11 @@ const FormInput = ({
   const [isFocused, setIsFocused] = useState(false)
   const [commitPulse, setCommitPulse] = useState(0)
 
-  const inputId = id || `form-input-${label.toLowerCase().replace(/\s+/g, '-')}`
+  // Several inputs share a label (e.g. the main round and step 2 both have a
+  // "Portion" field), so a label-derived id alone would be duplicated and the
+  // second label would focus the first input.
+  const autoId = useId()
+  const inputId = id || `form-input-${String(label || 'field').toLowerCase().replace(/\s+/g, '-')}-${autoId}`
 
   const pulseCommit = () => {
     setCommitPulse((v) => v + 1)
