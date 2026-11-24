@@ -28,13 +28,6 @@ jobs:
       working-directory: ./react-app
       run: npm run lint
     
-    - name: Check for TypeScript errors (if applicable)
-      working-directory: ./react-app
-      run: |
-        if [ -f "tsconfig.json" ]; then
-          npm run typecheck || echo "No typecheck script found"
-        fi
-    
     - name: Test build
       working-directory: ./react-app
       run: npm run build
@@ -42,7 +35,6 @@ jobs:
     - name: Check bundle size
       working-directory: ./react-app
       run: |
-        npm run build
         echo "Bundle size check:"
         du -sh dist/
         
@@ -73,20 +65,12 @@ jobs:
       working-directory: ./react-app
       run: npm ci
     
-    - name: Run security audit
+    # Fails the check on a high or critical advisory in what ships to users.
+    - name: Audit production dependencies
       working-directory: ./react-app
-      run: |
-        # Run npm audit but don't fail on low severity issues
-        npm audit --audit-level moderate || echo "Some security issues found, please review"
-    
-    - name: Check for sensitive data
-      run: |
-        echo "Checking for potentially sensitive data..."
-        
-        # Check for common sensitive patterns
-        if grep -r -i "password\|secret\|key\|token" --include="*.js" --include="*.jsx" --include="*.ts" --include="*.tsx" react-app/src/ | grep -v test | grep -v "// " | grep -v "/* "; then
-          echo "⚠️  WARNING: Potential sensitive data found in source code"
-          echo "Please review the above matches to ensure no secrets are committed"
-        else
-          echo "✅ No obvious sensitive data patterns found"
-        fi
+      run: npm audit --omit=dev --audit-level=high
+
+    # Informational: build and test tooling never reaches users.
+    - name: Report dev dependency advisories
+      working-directory: ./react-app
+      run: npm audit --audit-level=moderate || true

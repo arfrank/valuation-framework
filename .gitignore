@@ -7,3 +7,15 @@ node_modules
 .playwright-mcp/
 /esop-*.png
 compare-mode.png
+
+# Local screenshots and scratch documents from QA sessions
+/*.png
+/*.pdf
+
+# Agent / Conductor scratch
+.context/
+.conductor/settings.local.*
+
+# Build and coverage output if ever produced at the root
+/coverage/
+/dist/
