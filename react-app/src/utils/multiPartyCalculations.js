@@ -230,9 +230,14 @@ function withTrimmedPartyNames(company) {
   }
 }
 
+// Letter case is ignored as well as surrounding whitespace, because the
+// roll-up of combined positions already groups names that way. With a
+// case-sensitive match here, a prior position entered as "lsvp" under firm
+// "LSVP" was neither combined with the firm nor shown in the roll-up, and
+// took its pro-rata out of Other on top of the firm's check.
 function isSameInvestor(a, b) {
-  const left = typeof a === 'string' ? a.trim() : ''
-  const right = typeof b === 'string' ? b.trim() : ''
+  const left = typeof a === 'string' ? a.trim().toLowerCase() : ''
+  const right = typeof b === 'string' ? b.trim().toLowerCase() : ''
   return left !== '' && left === right
 }
 

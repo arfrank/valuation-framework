@@ -215,6 +215,44 @@ describe('converted SAFEs are diluted by a priced round', () => {
   })
 })
 
+describe('firm name matching ignores letter case', () => {
+  it('combines a prior position entered as "lsvp" with firm "LSVP"', () => {
+    const result = calculateEnhancedScenario({
+      ...base,
+      founders: [{ id: 'f', name: 'Founder', ownershipPercent: 90 }],
+      priorInvestors: [{ id: 'p', name: 'lsvp', ownershipPercent: 10, hasProRataRights: true }]
+    })
+
+    // 10% prior diluted by the 20% round is 8%, on top of the 15% bought now.
+    expect(result.combinedInvestor.priorDilutedPercent).toBeCloseTo(8, 4)
+    expect(result.combinedInvestor.totalOwnership).toBeCloseTo(23, 4)
+    // The firm's own pro-rata is part of its check, not taken from Other.
+    expect(result.totalProRataAmount).toBe(0)
+    expect(result.otherPercent).toBeCloseTo(5, 4)
+  })
+
+  it('attributes a SAFE entered as "lsvp" to firm "LSVP"', () => {
+    const result = calculateEnhancedScenario({
+      ...base,
+      safes: [{ id: 's', amount: 5, cap: 50, discount: 0, investorName: 'lsvp' }]
+    })
+
+    expect(result.combinedInvestor.safePercent).toBeCloseTo(8, 4)
+    expect(result.combinedInvestor.totalOwnership).toBeCloseTo(23, 4)
+  })
+
+  it('still treats different names as different parties', () => {
+    const result = calculateEnhancedScenario({
+      ...base,
+      founders: [{ id: 'f', name: 'Founder', ownershipPercent: 90 }],
+      priorInvestors: [{ id: 'p', name: 'LSVP II', ownershipPercent: 10, hasProRataRights: false }]
+    })
+
+    expect(result.combinedInvestor.priorDilutedPercent).toBe(0)
+    expect(result.combinedInvestor.totalOwnership).toBeCloseTo(15, 4)
+  })
+})
+
 describe('firm name matching ignores surrounding whitespace', () => {
   it('attributes a SAFE named "LSVP " to firm "LSVP"', () => {
     const result = calculateEnhancedScenario({

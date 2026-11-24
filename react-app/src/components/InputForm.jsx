@@ -1050,7 +1050,7 @@ const InputForm = ({ company, companyId, onUpdate, collapsed = false, onToggleCo
                       const calculatedProRata = (safeOwnership / 100) * values.roundSize
                       const hasOverride = safe.proRataOverride != null
                       const displayAmount = hasOverride ? safe.proRataOverride : calculatedProRata
-                      const matchesLead = (safe.investorName || '').trim() === (values.investorName || 'US').trim()
+                      const matchesLead = (safe.investorName || '').trim().toLowerCase() === (values.investorName || 'US').trim().toLowerCase()
                       proRataBlock = { calculatedProRata, hasOverride, displayAmount, matchesLead: matchesLead && !!safe.investorName, suppressed: isSafeRound }
                     }
                   }
